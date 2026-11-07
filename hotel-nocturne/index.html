@@ -1,0 +1,1138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<title>Hotel Nocturne</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Limelight&family=Spectral:ital,wght@0,400;0,600;1,400&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one narrow column, like a hotel register page: framed still, clock bar, story, key-tag choices. Deliberately night-only. */
+:root{
+  --ink:#140f1c;        /* page: midnight plum */
+  --panel:#1e1729;      /* raised surfaces */
+  --wine:#4a1f33;       /* wallpaper red */
+  --brass:#cfa651;      /* fittings, accents */
+  --brass-dim:#8a6d35;
+  --cream:#eee2cc;      /* text */
+  --muted:#a99db5;      /* secondary text */
+  --ghost:#8fd3c4;      /* spectral highlight */
+  --display:"Limelight","Didot","Bodoni 72",Georgia,serif;
+  --body:"Spectral",Georgia,"Times New Roman",serif;
+  --mono:"DM Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+html,body{background:var(--ink);color:var(--cream)}
+body{font-family:var(--body);font-size:18px;line-height:1.6;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px;
+  background-image:radial-gradient(ellipse at 50% -10%, #2a1d3a 0%, transparent 60%);background-attachment:fixed}
+.wrap{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(26px,5vw,36px);letter-spacing:.06em;margin:0;color:var(--brass);text-wrap:balance}
+h1 small{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.22em;color:var(--muted);text-transform:uppercase;margin-top:2px}
+.ledger-btn{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--brass);background:none;border:1px solid var(--brass-dim);padding:7px 12px;border-radius:2px;cursor:pointer}
+.ledger-btn:hover,.ledger-btn:focus-visible{background:var(--brass);color:var(--ink);outline:none}
+
+.still{position:relative;border:1px solid var(--brass-dim);padding:6px;background:var(--panel);box-shadow:0 18px 50px -20px #000}
+.still::before,.still::after{content:"";position:absolute;width:14px;height:14px;border:2px solid var(--brass)}
+.still::before{top:-4px;left:-4px;border-right:0;border-bottom:0}
+.still::after{bottom:-4px;right:-4px;border-left:0;border-top:0}
+.still svg{display:block;width:100%;height:auto;aspect-ratio:16/9;max-width:100%}
+.caption{position:absolute;left:14px;bottom:12px;font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--cream);background:#140f1ccc;padding:3px 8px}
+
+.bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-family:var(--mono);font-size:13px;color:var(--muted)}
+.clock{color:var(--brass);font-size:15px;font-variant-numeric:tabular-nums;letter-spacing:.06em;white-space:nowrap}
+.night{flex:1 1 140px;height:6px;border-radius:3px;background:linear-gradient(90deg,#1b1530,#3a2a55 55%,#d9826b 85%,#f7c66b);position:relative;min-width:120px}
+.night i{position:absolute;top:-4px;width:2px;height:14px;background:var(--cream);transition:left .6s}
+.pocket{display:flex;gap:6px;flex-wrap:wrap;width:100%}
+.pocket span{font-size:12px;border:1px solid #3a3048;padding:2px 8px;border-radius:999px;color:var(--cream);background:#ffffff08}
+.pocket span.new{border-color:var(--ghost);color:var(--ghost)}
+.pocket em{font-style:normal;color:var(--muted);font-size:12px}
+
+.story{min-height:120px}
+.story p{margin:0 0 .85em;max-width:65ch}
+.story q{quotes:"\201C" "\201D";color:#f6ebd6;font-style:italic}
+.story .aside{color:var(--ghost);font-style:italic}
+.fade{animation:fade .5s ease both}
+@keyframes fade{from{opacity:.0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+.choices{display:flex;flex-direction:column;gap:10px}
+.choice{display:flex;align-items:center;gap:12px;text-align:left;font:inherit;font-size:17px;line-height:1.35;color:var(--cream);background:var(--panel);border:1px solid #3a3048;padding:12px 14px;border-radius:3px;cursor:pointer;transition:border-color .15s,background .15s,transform .15s}
+.choice:hover,.choice:focus-visible{border-color:var(--brass);background:#2a2036;outline:none;transform:translateX(3px)}
+.choice .tag{flex:none;width:30px;height:30px;display:grid;place-items:center;font-family:var(--mono);font-size:12px;color:var(--ink);background:var(--brass);clip-path:polygon(0 18%,50% 0,100% 18%,100% 100%,0 100%);padding-top:4px}
+.choice .t{min-width:0}
+.choice .cost{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap}
+
+.ending{border:1px solid var(--brass-dim);padding:18px;background:linear-gradient(180deg,#2a1b2e,var(--panel));display:flex;flex-direction:column;gap:6px}
+.ending .lbl{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted)}
+.ending h2{font-family:var(--display);font-weight:400;font-size:clamp(24px,5vw,32px);margin:0;color:var(--brass);letter-spacing:.04em;text-wrap:balance}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.grid div{font-size:13px;line-height:1.3;border:1px solid #3a3048;padding:8px 10px;border-radius:2px;color:var(--cream);font-family:var(--body)}
+.grid div b{display:block;font-family:var(--mono);font-weight:400;font-size:10px;color:var(--muted);letter-spacing:.15em}
+.grid div.lock{color:#5d5269;border-style:dashed}
+.grid div.cur{border-color:var(--brass);color:var(--brass)}
+.ledger{display:flex;flex-direction:column;gap:12px}
+.ledger h3{font-family:var(--display);font-weight:400;color:var(--brass);margin:0;font-size:22px}
+.ledger p{margin:0;color:var(--muted);font-size:15px}
+.foot{font-family:var(--mono);font-size:11px;color:#6e6280;letter-spacing:.08em;text-align:center}
+
+/* svg animation */
+.rain{animation:rain .45s linear infinite}
+@keyframes rain{from{transform:translate(12px,-70px)}to{transform:translate(0,0)}}
+.flick{animation:flick 3s infinite}
+.flick2{animation:flick 2.3s .7s infinite}
+@keyframes flick{0%,100%{opacity:1}45%{opacity:.75}50%{opacity:.95}52%{opacity:.55}55%{opacity:1}}
+.neon{animation:neon 4s infinite}
+@keyframes neon{0%,100%{opacity:1}70%{opacity:1}71%{opacity:.2}72%{opacity:1}74%{opacity:.3}75%{opacity:1}}
+.twinkle{animation:tw 2.4s ease-in-out infinite}
+@keyframes tw{0%,100%{opacity:.25}50%{opacity:1}}
+.pulse{animation:pulse 1.6s ease-in-out infinite;transform-origin:400px 250px}
+@keyframes pulse{0%,100%{transform:scale(1)}12%{transform:scale(1.06)}24%{transform:scale(.99)}36%{transform:scale(1.04)}}
+.steam{animation:steam 4s ease-in-out infinite}
+@keyframes steam{0%{transform:translateY(10px);opacity:0}30%{opacity:.6}100%{transform:translateY(-40px);opacity:0}}
+.sway{animation:sway 5s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%}
+@keyframes sway{0%,100%{transform:translateX(-6px)}50%{transform:translateX(6px)}}
+.spin{animation:spin 40s linear infinite;transform-box:fill-box;transform-origin:center}
+.spinr{animation:spin 30s linear infinite reverse;transform-box:fill-box;transform-origin:center}
+@keyframes spin{to{transform:rotate(360deg)}}
+.flutter{animation:flutter 3s ease-in-out infinite}
+@keyframes flutter{0%,100%{transform:translate(0,0)}25%{transform:translate(6px,-8px)}50%{transform:translate(-4px,-3px)}75%{transform:translate(3px,6px)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:480px){body{font-size:17px}.choice{font-size:16px}.choice .cost{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Hotel Nocturne<small>Vacancy · Always</small></h1>
+    <button class="ledger-btn" id="ledgerBtn" type="button">Guest ledger</button>
+  </header>
+  <div class="still" id="still"></div>
+  <div class="bar" id="bar"></div>
+  <main id="main"></main>
+  <div class="foot">Number keys pick a choice · Endings you find are kept in this browser</div>
+</div>
+
+<script>
+/* ===================== PICTURES ===================== */
+function rng(seed){let s=seed>>>0;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296}}
+function svg(inner,defs=''){
+  return `<svg viewBox="0 0 800 450" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="true">
+  <defs>
+    <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .55 0"/></filter>
+    <radialGradient id="vig" cx="50%" cy="50%" r="70%"><stop offset="55%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#000" stop-opacity=".75"/></radialGradient>
+    <radialGradient id="glowW" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#ffd27a" stop-opacity=".9"/><stop offset="1" stop-color="#ffd27a" stop-opacity="0"/></radialGradient>
+    <radialGradient id="glowG" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#8fd3c4" stop-opacity=".8"/><stop offset="1" stop-color="#8fd3c4" stop-opacity="0"/></radialGradient>
+    ${defs}
+  </defs>
+  ${inner}
+  <rect width="800" height="450" filter="url(#grain)" opacity=".35"/>
+  <rect width="800" height="450" fill="url(#vig)"/>
+  </svg>`;
+}
+function sky(a,b,id='sky'){return [`<linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient>`,`<rect width="800" height="450" fill="url(#${id})"/>`]}
+function stars(n,seed,maxY=250){const r=rng(seed);let s='';for(let i=0;i<n;i++){s+=`<circle cx="${(r()*800)|0}" cy="${(r()*maxY)|0}" r="${(r()*1.3+.3).toFixed(1)}" fill="#f4ecd8" class="${r()>.7?'twinkle':''}" style="animation-delay:${(r()*2).toFixed(1)}s" opacity=".8"/>`}return s}
+function rain(seed,op=.35){const r=rng(seed);let s=`<g class="rain" opacity="${op}" stroke="#b9c3e6" stroke-width="1.2">`;for(let i=0;i<120;i++){const x=(r()*860)|0,y=(r()*520-70)|0;s+=`<line x1="${x}" y1="${y}" x2="${x-6}" y2="${y+22}"/>`}return s+'</g>'}
+function moon(x,y,r,c='#f3e6c4'){return `<circle cx="${x}" cy="${y}" r="${r*3}" fill="url(#glowW)" opacity=".25"/><circle cx="${x}" cy="${y}" r="${r}" fill="${c}"/><circle cx="${x-r*.3}" cy="${y-r*.2}" r="${r*.18}" fill="#000" opacity=".07"/><circle cx="${x+r*.35}" cy="${y+r*.3}" r="${r*.12}" fill="#000" opacity=".07"/>`}
+function hotel(x,y,s,lit=true){ // silhouette on a hill
+  const r=rng(7);let w='';
+  const body=`<g transform="translate(${x},${y}) scale(${s})"><path d="M-110 0V-70H-90V-110L-80-125-70-110V-70H70V-110L80-125 90-110V-70H110V0Z" fill="#0a0814"/><path d="M-40-70V-95L0-120 40-95V-70Z" fill="#0a0814"/><rect x="-6" y="-150" width="12" height="32" fill="#0a0814"/><circle cx="0" cy="-100" r="9" fill="#1d1830"/>`;
+  if(lit){for(let row=0;row<3;row++)for(let c=0;c<9;c++){if(r()>.25)w+=`<rect x="${-100+c*23}" y="${-60+row*18}" width="9" height="11" fill="#f2b84b" class="${r()>.8?'flick':''}" opacity="${(.6+r()*.4).toFixed(2)}"/>`}}
+  return body+w+'</g>';
+}
+const P={};
+P.road=()=>{const [d,s]=sky('#07061a','#2c2445');return svg(`${s}${stars(30,3,180)}
+  <path d="M0 290 Q190 210 430 240 T800 270 V450 H0Z" fill="#141026"/>
+  ${hotel(560,238,.9)}
+  <circle cx="560" cy="180" r="120" fill="url(#glowW)" opacity=".18"/>
+  <text x="560" y="262" text-anchor="middle" font-family="Limelight,serif" font-size="15" fill="#ff7a9a" class="neon" letter-spacing="3">NOCTURNE</text>
+  <path d="M0 330 Q300 300 800 320 V450 H0Z" fill="#0d0b18"/>
+  <path d="M330 450 L385 320 L415 320 L470 450Z" fill="#1a1626"/><path d="M398 450 L400 330 L402 450" stroke="#cfa651" stroke-dasharray="14 18" stroke-width="3" opacity=".5"/>
+  <g transform="translate(150,330)"><path d="M0 70 V30 Q4 8 30 4 L60 -22 Q80 -34 130 -34 L175 -34 Q200 -34 215 -16 L240 6 Q262 10 266 32 V70Z" fill="#06050c"/><path d="M72 -14 L94 -26 H130 V-2 H66Z M140 -26 H176 Q190 -26 200 -12 L208 -2 H140Z" fill="#232038"/><circle cx="62" cy="72" r="20" fill="#06050c"/><circle cx="210" cy="72" r="20" fill="#06050c"/><rect x="246" y="24" width="14" height="7" fill="#7a1b2a"/></g>
+  ${rain(11,.4)}`,d)};
+P.gate=()=>{const [d,s]=sky('#120c26','#3b2950');let bars='';for(let x=262;x<=538;x+=18)bars+=`<rect x="${x}" y="150" width="4" height="300" fill="#07060d"/>`;
+  return svg(`${s}${stars(40,5,200)}${moon(640,100,46)}
+  ${hotel(400,300,.7)}
+  <path d="M0 330 H800 V450 H0Z" fill="#0c0a16"/>
+  <path d="M0 450 V200 Q40 170 80 200 Q120 165 170 200 Q210 175 240 210 V450Z" fill="#0f1a17"/>
+  <path d="M800 450 V200 Q760 170 720 200 Q680 168 630 200 Q590 178 560 210 V450Z" fill="#0f1a17"/>
+  <path d="M250 160 Q400 70 550 160" fill="none" stroke="#07060d" stroke-width="10"/>
+  <g fill="#07060d"><ellipse cx="370" cy="112" rx="26" ry="14" transform="rotate(-20 370 112)"/><ellipse cx="430" cy="112" rx="26" ry="14" transform="rotate(20 430 112)"/><rect x="396" y="98" width="8" height="34"/></g>
+  ${bars}<rect x="250" y="150" width="300" height="6" fill="#07060d"/><rect x="250" y="300" width="300" height="5" fill="#07060d"/>
+  <rect x="226" y="140" width="28" height="310" fill="#05040a"/><rect x="546" y="140" width="28" height="310" fill="#05040a"/>
+  <path d="M556 140 Q560 120 572 128 Q588 118 590 132 L580 140Z" fill="#05040a"/><circle cx="574" cy="126" r="2" fill="#ffd27a"/>
+  <path d="M232 140 V128 H248 V140" fill="#05040a"/><path d="M228 168 Q240 146 252 168Z" fill="#cfa651"/><circle cx="240" cy="171" r="3" fill="#cfa651"/>
+  <rect x="226" y="176" width="28" height="18" fill="#efe2cc" opacity=".85" transform="rotate(-6 240 185)"/>
+  ${rain(21,.18)}`,d)};
+P.garden=(o={})=>{const [d,s]=sky('#0e1426','#24314a');let g='';const pos=[[190,372],[255,392],[320,402],[480,402],[545,392],[610,372],[400,410],[150,410]];const n=o.eight?8:7;
+  pos.slice(0,n).forEach(([x,y],i)=>{g+=`<g transform="translate(${x},${y})"><path d="M-12 0 Q-14 -18 0 -20 Q14 -18 12 0Z" fill="#2c3a4a"/><circle cy="-24" r="8" fill="#d8b59a" opacity=".8"/><path d="M-10 -26 L0 ${-56-(i%3)*6} L10 -26Z" fill="#8f2f45"/><path d="M-7 -22 Q0 -8 7 -22Z" fill="#e8e0d2"/>${i===3?'<circle cx="-3" cy="-26" r="1.5" fill="#ffd27a"/><circle cx="3" cy="-26" r="1.5" fill="#ffd27a"/>':''}</g>`});
+  return svg(`${s}${stars(50,9,200)}${moon(130,90,34)}
+  <path d="M0 260 H800 V450 H0Z" fill="#0e1714"/>
+  <path d="M0 450 V180 H60 V160 H140 V180 H220 V300 H0Z" fill="#132820"/><path d="M800 450 V180 H740 V160 H660 V180 H580 V300 H800Z" fill="#132820"/>
+  <g transform="translate(680,250)"><rect x="-10" y="-90" width="20" height="90" fill="#2a3340"/><circle cy="-104" r="16" fill="#2a3340"/><path d="M-14 -98 L-40 -70" stroke="#2a3340" stroke-width="8"/></g>
+  <ellipse cx="400" cy="360" rx="150" ry="34" fill="#1d2633"/><ellipse cx="400" cy="352" rx="136" ry="24" fill="#2c4a66"/><ellipse cx="400" cy="350" rx="120" ry="16" fill="#4d7894" opacity=".5"/>
+  ${o.ring?'<circle cx="430" cy="352" r="4" fill="none" stroke="#ffd27a" stroke-width="2"/><circle cx="430" cy="352" r="18" fill="url(#glowW)" opacity=".5"/>':''}
+  <rect x="388" y="250" width="24" height="100" fill="#1d2633"/><ellipse cx="400" cy="252" rx="60" ry="12" fill="#1d2633"/>
+  <path d="M400 238 Q340 236 336 330 M400 238 Q460 236 464 330" stroke="#a9d3e6" stroke-width="2" fill="none" opacity=".55" class="twinkle"/>
+  <rect x="396" y="214" width="8" height="26" fill="#1d2633"/>
+  ${g}`,d)};
+P.lobby=(o={})=>{let stripes='';for(let x=0;x<800;x+=40)stripes+=`<rect x="${x}" y="0" width="16" height="300" fill="#56233a" opacity=".55"/>`;let candles='';for(let i=0;i<7;i++){const x=310+i*30,y=110+Math.abs(3-i)*-6;candles+=`<rect x="${x-2}" y="${y-14}" width="4" height="14" fill="#efe2cc"/><circle cx="${x}" cy="${y-18}" r="9" fill="url(#glowW)" class="flick"/><circle cx="${x}" cy="${y-17}" r="2.4" fill="#fff1c2"/>`}
+  let keys='';for(let i=0;i<12;i++){keys+=`<rect x="${560+(i%6)*24}" y="${150+((i/6)|0)*30}" width="10" height="16" fill="${i===6&&!o.full?'#140f1c':'#cfa651'}" opacity=".85"/>`}
+  return svg(`<rect width="800" height="450" fill="#3a1628"/>${stripes}
+  <rect x="0" y="300" width="800" height="150" fill="#1b0f1a"/><path d="M0 300 H800" stroke="#cfa651" stroke-width="3" opacity=".6"/>
+  <path d="M400 0 V70" stroke="#cfa651" stroke-width="2"/><path d="M290 110 Q400 150 510 110" stroke="#cfa651" stroke-width="4" fill="none"/>
+  <circle cx="400" cy="100" r="160" fill="url(#glowW)" opacity=".25"/>${candles}
+  <rect x="548" y="140" width="156" height="72" fill="#22101b" opacity=".6"/>${keys}
+  <g transform="translate(400,262)">
+    <path d="M-60 0 Q-70 -60 -40 -84 Q0 -100 40 -84 Q70 -60 60 0Z" fill="#4c4a58"/>
+    <path d="M-30 -60 L-15 -100 L0 -64Z" fill="#4c4a58"/>
+    <circle cy="-100" r="38" fill="#5a5868"/><path d="M-34 -118 L-28 -152 L-8 -130Z M34 -118 L28 -152 L8 -130Z" fill="#5a5868"/><path d="M-28 -124 L-25 -144 L-14 -131Z M28 -124 L25 -144 L14 -131Z" fill="#c98a96" opacity=".6"/>
+    <ellipse cx="-14" cy="-104" rx="7" ry="5" fill="#c9f27a"/><ellipse cx="14" cy="-104" rx="7" ry="5" fill="#c9f27a"/><rect x="-15" y="-109" width="2" height="10" fill="#111"/><rect x="13" y="-109" width="2" height="10" fill="#111"/>
+    <path d="M-4 -92 L4 -92 L0 -87Z" fill="#c98a96"/><path d="M-40 -88 L-14 -86 M-40 -82 L-14 -84 M40 -88 L14 -86 M40 -82 L14 -84" stroke="#efe2cc" stroke-width="1" opacity=".6"/>
+    <path d="M-22 -60 L0 -40 L22 -60 L18 0 H-18Z" fill="#6b2335"/><circle cy="-46" r="3" fill="#cfa651"/><circle cy="-30" r="3" fill="#cfa651"/>
+  </g>
+  <rect x="160" y="262" width="480" height="110" fill="#2a1420"/><rect x="150" y="252" width="500" height="14" fill="#cfa651"/>
+  <rect x="440" y="226" width="80" height="26" fill="#d8ccb3" transform="rotate(-8 480 240)"/><path d="M450 236 H508 M450 242 H500" stroke="#555" transform="rotate(-8 480 240)"/>
+  <path d="M250 240 Q256 218 270 236 Q262 246 250 240Z" fill="#cfa651"/><rect x="246" y="240" width="28" height="12" fill="#cfa651"/>
+  ${o.cap?'<g transform="translate(330,232)"><rect x="-16" y="0" width="32" height="18" fill="#a32a3c"/><rect x="-18" y="16" width="36" height="5" fill="#111"/><circle cy="-2" r="4" fill="#cfa651"/></g>':''}`)};
+P.hall=(o={})=>{let doors='';for(let i=0;i<5;i++){const t=i/5,s=1-t*.78,xl=120+t*230,xr=680-t*230,h=200*s,y=330-(330-235)*t-h,w=40*s;doors+=`<path d="M${xl} ${y+h} V${y} L${xl+w} ${y+8*s} V${y+h-6*s}Z" fill="#2a1420"/><circle cx="${xl+w*.8}" cy="${y+h*.55}" r="${2*s}" fill="#cfa651"/><path d="M${xr} ${y+h} V${y} L${xr-w} ${y+8*s} V${y+h-6*s}Z" fill="#2a1420"/><circle cx="${xr-w*.8}" cy="${y+h*.55}" r="${2*s}" fill="#cfa651"/>`;
+  if(i%2===0){doors+=`<circle cx="${xl+w+18*s}" cy="${y+30*s}" r="${26*s}" fill="url(#glowW)" class="flick" opacity=".7"/><circle cx="${xr-w-18*s}" cy="${y+30*s}" r="${26*s}" fill="url(#glowW)" class="flick2" opacity=".7"/>`}}
+  let moths='';const r=rng(31);for(let i=0;i<26;i++){const x=r()<.5?r()*330:470+r()*330;moths+=`<path transform="translate(${x|0},${(r()*230+20)|0}) scale(.6)" d="M0 0 Q-10 -8 -14 2 Q-8 8 0 2 Q8 8 14 2 Q10 -8 0 0Z" fill="#7a3550" opacity=".7" class="${r()>.85?'flutter':''}"/>`}
+  return svg(`<rect width="800" height="450" fill="#2e1220"/>
+  <path d="M0 0 H800 L470 175 H330Z" fill="#1c0b15"/><path d="M0 450 L330 260 H470 L800 450Z" fill="#160c14"/>
+  <path d="M330 260 L0 450 M470 260 L800 450" stroke="#cfa651" stroke-width="2" opacity=".35"/>
+  <path d="M0 450 L330 260 H470 L800 450 L640 450 L440 274 H360 L160 450Z" fill="#4a1f33" opacity=".7"/>
+  ${moths}${doors}
+  <rect x="352" y="186" width="96" height="74" fill="#ffe2a0" opacity=".25"/><rect x="380" y="200" width="40" height="60" fill="#ffd27a" opacity=".55"/>
+  ${o.water?'':''}
+  <g transform="translate(60,170)"><rect x="0" y="0" width="70" height="250" fill="#120810"/><path d="M0 0 Q35 -30 70 0Z" fill="#120810"/><circle cx="35" cy="34" r="24" fill="#efe2cc"/><path d="M35 34 V18 M35 34 L46 40" stroke="#120810" stroke-width="2.5"/><rect x="25" y="80" width="20" height="100" fill="#1f0f18"/><line x1="35" y1="80" x2="${o.late?28:42}" y2="160" stroke="#cfa651" stroke-width="2"/><circle cx="${o.late?28:42}" cy="162" r="7" fill="#cfa651"/></g>`)};
+P.room=()=>{return svg(`<rect width="800" height="450" fill="#2a1726"/>
+  <path d="M0 340 H800 V450 H0Z" fill="#170c14"/>
+  <g transform="translate(620,70)"><rect width="130" height="180" fill="#1c2340"/>${moon(90,50,18)}<rect width="130" height="180" fill="none" stroke="#120810" stroke-width="10"/><path d="M65 0 V180 M0 90 H130" stroke="#120810" stroke-width="6"/></g>
+  <g transform="translate(40,190)"><rect width="150" height="150" fill="#120810"/><rect x="30" y="50" width="90" height="100" fill="#000"/><circle cx="75" cy="120" r="70" fill="url(#glowW)" class="flick" opacity=".9"/><path d="M45 150 Q55 100 75 120 Q85 90 100 150Z" fill="#ffb347" class="flick2"/><rect x="-10" y="-8" width="170" height="12" fill="#3b1e30"/></g>
+  <circle cx="115" cy="300" r="190" fill="url(#glowW)" opacity=".18" class="flick"/>
+  <g transform="translate(300,140)"><ellipse cx="65" cy="100" rx="58" ry="100" fill="#cfa651"/><ellipse cx="65" cy="100" rx="50" ry="92" fill="#1b2a35"/><ellipse cx="65" cy="100" rx="50" ry="92" fill="url(#glowG)" opacity=".35"/><path d="M45 190 V120 Q40 92 65 86 Q90 92 85 120 V190Z M65 84 m-14 0 a14 14 0 1 0 28 0 a14 14 0 1 0 -28 0" fill="#0c1218" opacity=".9"/><path d="M83 112 L104 70" stroke="#0c1218" stroke-width="9" stroke-linecap="round"/></g>
+  <g transform="translate(450,190)"><rect x="0" y="-90" width="8" height="220" fill="#120810"/><rect x="292" y="-90" width="8" height="220" fill="#120810"/><path d="M0 -90 H300 V-70 Q150 -40 0 -70Z" fill="#4a1f33"/><rect x="0" y="60" width="300" height="60" fill="#3b1e30"/><rect x="0" y="40" width="300" height="30" fill="#d8ccb3" opacity=".85"/><ellipse cx="60" cy="40" rx="40" ry="14" fill="#efe2cc"/></g>`)};
+P.mirror=(o={})=>svg(`<rect width="800" height="450" fill="#1c1020"/>
+  <ellipse cx="400" cy="225" rx="170" ry="210" fill="#cfa651"/><ellipse cx="400" cy="225" rx="156" ry="196" fill="#8a6d35"/><ellipse cx="400" cy="225" rx="146" ry="186" fill="#13242c"/>
+  <ellipse cx="400" cy="225" rx="146" ry="186" fill="url(#glowG)" opacity=".5"/>
+  <g opacity=".95"><circle cx="400" cy="180" r="44" fill="#0a1418"/><path d="M320 420 Q320 260 400 248 Q480 260 480 420Z" fill="#0a1418"/><path d="M470 300 Q520 240 530 170" stroke="#0a1418" stroke-width="28" stroke-linecap="round" fill="none"/><circle cx="532" cy="160" r="18" fill="#0a1418"/></g>
+  ${o.swap?'':`<circle cx="386" cy="176" r="3" fill="#8fd3c4"/><circle cx="414" cy="176" r="3" fill="#8fd3c4"/><path d="M384 196 Q400 208 416 196" stroke="#8fd3c4" stroke-width="2" fill="none"/>`}
+  <path d="M290 110 Q330 70 360 80" stroke="#efe2cc" stroke-width="5" opacity=".25" fill="none" stroke-linecap="round"/>
+  <g fill="#cfa651"><circle cx="400" cy="12" r="14"/><path d="M370 20 Q400 -10 430 20Z"/><circle cx="230" cy="225" r="8"/><circle cx="570" cy="225" r="8"/></g>`);
+P.ballroom=(o={})=>{let flies='';const r=rng(41);for(let i=0;i<70;i++){const a=r()*Math.PI*2,rad=r()*120;flies+=`<circle cx="${(400+Math.cos(a)*rad*1.4)|0}" cy="${(110+Math.sin(a)*rad*.45)|0}" r="${(r()*2+1).toFixed(1)}" fill="${o.moths?'#e7d6b8':'#ffe98a'}" class="twinkle" style="animation-delay:${(r()*2.4).toFixed(1)}s"/>`}
+  let dancers='';[[200,330],[320,350],[470,345],[600,330],[400,385]].forEach(([x,y],i)=>{dancers+=`<g transform="translate(${x},${y})" class="sway" style="animation-delay:${i*.6}s"><circle cx="-10" cy="-112" r="12" fill="#8fd3c4" opacity=".35"/><path d="M-22 0 Q-22 -60 -10 -98 Q2 -60 4 0Z" fill="#8fd3c4" opacity=".25"/><circle cx="14" cy="-116" r="12" fill="#8fd3c4" opacity=".35"/><path d="M-6 0 Q10 -50 14 -102 Q40 -40 40 0Z" fill="#8fd3c4" opacity=".3"/></g>`});
+  let wins='';for(let i=0;i<4;i++){const x=40+i*200;wins+=`<path d="M${x} 300 V120 Q${x+40} 70 ${x+80} 120 V300Z" fill="#1d2244"/><path d="M${x+40} 90 V300 M${x} 190 H${x+80}" stroke="#120a18" stroke-width="5"/>`}
+  let moths='';if(o.moths){for(let i=0;i<14;i++){moths+=`<path class="flutter" style="animation-delay:${i*.2}s" transform="translate(${(300+r()*200)|0},${(70+r()*90)|0})" d="M0 0 Q-12 -10 -16 2 Q-9 9 0 2 Q9 9 16 2 Q12 -10 0 0Z" fill="#cbb89a"/>`}}
+  return svg(`<rect width="800" height="450" fill="#170f22"/>${wins}
+  <rect x="0" y="300" width="800" height="150" fill="#22162c"/><path d="M0 300 H800" stroke="#cfa651" opacity=".4"/>
+  <ellipse cx="400" cy="380" rx="300" ry="30" fill="#ffe98a" opacity=".06"/>
+  <path d="M400 0 V40" stroke="#cfa651" stroke-width="2"/><ellipse cx="400" cy="110" rx="200" ry="70" fill="url(#glowW)" opacity=".35"/><path d="M260 100 Q400 160 540 100 M300 70 Q400 110 500 70" stroke="#cfa651" stroke-width="2" fill="none" opacity=".7"/>
+  ${flies}${moths}${o.empty?'':dancers}`)};
+P.cards=()=>{let moths='';for(let i=0;i<5;i++)moths+=`<path class="flutter" style="animation-delay:${i*.5}s" transform="translate(${360+i*22},${175-(i%2)*24})" d="M0 0 Q-9 -8 -12 2 Q-7 7 0 2 Q7 7 12 2 Q9 -8 0 0Z" fill="#d9c9a8"/>`;
+  return svg(`<rect width="800" height="450" fill="#120c18"/>
+  <circle cx="400" cy="250" r="300" fill="url(#glowW)" opacity=".28"/>
+  <g transform="translate(400,180)"><path d="M-120 140 Q-120 30 0 20 Q120 30 120 140Z" fill="#0a070d"/><circle cy="-30" r="56" fill="#0a070d"/>
+  <path d="M-20 -80 Q-60 -150 -110 -150 M20 -80 Q60 -150 110 -150" stroke="#0a070d" stroke-width="5" fill="none"/>
+  ${[...Array(9)].map((_,i)=>`<path d="M${-30-i*9} ${-100-i*5.5} l-10 -12 M${30+i*9} ${-100-i*5.5} l10 -12" stroke="#0a070d" stroke-width="3"/>`).join('')}
+  <ellipse cx="-20" cy="-34" rx="9" ry="6" fill="#e2554b"/><ellipse cx="20" cy="-34" rx="9" ry="6" fill="#e2554b"/></g>
+  <ellipse cx="400" cy="380" rx="360" ry="90" fill="#123526"/><ellipse cx="400" cy="372" rx="340" ry="78" fill="#1a4a34"/>
+  <g transform="translate(400,330)"><rect x="-18" y="-6" width="36" height="12" fill="#cfa651"/><path d="M-22 -6 L-16 -70 H16 L22 -6Z" fill="#ffe7a8" opacity=".85"/><path d="M-16 -70 L0 -86 L16 -70Z" fill="#cfa651"/><circle cy="-38" r="60" fill="url(#glowW)" class="flick"/></g>
+  ${moths}
+  <g transform="translate(250,380)">${[...Array(5)].map((_,i)=>`<rect x="${i*16}" y="${-Math.abs(2-i)*4}" width="34" height="48" rx="3" fill="#efe2cc" stroke="#333" transform="rotate(${-20+i*10} 17 48)"/>`).join('')}</g>
+  <g transform="translate(480,370)">${[...Array(5)].map((_,i)=>`<rect x="${i*16}" width="34" height="48" rx="3" fill="#6b2335" stroke="#cfa651" transform="rotate(${-20+i*10} 17 48)"/>`).join('')}</g>`)};
+P.kitchen=(o={})=>{let pots='';[[120,90,40],[220,80,30],[580,90,44],[690,78,28],[320,70,22]].forEach(([x,y,r])=>{pots+=`<path d="M${x} 0 V${y-r}" stroke="#5a4320"/><circle cx="${x}" cy="${y}" r="${r}" fill="#b0663a"/><circle cx="${x-r*.3}" cy="${y-r*.3}" r="${r*.3}" fill="#e7a06a" opacity=".5"/>`});
+  return svg(`<rect width="800" height="450" fill="#22140f"/>
+  <path d="M0 310 H800 V450 H0Z" fill="#140c09"/>${pots}
+  <g transform="translate(300,230)"><rect x="0" y="0" width="240" height="90" fill="#0e0907"/><rect x="20" y="30" width="200" height="40" fill="#ff7b2e" opacity=".55" class="flick"/><circle cx="120" cy="50" r="120" fill="url(#glowW)" opacity=".45" class="flick2"/><rect x="60" y="-40" width="120" height="44" rx="6" fill="#3a2a22"/></g>
+  <g fill="#e8e2d8" opacity=".35"><path class="steam" d="M370 190 q-20 -30 0 -60 q20 -30 0 -60" stroke="#e8e2d8" stroke-width="8" fill="none"/><path class="steam" style="animation-delay:1.3s" d="M420 190 q20 -30 0 -60 q-20 -30 0 -60" stroke="#e8e2d8" stroke-width="8" fill="none"/></g>
+  <g transform="translate(210,320)" opacity=".55"><path d="M-30 0 Q-40 -120 -20 -190 H20 Q40 -120 30 0Z" fill="#8fd3c4"/><circle cy="-210" r="26" fill="#8fd3c4"/><path d="M-26 -226 Q-30 -270 0 -262 Q30 -270 26 -226Z" fill="#efe2cc"/><path d="M-22 -200 Q-10 -190 0 -198 Q10 -190 22 -200" stroke="#2a1a14" stroke-width="5" fill="none"/><path d="M20 -150 L80 -110" stroke="#8fd3c4" stroke-width="12" stroke-linecap="round"/></g>
+  <g transform="translate(650,320)"><rect x="-30" y="0" width="60" height="70" fill="#3a2a22"/><rect x="-40" y="-6" width="80" height="8" fill="#cfa651"/>${o.gone?'':'<path d="M-26 -6 Q-28 -40 0 -44 Q28 -40 26 -6Z" fill="#d97aa0"/><path d="M-26 -14 Q0 -6 26 -14" stroke="#f3c0d4" stroke-width="3" fill="none"/>'}<path d="M-36 -6 Q-36 -86 0 -86 Q36 -86 36 -6Z" fill="#cfe8ef" opacity=".22" stroke="#efe2cc" stroke-opacity=".4"/><rect x="-24" y="20" width="48" height="16" fill="#efe2cc"/><text x="0" y="32" font-family="DM Mono,monospace" font-size="9" text-anchor="middle" fill="#2a1a14">${o.gone?'DO NOT (2)':'DO NOT'}</text></g>`)};
+P.library=(o={})=>{let sh='';const r=rng(51);const cols=['#5a2a3a','#2a3a5a','#3a5a3a','#6b5a2a','#4a2a5a','#7a4a2a'];for(let row=0;row<6;row++){for(let x=0;x<800;){const w=8+r()*12|0,h=30+r()*16|0;if(x<230||x>570)sh+=`<rect x="${x}" y="${row*62+60-h}" width="${w}" height="${h}" fill="${cols[r()*cols.length|0]}" opacity=".85"/>`;x+=w+1}sh+=`<rect x="0" y="${row*62+60}" width="800" height="6" fill="#1a0f0c"/>`}
+  let fl='';for(let i=0;i<4;i++)fl+=`<g class="flutter" style="animation-delay:${i*.7}s"><path transform="translate(${280+i*70},${60+(i%2)*40})" d="M0 0 L-18 -8 L-18 6 L0 12 L18 6 L18 -8Z" fill="#efe2cc" opacity=".7"/></g>`;
+  return svg(`<rect width="800" height="450" fill="#1a110e"/>${sh}
+  <rect x="230" y="0" width="340" height="450" fill="#140c0a"/><circle cx="400" cy="200" r="220" fill="url(#glowW)" opacity=".2"/>${fl}
+  <g transform="translate(400,330)"><path d="M-50 120 L-30 0 H30 L50 120Z" fill="#3a2418"/><path d="M-70 0 L70 0 L60 -20 L-60 -20Z" fill="#5a3a24"/>
+  <g transform="translate(0,-20)"><ellipse cy="-50" rx="40" ry="52" fill="#6b5a48"/><path d="M-30 -86 L-38 -112 L-14 -94Z M30 -86 L38 -112 L14 -94Z" fill="#6b5a48"/><ellipse cy="-28" rx="24" ry="28" fill="#a38c70"/>
+  <circle cx="-16" cy="-70" r="14" fill="#f3e6c4"/><circle cx="16" cy="-70" r="14" fill="#f3e6c4"/><circle cx="-16" cy="-70" r="6" fill="#111"/><circle cx="16" cy="-70" r="6" fill="#111"/><circle cx="-16" cy="-70" r="16" fill="none" stroke="#cfa651" stroke-width="2.5"/><circle cx="16" cy="-70" r="16" fill="none" stroke="#cfa651" stroke-width="2.5"/><path d="M-2 -70 H2" stroke="#cfa651" stroke-width="2.5"/>
+  <path d="M-5 -56 L5 -56 L0 -46Z" fill="#cfa651"/></g></g>
+  ${o.book?'<g transform="translate(400,200)"><rect x="-50" y="-34" width="100" height="68" fill="#efe2cc"/><path d="M0 -34 V34" stroke="#999"/><circle r="70" fill="url(#glowW)" opacity=".5"/></g>':''}`)};
+P.basement=(o={})=>{const pink=o.pink;return svg(`<rect width="800" height="450" fill="#0d0807"/>
+  <radialGradient id="heartG" cx="50%" cy="45%" r="55%"><stop offset="0" stop-color="${pink?'#ffd1e0':'#ffe0a0'}"/><stop offset=".45" stop-color="${pink?'#ff6aa0':'#ff7b2e'}"/><stop offset="1" stop-color="${pink?'#6b1a3a':'#5a1a0a'}"/></radialGradient>
+  ${o.dark?'<circle cx="400" cy="250" r="60" fill="#ff7b2e" opacity=".05"/>':`
+  <circle cx="400" cy="250" r="330" fill="url(#glowW)" opacity="${pink?.25:.18}"/>
+  <g stroke="#3a2a22" stroke-width="26" fill="none"><path d="M0 120 H200 Q300 120 330 210"/><path d="M800 90 H620 Q500 90 470 200"/><path d="M0 380 Q250 380 350 300"/><path d="M800 400 Q560 400 450 300"/><path d="M400 0 V160"/></g>
+  <g stroke="#cfa651" stroke-width="3" fill="none" opacity=".4"><path d="M0 120 H200 Q300 120 330 210"/><path d="M800 90 H620 Q500 90 470 200"/></g>
+  <g class="pulse"><path d="M400 340 C300 280 280 200 330 170 C365 150 395 170 400 200 C405 170 435 150 470 170 C520 200 500 280 400 340Z" fill="url(#heartG)"/><path d="M360 200 Q380 190 390 210" stroke="#fff3d6" stroke-width="4" fill="none" opacity=".6"/></g>
+  <g fill="#cfa651"><circle cx="330" cy="210" r="10"/><circle cx="470" cy="200" r="10"/><circle cx="400" cy="160" r="10"/></g>
+  ${[...Array(18)].map((_,i)=>{const r=rng(60+i);return `<circle cx="${(300+r()*200)|0}" cy="${(120+r()*240)|0}" r="${(r()*2+1).toFixed(1)}" fill="${pink?'#ffb3cc':'#ffb347'}" class="twinkle" style="animation-delay:${(r()*2).toFixed(1)}s"/>`}).join('')}`}
+  <path d="M0 420 H800 V450 H0Z" fill="#070404"/>`)};
+P.tower=(o={})=>{let ticks='';for(let i=0;i<12;i++){const a=i*Math.PI/6;ticks+=`<rect x="-4" y="-196" width="8" height="${i%3?18:30}" fill="#2a1a10" transform="rotate(${i*30})"/>`}
+  return svg(`<rect width="800" height="450" fill="#0f0d1c"/>
+  <g transform="translate(400,250)"><circle r="215" fill="#cfa651"/><circle r="205" fill="#2a3150"/>
+  <circle r="205" fill="#f3e6c4" opacity=".14"/>
+  <path d="M-205 70 Q-120 20 -40 60 T120 40 T205 60 V100 Q0 220 -205 100Z" fill="#141a2e" opacity=".8"/>
+  <g transform="translate(110,92) scale(.22)"><path d="M0 40 V10 Q4 0 30 -4 L60 -22 H130 L175 6 Q200 10 200 30 V40Z" fill="#05040a"/></g>
+  ${ticks}
+  <g transform="rotate(${o.stopped?0:-30})"><rect x="-5" y="-110" width="10" height="120" fill="#120c08"/></g>
+  <g transform="rotate(${o.stopped?0:70})"><rect x="-3" y="-175" width="6" height="185" fill="#120c08"/>
+  ${o.nocrow?'':'<g transform="translate(0,-150)"><path d="M-6 0 Q-24 -10 -30 -26 Q-10 -24 0 -12 Q12 -28 30 -22 Q22 -4 6 2Z" fill="#05040a"/><circle cx="12" cy="-20" r="9" fill="#05040a"/><path d="M20 -20 L32 -16 L20 -14Z" fill="#cfa651"/><circle cx="14" cy="-22" r="2" fill="#ffd27a"/></g>'}</g>
+  <circle r="12" fill="#cfa651"/></g>
+  <circle cx="90" cy="90" r="70" fill="none" stroke="#3a2c1c" stroke-width="26" stroke-dasharray="14 10" class="spin"/><circle cx="90" cy="90" r="50" fill="#3a2c1c"/>
+  <circle cx="720" cy="380" r="90" fill="none" stroke="#3a2c1c" stroke-width="30" stroke-dasharray="16 12" class="spinr"/><circle cx="720" cy="380" r="64" fill="#3a2c1c"/>
+  <circle cx="60" cy="400" r="50" fill="none" stroke="#2c2216" stroke-width="20" stroke-dasharray="10 8" class="spinr"/>`)};
+P.meadow=(o={})=>{const [d,s]=sky('#f6b38a','#fbe3b8','dawn');let fl='';const r=rng(71);for(let i=0;i<90;i++){const x=r()*800|0,y=330+r()*120|0,sz=(2+r()*4*(y-300)/150).toFixed(1);fl+=`<circle cx="${x}" cy="${y}" r="${sz}" fill="${r()>.3?'#f08a1c':'#f6c33a'}"/>`}
+  return svg(`${s}<circle cx="560" cy="290" r="160" fill="url(#glowW)"/><circle cx="560" cy="300" r="62" fill="#fff1c9"/>
+  <path d="M0 300 Q200 250 420 280 T800 270 V450 H0Z" fill="#c98a5a" opacity=".6"/>
+  <path d="M0 330 Q300 290 800 320 V450 H0Z" fill="#7f9a4a"/>
+  ${o.ghost?'<g opacity=".18">'+hotel(260,305,.9,false)+'</g>':''}
+  ${o.ghosts?[...Array(6)].map((_,i)=>`<g transform="translate(${180+i*60},${250-i*14})" opacity="${.5-i*.06}" class="flutter" style="animation-delay:${i*.4}s"><circle r="9" fill="#fff"/><path d="M-10 4 Q0 50 10 4Z" fill="#fff"/></g>`).join(''):''}
+  ${o.car?`<g transform="translate(110,340) scale(.8)"><path d="M0 70 V30 Q4 8 30 4 L60 -22 Q80 -34 130 -34 L175 -34 Q200 -34 215 -16 L240 6 Q262 10 266 32 V70Z" fill="${o.rust?'#7a4a2a':'#2f3a52'}"/><path d="M72 -14 L94 -26 H130 V-2 H66Z M140 -26 H176 Q190 -26 200 -12 L208 -2 H140Z" fill="#cfe0ef" opacity="${o.rust?.2:.8}"/><circle cx="62" cy="72" r="20" fill="#1a1a1a"/><circle cx="210" cy="72" r="20" fill="#1a1a1a"/>${o.rust?'<path d="M20 0 Q60 -60 120 -40 Q180 -70 240 10" stroke="#3f6a2a" stroke-width="10" fill="none"/>':''}</g>`:''}
+  ${o.sheep?[[520,370],[600,390],[680,365]].map(([x,y])=>`<g transform="translate(${x},${y})"><ellipse rx="26" ry="16" fill="#fbf5ea"/><circle cx="24" cy="-6" r="9" fill="#2a2a2a"/><rect x="-14" y="12" width="4" height="14" fill="#2a2a2a"/><rect x="10" y="12" width="4" height="14" fill="#2a2a2a"/></g>`).join(''):''}
+  ${o.dancers?'<g transform="translate(560,170)" opacity=".35"><circle cx="-12" cy="-30" r="10" fill="#fff"/><path d="M-22 40 Q-20 -10 -12 -20 Q0 -10 0 40Z" fill="#fff"/><circle cx="12" cy="-34" r="10" fill="#fff"/><path d="M0 40 Q8 -10 12 -24 Q26 -10 26 40Z" fill="#fff"/></g>':''}
+  ${o.shovel?'<g transform="translate(330,420) rotate(-15)"><rect x="-3" y="-120" width="6" height="110" fill="#6b4a2a"/><path d="M-16 -12 H16 L12 20 Q0 30 -12 20Z" fill="#8a8f99"/></g>':''}
+  ${fl}`,d)};
+P.coast=()=>{const [d,s]=sky('#ffb07a','#ffe4c2','coast');return svg(`${s}<circle cx="400" cy="300" r="200" fill="url(#glowW)"/><circle cx="400" cy="300" r="70" fill="#fff3d0"/>
+  <path d="M0 300 H800 V450 H0Z" fill="#3f7fa0"/><g stroke="#ffe7c2" stroke-width="3" opacity=".6">${[...Array(10)].map((_,i)=>`<path d="M${330+(i%3)*20} ${310+i*13} h${140-i*6}"/>`).join('')}</g>
+  <path d="M520 300 V270 H540 V250 H560 V262 H590 V230 L600 220 L610 230 V262 H640 V280 H680 V300Z" fill="#7a4a5a" opacity=".7"/>
+  <g transform="translate(220,140)"><path d="M0 0 Q-40 -30 -80 -20 Q-40 -5 -10 10 Q-40 20 -70 40 Q-30 40 0 15 Q20 10 30 0 Q15 -8 0 0Z" fill="#141018"/><circle cx="26" cy="-2" r="7" fill="#141018"/><path d="M32 -3 L44 0 L32 2Z" fill="#cfa651"/><circle cx="-14" cy="-4" r="6" fill="#d99"/></g>`,d)};
+
+/* ===================== STORY ===================== */
+const ITEMS={coin:'Lucky 1912 penny',key13:'Room 13 key',mask:'Moth-wing mask',ring:'Tarnished wedding ring',cake:'Slice of Midnight Cake',candle:'Candle stub',lantern:'The Baron’s lantern',deck:'The Honest Deck',silverkey:'Silver tower key',poker:'Fire poker'};
+const ENDINGS=[
+ ['car','Roadside Assistance'],['twice','Do Not Ring Twice'],['gnome','Garden Variety'],['getaway','Clean Getaway'],
+ ['mirror','The Other Side'],['sleep','Rip Van Guest'],['moth','Drawn to the Light'],['pudding','Just Desserts'],
+ ['spoiler','Spoiler Alert'],['friend','A House Is a Home'],['owner','Proprietor'],['smash','Last Light'],
+ ['midnight','Forever Midnight'],['crow','Fly-by-Night'],['bellhop','Employee of the Month'],['revolving','Revolving Door'],
+ ['waltz','The Last Waltz'],['released','Notice Given'],['checkout','The Grand Check-Out']];
+const DAWN=300; // minutes after 11:00 PM -> 4:00 AM
+let S;
+function fresh(){return {scene:'road',t:0,items:[],flags:[],newItem:null,last:null}}
+const has=k=>S.items.includes(k)||S.flags.includes(k);
+const p=(...xs)=>xs.filter(Boolean).map(x=>`<p>${x}</p>`).join('');
+const q=s=>`<q>${s}</q>`;
+
+const SC={
+road:{pic:()=>P.road(),cap:'Route 9, mile 31',text:()=>p(
+  S.flags.includes('glove')?'The glovebox held a map of a town that doesn’t exist, three mints, and a penny from 1912 that your grandmother swore was cursed. You pocket the penny. Grandmothers are usually right.':
+  'Rain hammers the roof of your car like it owes it money. The engine died three miles back with a sound like a disappointed tuba. Your phone has 4% battery and no signal at all.',
+  'Up the hill, through the sweep of the wipers, stands a tall building with every window lit. A neon sign stutters: <b>HOTEL NOCTURNE</b>. Below it, in smaller letters: <i>VACANCY. ALWAYS.</i>',
+  'It is 11:00 PM. Nobody builds a hotel out here. Nobody.'),
+ choices:()=>[
+  !S.flags.includes('glove')&&{l:'Rummage through the glovebox',go:'road',flag:'glove',give:'coin',cost:5},
+  {l:'Walk up the hill toward the light',go:'gate',cost:15},
+  {l:'Lock the doors and wait for morning',go:'end_car'}]},
+end_car:{end:'car',pic:()=>P.meadow({car:1,sheep:1}),text:()=>p(
+  'You recline the seat, hug your jacket, and firmly refuse to take part in whatever this is.',
+  'At 6:40 AM a tow-truck driver knocks on your window. '+q('Lucky you didn’t go up to the old hotel,')+' she says. You look up the hill. There is no hotel. There is grass, some sheep, and a puddle shaped suspiciously like a building.',
+  'You will spend the rest of your life wondering. Sensible. Safe. A tiny bit boring.')},
+
+gate:{pic:()=>P.gate(),cap:'The front gate',text:()=>p(
+  'The gate is twelve feet of curling black iron, worked into moths and keys. A brass bell hangs from the left post with a card tied to it: <b>RING FOR SERVICE. DO NOT RING TWICE.</b>',
+  'To the right, a gap in the hedge leads into a dark garden. On the gatepost, a crow is laughing. At you. Specifically you.'),
+ choices:()=>[
+  {l:'Ring the bell, once, politely',go:'lobby',flag:'rang',cost:10},
+  {l:'Ring it twice. Rules are suggestions.',go:'end_twice'},
+  {l:'Squeeze through the hedge into the garden',go:'garden',cost:10}]},
+end_twice:{end:'twice',pic:()=>P.gate(),text:()=>p(
+  'DING. DING.',
+  'The second ring doesn’t stop. It gets louder, and rounder, and somehow you are inside it, and then you <i>are</i> it: a small brass bell hanging from a gate, a card tied around your neck.',
+  'Travellers ring you now. Once, if they’re sensible. It tickles. The crow visits every evening to tell you jokes, which you can only answer with DING.')},
+
+garden:{pic:()=>P.garden({ring:!has('ring')&&!S.flags.includes('ringgiven')}),cap:'The moonlit garden',text:()=>p(
+  'Clipped hedges, a weeping statue, and in the middle a stone fountain, gurgling. Around it stand seven garden gnomes, all facing you.',
+  'You are fairly sure there were six a moment ago.',
+  !has('ring')&&!S.flags.includes('ringgiven')?'Something glints at the bottom of the fountain.':'',
+  'Off to the side, a kitchen door spills warm light and the smell of soup.'),
+ choices:()=>[
+  !has('ring')&&!S.flags.includes('ringgiven')&&{l:'Fish the glinting thing out of the fountain',go:'garden_ring',give:'ring',cost:10},
+  {l:'Take a gnome as a souvenir',go:'end_gnome'},
+  {l:'Go in through the kitchen door',go:'kitchen',cost:10},
+  !S.flags.includes('paid')&&{l:'Walk round to the front entrance',go:'lobby',cost:15},
+  S.flags.includes('paid')&&{l:'Head back inside to the corridor',go:'hall',cost:15}]},
+garden_ring:{pic:()=>P.garden({}),cap:'The fountain',text:()=>p(
+  'The water is shockingly cold. Your fingers close on a wedding ring, tarnished green, engraved inside: <i>I. & A. Forever, or at least until dawn. 1891.</i>',
+  'When you look up, one of the gnomes has moved closer. It is pretending it hasn’t.'),
+ choices:()=>[{l:'Back away from the gnomes',go:'garden',cost:0}]},
+end_gnome:{end:'gnome',pic:()=>P.garden({eight:1}),text:()=>p(
+  'The gnome is heavier than it looks. Much heavier. Also warm.',
+  'As you lift it, it lifts you, and suddenly you see the world from fourteen inches up, wearing a red pointed hat and holding a fishing rod you never asked for.',
+  'There are eight gnomes now. The fountain is pleasant. The company is quiet. Every night at 3 AM you all shuffle one step closer to the house, and nobody ever notices.')},
+
+lobby:{pic:()=>P.lobby(),cap:'Reception',text:()=>p(
+  S.flags.includes('rang')?'The gate swings open on its own. The front doors do too. You are, apparently, expected.':'',
+  'The lobby is warm velvet and old gold. A chandelier drips candle wax onto nobody in particular. Behind the desk sits a very large grey cat in a waistcoat, reading a newspaper dated 1926.',
+  q('Good evening,')+' he says, without looking up. '+q('Mr. Pemberton, night manager. You’ll be wanting a room. We accept coins, secrets, or one year of your life. Cash is so vulgar.')),
+ choices:()=>[
+  has('coin')&&{l:'Pay with the cursed penny',go:'lobby_paid',flag:['paid','paidcoin'],take:'coin',give:'key13',cost:10},
+  {l:'Whisper him a secret',go:'lobby_paid',flag:['paid','paidsecret'],give:'key13',cost:10},
+  {l:'Give him a year of your life',go:'lobby_paid',flag:['paid','paidyear'],give:'key13',cost:10},
+  !S.flags.includes('askcat')&&{l:'Ask why a cat is running a hotel',go:'lobby',flag:'askcat',cost:5,say:q('Because the dog applied, darling, and he couldn’t spell “concierge.”')+' Pemberton turns a page.'}]},
+lobby_paid:{pic:()=>P.lobby(),cap:'Reception',text:()=>p(
+  S.flags.includes('paidcoin')?'Pemberton bites the penny and his whiskers go flat. '+q('Cursed. How delightful. Grandmother’s, I expect.'):'',
+  S.flags.includes('paidsecret')?'You lean in and whisper the thing you have never told anyone. Pemberton’s ears swivel. '+q('Ah. The business with the swan. Your secret is safe with me. Mostly.'):'',
+  S.flags.includes('paidyear')?'He taps a tiny hourglass against your wrist. A year slips out of you like a sneeze. '+q('You won’t miss it. It was mostly Tuesdays.'):'',
+  'He slides a brass key across the desk. The tag reads <b>13</b>.',
+  q('Breakfast is at dawn. Four o’clock sharp. At first light this hotel moves on to wherever hotels go, and anyone still inside... stays. We are always short a bellhop.')+' He smiles a smile that is mostly teeth. '+q('Enjoy your stay.')),
+ choices:()=>[{l:'Step into the Grand Corridor',go:'hall',cost:5}]},
+
+hall:{pic:()=>P.hall({late:S.t>=240}),cap:'The Grand Corridor',text:()=>{
+  const t=S.t;let warn='';
+  if(t>=240)warn='<span class="aside">The clock strikes three. The walls creak like something stretching after a long sleep. Dawn is close.</span>';
+  else if(t>=180)warn='<span class="aside">The clock strikes two. Somewhere a door slams that you could swear wasn’t there before.</span>';
+  else if(t>=120)warn='<span class="aside">The clock strikes one. The moths on the wallpaper all turn to look at you, then politely look away.</span>';
+  return p('The Grand Corridor runs further than the building could possibly allow. The wallpaper is printed with moths, and the moths are not staying still. A grandfather clock says <b>'+clock(t)+'</b>.',
+  S.flags.includes('shoeless')?'Your socks squelch on the carpet. The Baron is probably wearing your shoes right now.':'',
+  warn,'Where to?')},
+ choices:()=>[
+  {l:'Room 13',go:'room',cost:15},
+  {l:'The Ballroom (music, laughter, possibly screaming)',go:has('mask')?'ballroom':'ballroom_door',cost:15},
+  {l:'The Kitchen',go:'kitchen',cost:15},
+  {l:'The Library',go:S.flags.includes('owl')?'library_in':'library',cost:15},
+  {l:'Down the basement stairs',go:(has('lantern')||has('candle'))?'basement':'basement_dark',cost:15},
+  {l:'Up the clock-tower stairs',go:has('silverkey')?'tower':'tower_locked',cost:15},
+  {l:'Ring for the brass lift and see which floors it really goes to',go:'lift',cost:10},
+  {l:'Back to reception to talk to Pemberton',go:'desk',cost:10},
+  {l:'Walk out the front door',go:S.t<75?'end_getaway':'frontdoor',cost:5}]},
+desk:{pic:()=>P.lobby(),cap:'Reception',text:()=>p('Pemberton licks a paw and turns a page of the 1926 newspaper. '+q('Yes?')),
+ choices:()=>[
+  {l:'Ask about the dawn',go:'desk',cost:5,say:q('At first light the hotel moves on. Guests still inside become... permanent. Some become staff. One became a very nice umbrella stand.')+' He glances at the umbrella stand. It sighs.'},
+  {l:'Ask about the clock tower',go:'desk',cost:5,say:q('The tower is where the hotel keeps its time. The Owl in the library has the key, and a dreadful sense of humour.')},
+  {l:'Ask who built this place',go:'desk',cost:5,say:q('A witch. Very lonely. Wrote it all down, I believe. Witches are terrible for paperwork.')+' He taps the side of his nose. '+q('Library.')},
+  {l:'Ask him for advice',go:'desk',cost:5,say:q('Everything in this house is hungry, darling. Even the house. <i>Especially</i> the house.')},
+  {l:'Challenge him to a game of chess, winner takes everything',go:'chess',cost:15},
+  {l:'Return to the corridor',go:'hall',cost:5}]},
+frontdoor:{pic:()=>P.lobby(),cap:'Reception, again',text:()=>p(
+  'You march out through the front door, into the night, and find yourself... back in the lobby.',
+  'Pemberton doesn’t even look up. '+q('The hotel has grown fond of you. It does that after midnight. Nothing personal.')),
+ choices:()=>[{l:'Sigh, and go back to the corridor',go:'hall',cost:5}]},
+end_getaway:{end:'getaway',pic:()=>P.road(),text:()=>p(
+  'Something about this place makes the back of your neck itch. You turn around, walk out the front door, and nobody stops you.',
+  'Your car starts first time (suspicious). In the rear-view mirror, the hotel’s windows go dark one by one, like someone saying goodnight.',
+  'Three weeks later a postcard arrives. <i>We kept your room. Do drop in. P.</i> You never gave anyone your address.')},
+
+room:{pic:()=>P.room(),cap:'Room 13',text:()=>p(
+  'Room 13 is cosier than a haunted room has any right to be: a four-poster bed, a crackling fire, a tall wardrobe, and a full-length mirror.',
+  'Your reflection waves at you about a second after you wave. Then it waves again when you don’t.'),
+ choices:()=>[
+  !has('mask')&&{l:'Open the wardrobe',go:'room',give:'mask',cost:10,say:'Inside hang forty identical grey dressing gowns and one silver masquerade mask shaped like moth wings. It fits perfectly. That is not reassuring.'},
+  !has('poker')&&{l:'Take the iron poker from the fireplace',go:'room',give:'poker',cost:5,say:'Heavy, sooty, reassuring. Every haunted hotel story goes better with a poker.'},
+  {l:'Talk to your reflection',go:'mirror',cost:10},
+  {l:'Lie down, just for five minutes',go:'end_sleep'},
+  {l:'Back to the corridor',go:'hall',cost:5}]},
+mirror:{pic:()=>P.mirror(),cap:'The mirror',text:()=>p(
+  'Your reflection leans on the inside of the glass like it’s a shop counter.',
+  q('Listen,')+' it says, in your voice but more confident. '+q('I’ve been watching you for years. You stack the dishwasher wrong. You never sing. Let me have a go at your life, and you can have mine. It’s lovely in here. Everything’s backwards, so the weekend comes right after Friday. Wait. No.')),
+ choices:()=>[
+  {l:'Shake hands and swap places',go:'end_mirror'},
+  {l:'Ask your reflection for advice',go:'mirror',cost:5,say:q('The heart of this place is in the basement. It’s lonely. Lonely things get hungry. And hungry things like cake.')+' It taps the glass. '+q('Also, the crow on the tower gives rides. Don’t tell anyone I told you.')},
+  {l:'Politely decline and step away',go:'room',cost:5}]},
+end_mirror:{end:'mirror',pic:()=>P.mirror({swap:1}),text:()=>p(
+  'You shake hands through the glass. It feels like dipping your hand in cold milk. Then you’re on the inside, looking out.',
+  'Your reflection strolls out of Room 13, humming, and goes on to live your life rather better than you ever did. It learns the cello. It calls your mother. It finally fixes the dripping tap.',
+  'You live in the mirror now, where nothing is your fault. On Sundays you wave at each other. It waves first.')},
+end_sleep:{end:'sleep',pic:()=>P.meadow({car:1,rust:1}),text:()=>p(
+  'The pillow is a cloud with opinions. You close your eyes for five minutes.',
+  'You wake to birdsong in a meadow of marigolds. No hotel. Your car is a rusted sculpture wrapped in ivy. A teenager on a hovering scooter tells you it is the year 2071'+(S.flags.includes('paidyear')?'. Well, 2070 for you. You did give one away.':'.'),
+  'You have missed a great deal of news. Honestly, that may have been for the best.')},
+
+ballroom_door:{pic:()=>P.ballroom({empty:1}),cap:'Ballroom doors',text:()=>p(
+  'A doorman with no feet floats in front of the ballroom doors. Beyond him: music, laughter, the clink of glasses that may not be entirely solid.',
+  q('Masks only, darling. We have standards.')+' He sniffs. '+q('They are very <i>old</i> standards.')),
+ choices:()=>[{l:'Go back to the corridor',go:'hall',cost:5}]},
+ballroom:{pic:()=>P.ballroom(),cap:'The Masquerade',text:()=>p(
+  S.flags.includes('inball')?'The masquerade swirls on.':'You tie on the moth-wing mask. The footless doorman bows you in.',
+  'A chandelier made of a thousand trapped fireflies lights a crowd of dancers who are faintly see-through at the edges. A ghostly string quartet plays something that hasn’t been written yet.',
+  !S.flags.includes('ilse')?'By the tall window stands a woman in a grey wedding dress, alone.':(S.flags.includes('ringgiven')?'Ilse waves to you across the room, her ring shining.':'Ilse is by the window again, looking out at the dark.'),
+  'In the corner, a card table. A gentleman with feathery antennae shuffles a deck and beckons you over.'),
+ choices:()=>[
+  {l:S.flags.includes('ilse')?'Dance with Ilse again':'Ask the woman in grey to dance',go:'ilse',flag:['ilse','inball'],cost:15},
+  !S.flags.includes('lostcards')&&!has('lantern')&&{l:'Sit down at the card table',go:'cards',flag:'inball',cost:10},
+  {l:'Slip back out to the corridor',go:'hall',flag:'inball',cost:5}]},
+ilse:{pic:()=>P.ballroom(),cap:'A waltz',text:()=>p(
+  S.flags.includes('ilsemet')?q('Back again?')+' Ilse smiles and takes your hand. Her fingers are as cold as a winter window.':
+  q('I’m Ilse,')+' she says as you waltz. Her hand is cold as a winter window. '+q('I came here on my wedding night, in 1891. My Albert went down to fetch champagne, and the hotel moved on without him. I’ve been waiting ever since. I lost my ring, too. Threw it in the fountain in a temper. Silly of me.'),
+  S.flags.includes('ringgiven')?q('When dawn comes, find me. I haven’t forgotten.'):''),
+ choices:()=>[
+  has('ring')&&{l:'Give her the ring from the fountain',go:'ilse_ring',take:'ring',flag:['ringgiven','ilsemet'],cost:10},
+  {l:'Ask her how anyone escapes this place',go:'ilse',flag:'ilsemet',cost:10,say:q('Everything has a true name,')+' she whispers. '+q('Even a house. The witch who built it wrote the name down in the library. Say a thing’s true name and it has to listen.')},
+  {l:'Thank her and leave the dance floor',go:'ballroom',flag:'ilsemet',cost:5}]},
+ilse_ring:{pic:()=>P.ballroom(),cap:'A promise',text:()=>p(
+  'Ilse goes very still. She slides the ring onto her finger, and for one heartbeat she is completely solid, flushed pink, alive.',
+  q('Thank you,')+' she whispers. '+q('When the clock strikes four, find me. I owe you a dance, and a way out.')),
+ choices:()=>[{l:'Return to the ballroom',go:'ballroom',cost:5}]},
+cards:{pic:()=>P.cards(),cap:'The Moth Baron',text:()=>p(
+  'The gentleman smells of old wardrobes and lavender. '+q('The Moth Baron, at your service. A friendly game?')+' He fans out his cards. '+q('Win, and my lantern is yours. It never goes out. Lose, and, well. You’ll find out.'),
+  'His antennae quiver toward the lantern on the table as if they can’t help it.'),
+ choices:()=>[
+  has('deck')&&{l:'Play with the Honest Deck from the library',go:'cards_win',give:'lantern',take:'deck',flag:'usedhonest',cost:15},
+  {l:'Bluff like your life depends on it',go:()=>Math.random()<.5?'cards_win':'cards_lose',cost:15,goGive:'lantern'},
+  {l:'Bet everything you have',go:'end_moth'},
+  {l:'Decline politely',go:'ballroom',cost:5}]},
+cards_win:{pic:()=>P.cards(),cap:'Winner',text:()=>p(
+  S.flags.includes('usedhonest')?'The Honest Deck refuses to let anyone cheat. The Baron’s five Queens of Moths turn back into a pair of threes, blushing.':'You stare the Baron down with a pair of twos. His antennae droop. He folds.',
+  q('Well played,')+' he sighs, and pushes the lantern across. It is warm, and it hums softly, like it’s pleased to meet you.'),
+ choices:()=>[{l:'Take your winnings back to the ballroom',go:'ballroom',cost:5}]},
+cards_lose:{pic:()=>P.cards(),cap:'Loser',text:()=>p(
+  'The Baron lays down a royal flush of moths. You lay down your dignity.',
+  q('I’ll just take your shoes, then,')+' he says, already wearing them. '+q('Lovely fit. Come back when you have something worth winning.')),
+ choices:()=>[{l:'Squelch back to the ballroom',go:'ballroom',flag:['shoeless','lostcards'],cost:5}]},
+end_moth:{end:'moth',pic:()=>P.ballroom({moths:1}),text:()=>p(
+  'You push everything into the middle of the table. The Baron lays down five cards. All five are the Queen of Moths. That isn’t a hand. That isn’t even legal.',
+  'Your arms go papery, then dusty, then wonderful. You flutter up to the chandelier with the others.',
+  'It’s warm up here. It’s bright. You have never been so focused on anything in your life, and you never will be again.')},
+
+kitchen:{pic:()=>P.kitchen({gone:false}),cap:'The Kitchen',text:()=>p(
+  'The kitchen is a cathedral of copper pots. A very tall, very transparent chef with a moustache like two sleeping ferrets is stirring a cauldron in a panic.',
+  S.flags.includes('cooked')?q('My saviour! Take more cake, if you like. Do not touch the pudding.'):
+  q('You! A tongue! A living tongue!')+' he cries. '+q('Chef Gaspard. I must finish the Midnight Cake before dawn, and my sense of taste died in 1903. Along with the rest of me.'),
+  'On a pedestal, under a glass dome, wobbles a glossy pink pudding with a label: <b>DO NOT</b>.'),
+ choices:()=>[
+  !S.flags.includes('cooked')&&{l:'Offer to be his taste-tester',go:'kitchen_help',flag:'cooked',give:['cake','candle'],cost:20},
+  {l:'Lift the dome and eat the DO NOT pudding',go:'end_pudding'},
+  {l:'Go out the back door into the garden',go:'garden',cost:10},
+  {l:'Back to the corridor',go:'hall',cost:5}]},
+kitchen_help:{pic:()=>P.kitchen(),cap:'The Midnight Cake',text:()=>p(
+  'You taste. '+q('More nutmeg,')+' you say. '+q('And less... is that regret?')+' Gaspard weeps with joy, which mostly looks like a fog.',
+  'Twenty minutes later you have helped bake a perfect cake that smells of vanilla and thunderstorms. Gaspard wraps a slice for you and presses a candle stub into your palm.',
+  q('For the stairs below,')+' he whispers. '+q('The dark down there is hungry. Everything in this house is hungry.')),
+ choices:()=>[{l:'Thank him and head back out',go:'hall',cost:5}]},
+end_pudding:{end:'pudding',pic:()=>P.kitchen({gone:1}),text:()=>p(
+  'It is the best thing you have ever tasted. It is also, you notice, making you shorter. And wobblier. And glossier.',
+  'Gaspard turns around, gasps, and lowers a glass dome over you with great tenderness. He writes a new label: <b>DO NOT (2)</b>.',
+  'Guests admire you for centuries. You are, objectively, a masterpiece.')},
+
+library:{pic:()=>P.library(),cap:'The Library',text:()=>p(
+  'The library spirals up into darkness. Books whisper to one another and go quiet when you enter. On a lectern sits an owl wearing tiny spectacles.',
+  q('No admittance without a riddle,')+' says the owl. '+q('I have hands but cannot clap. I have a face but cannot frown. I run all day but have no legs. What am I?')),
+ choices:()=>[
+  {l:'“A river.”',go:'hall',cost:10,say:'The owl sighs. '+q('Rivers have mouths, not faces. Out. Try again later. Different answer, ideally.')},
+  {l:'“A clock.”',go:'library_in',flag:['owl','owlright'],give:'silverkey',cost:5},
+  {l:'“Your ex-husband.”',go:'library_in',flag:['owl','owljoke'],give:'silverkey',cost:5}]},
+library_in:{pic:()=>P.library(),cap:'The Library',text:()=>p(
+  S.flags.includes('owlright')&&!S.flags.includes('libseen')?q('Correct. Dull, but correct.')+' The owl drops a silver key into your hand. '+q('Opens the clock tower. Do not touch the clock.'):'',
+  S.flags.includes('owljoke')&&!S.flags.includes('libseen')?'The owl stares at you, then laughs so hard its spectacles fall off. '+q('Wrong, but <i>accurate</i>. Come in.')+' It drops a silver key into your hand. '+q('Opens the clock tower. Do not touch the clock.'):'',
+  'Among the whispering shelves you spot: a huge leather ledger chained to a desk, a deck of cards locked in a tiny birdcage, and a book with <i>your name</i> on the spine.'),
+ choices:()=>[
+  {l:'Read the chained ledger',go:'ledger',flag:['name','libseen'],cost:15},
+  !has('deck')&&!S.flags.includes('honest')&&{l:'Free the cards from the birdcage',go:'library_in',give:'deck',flag:['honest','libseen'],cost:10,say:'The tag on the cage reads <i>The Honest Deck. Cannot lie. Cannot be lied to. Terrible at parties.</i> The door opens at your touch.'},
+  {l:'Open the book with your name on it',go:'yourbook',flag:'libseen',cost:10},
+  {l:'Back to the corridor',go:'hall',flag:'libseen',cost:5}]},
+ledger:{pic:()=>P.library({book:1}),cap:'The Ledger',text:()=>p(
+  'The ledger lists every guest since 1702. Most entries are marked <i>STAYED</i>. A few say <i>BECAME FURNITURE</i>. One says <i>BECAME A BELL</i>.',
+  'On the very first page, in faded red ink:',
+  '<i>Built this night by Agatha Pell, witch, who named her <b>MARIGOLD</b>, and bid her: keep my guests close, and never let me be lonely.</i>',
+  'The hotel has a true name. And it’s Marigold.'),
+ choices:()=>[{l:'Close the ledger',go:'library_in',cost:5}]},
+yourbook:{pic:()=>P.library({book:1}),cap:'Your book',text:()=>p(
+  'It is your life. All of it. Chapter 7 is called <i>The Swan Incident</i>, and it is longer than you remember.',
+  'The last page is held shut with a black ribbon.'),
+ choices:()=>[{l:'Untie the ribbon and read the last page',go:'end_spoiler'},{l:'Put it back. Some things should stay unread.',go:'library_in',cost:5}]},
+end_spoiler:{end:'spoiler',pic:()=>P.library({book:1}),text:()=>p(
+  'The last page says: <i>And then they read the last page, which said: And then they read the last page, which said: And then they read the last page...</i>',
+  'You keep reading for a very long time. Eventually the owl drapes a blanket over you and adjusts a lamp.',
+  'You are part of the library now, like the reading lamp, but with worse posture.')},
+
+basement_dark:{pic:()=>P.basement({dark:1}),cap:'The basement stairs',text:()=>p(
+  'The stairs drop into a darkness so thick you could spread it on toast. Something very large is breathing down there. Slowly. Warmly.',
+  'You are not going any further without a light.'),
+ choices:()=>[{l:'Back up the stairs, quickly',go:'hall',cost:5}]},
+basement:{pic:()=>P.basement(),cap:'The boiler room',text:()=>p(
+  'By '+(has('lantern')?'the steady glow of the Baron’s lantern':'the wobbling flame of your candle stub')+' you find a vast boiler room. In the middle is not a boiler, but a <b>heart</b>: an enormous thing of brass and embers, beating slowly, with pipes running from it into every wall.',
+  'As you come closer it beats faster. This is the hotel. And, unless you are very much mistaken, it is sniffling.'),
+ choices:()=>[
+  has('cake')&&{l:'Offer it your slice of Midnight Cake',go:'end_friend'},
+  has('name')&&{l:'Speak its true name, loud and clear',go:'end_owner'},
+  has('poker')&&{l:'Smash the heart with the fire poker',go:'end_smash'},
+  {l:'Pat it gently',go:'basement',cost:10,say:'It purrs like a furnace, and a gust of warm air ruffles your hair. Somewhere upstairs, every radiator clanks happily at once. It is very, very lonely.'},
+  {l:'Go back upstairs',go:'hall',cost:5}]},
+end_friend:{end:'friend',pic:()=>P.basement({pink:1}),text:()=>p(
+  'You set the cake down. The heart sniffs, then gobbles it in a shower of sparks. Every light in the hotel turns pink.',
+  'Upstairs, doors swing open and ghosts start laughing. The hotel has decided you are its favourite.',
+  'At dawn it moves on, and you go with it: not as a guest, but as family. On Tuesday you watch the Northern Lights from the balcony. On Friday the hotel parks beside a sea full of glowing jellyfish. The room service is outstanding.')},
+end_owner:{end:'owner',pic:()=>P.lobby({full:1}),text:()=>p(
+  q('MARIGOLD.'),
+  'The heart stops mid-beat. Every clock in the building stops ticking. Then, from inside the walls, a voice like a creaking floorboard: '+q('Yes... manager?'),
+  'Pemberton appears at your elbow with a clipboard and a fresh carnation for your lapel. '+q('Your first decision, boss?'),
+  'You own a haunted, travelling, slightly sentient hotel. First order of business: better wifi.')},
+end_smash:{end:'smash',pic:()=>P.meadow({shovel:0,ghost:1}),text:()=>p(
+  'You swing the poker. The heart cracks, and light pours out of it like a sunrise.',
+  'All through the hotel, ghosts sigh, smile, and drift up through the ceiling, finally free. The building groans and settles gently into a field of marigolds.',
+  'You stand alone in the dawn holding a sooty poker, feeling like a hero and also slightly like a vandal. Both are true.')},
+
+tower_locked:{pic:()=>P.tower(),cap:'Tower door',text:()=>p(
+  'A spiral staircase ends at a small door with a silver keyhole. Locked. From the other side comes an enormous, patient ticking.'),
+ choices:()=>[{l:'Back down the stairs',go:'hall',cost:5}]},
+tower:{pic:()=>P.tower(),cap:'The clock tower',text:()=>p(
+  'The silver key turns. Inside: gears as big as carriage wheels, grinding away. Through the glowing glass clock face you can see the whole valley, and far below, your tiny abandoned car.',
+  'A crow sits on the minute hand, riding it round like a carousel. '+q('Caw,')+' it says, which you somehow understand to mean <i>need a lift?</i>'),
+ choices:()=>[
+  has('poker')&&{l:'Jam the poker into the gears and stop the clock',go:'end_midnight'},
+  {l:'Climb onto the crow',go:'end_crow'},
+  {l:'Back down the stairs',go:'hall',cost:5}]},
+end_midnight:{end:'midnight',pic:()=>P.tower({stopped:1,nocrow:1}),text:()=>p(
+  'You wedge the poker into the gears. CLUNK. The ticking stops. Far below, the music swells.',
+  'Dawn never comes. It is midnight forever, and the party never ends.',
+  'At first this is amazing. Somewhere around year forty you start to genuinely miss Tuesdays. But the cake is good, the ghosts are excellent company, and you have mastered the tango, the foxtrot and a dance called the Wobbling Eel.')},
+end_crow:{end:'crow',pic:()=>P.coast(),text:()=>p(
+  'You climb onto the crow, which is suddenly much bigger. Or you are much smaller. It doesn’t seem to matter.',
+  'It launches off the minute hand and you soar over moonlit hills, past sleeping towns, out over the sea.',
+  'At sunrise it drops you outside a little café in Lisbon and flies off without explanation. You order a custard tart. Life is good.')},
+
+dawn:{pic:()=>P.ballroom({empty:1}),cap:'4:00 AM',text:()=>p(
+  'The grandfather clock strikes four. Every candle in the hotel flares at once.',
+  'Pemberton appears at your elbow. '+q('Check-out time,')+' he says. '+q('Or rather, not.'),
+  'The floor tilts like a ship leaving harbour. The walls hum. Outside the windows the sky is turning pale, and the hotel is getting ready to leave, with you inside it.'),
+ choices:()=>[
+  S.flags.includes('ringgiven')&&has('name')&&{l:'Find Ilse, and call the hotel by its true name',go:'end_checkout'},
+  S.flags.includes('ringgiven')&&{l:'Find Ilse. She promised you a way out.',go:'end_waltz'},
+  has('name')&&{l:'Tell Marigold, by name, that you are leaving',go:'end_released'},
+  {l:'Make a run for the front door',go:'end_revolving'},
+  {l:'Dash up to Room 13 and hide in the wardrobe',go:'end_wardrobe'},
+  {l:'Climb out onto the roof and jump as the hotel lifts off',go:'end_leap'},
+  {l:'Ask Pemberton for a promotion before he can offer you a cap',go:'end_fasttrack'},
+  {l:'Accept your fate with dignity',go:'end_bellhop'}]},
+end_bellhop:{end:'bellhop',pic:()=>P.lobby({cap:1}),text:()=>p(
+  'Pemberton hands you a small red cap. '+q('Welcome to the staff.'),
+  'It isn’t so bad. You carry suitcases for travellers from 1650 and from 2300. You get a brass name badge. Gaspard saves you cake.',
+  'In your 87th year you win Employee of the Month. The photo hangs behind the desk. You look happy. You also look slightly see-through.')},
+end_revolving:{end:'revolving',pic:()=>P.hall({late:1}),text:()=>p(
+  'You sprint for the front door, burst through it, and come out of the lobby’s other door. You try again. Same thing.',
+  'Pemberton is so entertained that he has a revolving door installed just for you.',
+  'You are still going round. Guests applaud on their way in. You have extraordinary calves.')},
+end_waltz:{end:'waltz',pic:()=>P.meadow({dancers:1}),text:()=>p(
+  'Ilse is waiting by the window. '+q('I promised you a way out.'),
+  'She sweeps you into a waltz across the tilting floor, faster, faster, and spins you straight through the window as the hotel melts into the morning.',
+  'You land in wet grass, laughing. In your pocket is a note: <i>For the next person who’s late for their own life. I.</i> High above, in the pink clouds, you could swear two figures are dancing.')},
+end_released:{end:'released',pic:()=>P.meadow({car:1,ghost:1}),text:()=>p(
+  q('Marigold,')+' you say. '+q('I’m checking out.'),
+  'The hotel sighs through every chimney. The front door opens onto a pink sunrise. Pemberton bows. '+q('Do come again.'),
+  'You walk down the hill. Your car starts. Behind you, the hotel folds itself up like a pop-up book and is gone. You are free, and you keep the room key forever.')},
+end_checkout:{end:'checkout',pic:()=>P.meadow({ghosts:1,dancers:1}),text:()=>p(
+  'With Ilse at your side, you stand in the middle of the lobby and say it: '+q('MARIGOLD. Everyone is checking out.'),
+  'The hotel trembles. Then it laughs, a huge creaky happy laugh, as if nobody had ever asked nicely before.',
+  'Doors fly open. Ghosts pour out into the sunrise, going home at last: the footless doorman, Chef Gaspard carrying cake, the Moth Baron (still wearing somebody’s shoes), and all seven gnomes. Ilse runs into the arms of a young man in an 1891 suit holding two glasses of very flat champagne.',
+  'Pemberton stays. '+q('Someone has to keep her company,')+' he says. '+q('Visit. She gets lonely.')+' And you do, every year, on the anniversary.')},
+};
+
+/* ===================== EXPANSION: THE LIFT AND ITS FLOORS ===================== */
+const X=(id,cap,pic,paras,choices)=>{SC[id]={cap,pic,text:()=>p(...(typeof paras==='function'?paras():paras)),choices:()=>(typeof choices==='function'?choices():choices).filter(Boolean).map(c=>Array.isArray(c)?{l:c[0],go:c[1],cost:c[2]??10,...(c[3]||{})}:c)}};
+const E=(id,title,pic,...paras)=>{ENDINGS.push([id,title]);SC['end_'+id]={end:id,pic,text:()=>p(...paras)}};
+
+/* ---- new pictures ---- */
+P.lift=(o={})=>{let bars='';for(let x=150;x<=650;x+=22)bars+=`<rect x="${x}" y="40" width="4" height="380" fill="#cfa651" opacity=".55"/>`;let lights='';for(let i=0;i<11;i++)lights+=`<circle cx="${250+i*30}" cy="22" r="8" fill="${i===(o.lit??4)?'#ffd27a':'#3a2a22'}"/>`;
+  return svg(`<rect width="800" height="450" fill="#1d1218"/><rect x="130" y="40" width="540" height="390" fill="#2b1a1c"/><rect x="150" y="60" width="500" height="360" fill="#3d2420"/>
+  <circle cx="400" cy="120" r="200" fill="url(#glowW)" opacity=".35"/>
+  <g transform="translate(560,170)"><rect width="60" height="150" fill="#cfa651"/><rect x="6" y="6" width="48" height="138" fill="#2a1a10"/>${[...Array(10)].map((_,i)=>`<circle cx="${i%2?42:18}" cy="${22+(i>>1)*26}" r="7" fill="${i===9?'#c0392b':'#efe2cc'}"/>`).join('')}</g>
+  <g transform="translate(330,420)" opacity=".75"><path d="M-30 0 Q-34 -110 -22 -150 H22 Q34 -110 30 0Z" fill="#8a2a3a"/><circle cy="-172" r="22" fill="#e8c9a8"/><rect x="-18" y="-206" width="36" height="16" fill="#8a2a3a"/><rect x="-22" y="-192" width="44" height="4" fill="#111"/><circle cx="-7" cy="-172" r="2.5" fill="#222"/><circle cx="7" cy="-172" r="2.5" fill="#222"/><g fill="#b5653a">${[...Array(9)].map((_,i)=>`<circle cx="${-12+(i*7)%24}" cy="${-166+(i%3)*3}" r="1.2"/>`).join('')}</g></g>
+  ${o.sky?`<rect x="150" y="60" width="500" height="360" fill="#0b1030" opacity=".85"/>${stars(60,99,420)}`:''}
+  ${o.fall?`<g stroke="#efe2cc" opacity=".35">${[...Array(14)].map((_,i)=>`<line x1="${170+i*34}" y1="${80+(i*53)%300}" x2="${170+i*34}" y2="${140+(i*53)%300}"/>`).join('')}</g>`:''}
+  ${bars}<rect x="130" y="0" width="540" height="44" fill="#120a0e"/>${lights}`)};
+P.attic=(o={})=>{const r=rng(81);let junk='';for(let i=0;i<60;i++){const x=r()*800|0,y=300+r()*150|0,c=['#6b4a6a','#3a5a6a','#7a5a3a','#5a6a3a','#8a3a3a','#c9b48a'][r()*6|0];junk+=r()>.5?`<rect x="${x}" y="${y}" width="${10+r()*30|0}" height="${8+r()*20|0}" fill="${c}" transform="rotate(${(r()*60-30)|0} ${x} ${y})"/>`:`<path d="M${x} ${y} q8 -12 16 0 v18 h-16z" fill="${c}"/>`}
+  let umb='';for(let i=0;i<6;i++)umb+=`<g transform="translate(${120+i*110},${70+(i%2)*30})" class="sway" style="animation-delay:${i*.5}s"><path d="M-30 0 Q0 -30 30 0Z" fill="${['#2a3a5a','#5a2a3a','#2a2a2a'][i%3]}"/><path d="M0 0 V28 q0 6 -6 6" stroke="#2a2a2a" stroke-width="2" fill="none"/></g>`;
+  return svg(`<rect width="800" height="450" fill="#1e1612"/><path d="M0 220 L400 20 L800 220 V0 H0Z" fill="#120d0a"/><path d="M400 20 V450" stroke="#2a1c14" stroke-width="14"/><path d="M200 120 L200 450 M600 120 L600 450" stroke="#2a1c14" stroke-width="10"/>
+  <path d="M370 70 h60 v50 h-60z" fill="#3a4a7a" opacity=".6"/><circle cx="400" cy="95" r="120" fill="url(#glowW)" opacity=".2"/>
+  ${umb}<path d="M0 450 Q200 280 400 330 T800 300 V450Z" fill="#2a2020"/>${junk}
+  ${o.bear?'<g transform="translate(560,330)"><circle r="34" fill="#9a6a3a"/><circle cx="-24" cy="-26" r="12" fill="#9a6a3a"/><circle cx="24" cy="-26" r="12" fill="#9a6a3a"/><circle cx="-11" cy="-4" r="4" fill="#111"/><path d="M6 -8 l10 6 m0 -6 l-10 6" stroke="#111" stroke-width="2"/><ellipse cy="10" rx="12" ry="8" fill="#c9a07a"/><circle cy="44" r="40" fill="#9a6a3a"/></g>':''}`)};
+P.pool=(o={})=>svg(`<rect width="800" height="450" fill="#0a0c1e"/>${stars(70,13,200)}
+  <path d="M0 230 H800 V450 H0Z" fill="#1b1a2a"/>
+  <path d="M90 260 H710 L780 440 H20Z" fill="#cfa651" opacity=".5"/><path d="M110 270 H690 L752 430 H48Z" fill="#050820"/>
+  <clipPath id="poolc"><path d="M110 270 H690 L752 430 H48Z"/></clipPath><g clip-path="url(#poolc)">${stars(90,17,450).replace(/cy="(\d+)"/g,(m,a)=>`cy="${270+(+a)%160}"`)}<circle cx="560" cy="360" r="34" fill="#f3e6c4" opacity=".85"/><path d="M200 320 L330 300" stroke="#bfe6ff" stroke-width="3" opacity=".8"/><circle cx="330" cy="300" r="6" fill="#fff"/>${o.green?'<circle cx="420" cy="400" r="40" fill="url(#glowG)"/>':''}</g>
+  <g transform="translate(720,250)"><rect x="-4" y="-140" width="6" height="140" fill="#cfa651"/><rect x="20" y="-140" width="6" height="140" fill="#cfa651"/><rect x="-8" y="-146" width="40" height="8" fill="#cfa651"/>
+  ${o.noheron?'':'<g transform="translate(12,-150)"><ellipse cy="-20" rx="18" ry="26" fill="#a9b4c4"/><path d="M6 -40 Q20 -70 6 -84" stroke="#a9b4c4" stroke-width="7" fill="none"/><circle cx="6" cy="-86" r="9" fill="#a9b4c4"/><path d="M12 -86 L44 -82 L12 -80Z" fill="#e0b040"/><circle cx="8" cy="-88" r="1.6" fill="#111"/></g>'}</g>
+  ${o.lounger?'<g transform="translate(200,240)"><path d="M0 0 L120 0 L150 -30" stroke="#efe2cc" stroke-width="8" fill="none"/></g><path d="M100 60 L180 110" stroke="#fff" stroke-width="2" opacity=".8"/><path d="M500 40 L560 80" stroke="#fff" stroke-width="2" opacity=".6"/>':''}`);
+P.room14=(o={})=>{return svg(`<rect width="800" height="450" fill="#22191a"/><path d="M0 330 H800 V450 H0Z" fill="#c9a86a" opacity=".55"/>
+  ${o.sky?`<rect width="800" height="330" fill="#121a3a"/>${stars(60,23,320)}${moon(650,80,30)}`:`<rect x="560" y="50" width="160" height="110" fill="#2a3a5a"/><path d="M560 50 h160 v110 h-160z" fill="none" stroke="#120808" stroke-width="8"/>`}
+  <path d="M60 140 Q200 220 340 140" stroke="#8a6a3a" stroke-width="4" fill="none"/><path d="M60 140 Q200 240 340 140 Q200 200 60 140Z" fill="#c9b48a" opacity=".6"/>
+  <g transform="translate(560,300)"><circle r="70" fill="none" stroke="#7a4a1a" stroke-width="12"/>${[...Array(8)].map((_,i)=>`<rect x="-4" y="-96" width="8" height="40" fill="#7a4a1a" transform="rotate(${i*45})"/>`).join('')}<circle r="14" fill="#cfa651"/></g>
+  <g transform="translate(300,420)" opacity=".7"><path d="M-40 0 Q-50 -120 -26 -170 H26 Q50 -120 40 0Z" fill="#8fd3c4"/><circle cy="-192" r="26" fill="#8fd3c4"/><path d="M-50 -206 Q0 -250 50 -206 L36 -214 Q0 -236 -36 -214Z" fill="#111"/><rect x="-10" y="-200" width="14" height="9" fill="#111"/><path d="M8 -186 Q14 -178 20 -186" stroke="#222" stroke-width="3" fill="none"/>
+  <g transform="translate(38,-160)" stroke="#efe2cc" stroke-width="2" fill="none"><circle cy="-18" r="8"/><path d="M0 -10 V14 M-8 0 H8 M-6 6 H6"/><path d="M6 -18 L16 -15"/></g></g>
+  ${o.chest?'<g transform="translate(150,370)"><rect x="-50" y="-40" width="100" height="60" fill="#6b3a1a"/><path d="M-50 -40 Q0 -80 50 -40Z" fill="#7a4a1a"/><rect x="-6" y="-36" width="12" height="18" fill="#cfa651"/><circle r="70" cy="-30" fill="url(#glowW)" opacity=".6"/></g>':''}`)};
+P.gallery=(o={})=>{let frames='';[[60,90,140,180,'#3a8ab0','sea'],[250,70,160,210,'#5a2a2a','dinner'],[460,90,140,180,'#2a3a4a','storm'],[650,100,110,160,'#1a1418','empty']].forEach(([x,y,w,h,c,k])=>{
+  frames+=`<rect x="${x-10}" y="${y-10}" width="${w+20}" height="${h+20}" fill="#cfa651"/><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${c}"/>`;
+  if(k==='sea')frames+=`<rect x="${x}" y="${y}" width="${w}" height="${h*.5}" fill="#f6c88a"/><circle cx="${x+w*.7}" cy="${y+h*.35}" r="14" fill="#fff1c9"/><path d="M${x+30} ${y+h*.75} l20 -40 l0 40z" fill="#efe2cc"/><circle cx="${x+20}" cy="${y+h*.3}" r="18" fill="#5a8a3a"/><circle cx="${x+16}" cy="${y+h*.28}" r="3" fill="#f6d33a"/>`;
+  if(k==='dinner')frames+=`<rect x="${x+10}" y="${y+h*.6}" width="${w-20}" height="20" fill="#efe2cc"/>${[0,1,3].map(i=>`<circle cx="${x+30+i*34}" cy="${y+h*.5}" r="12" fill="#e8c9a8"/><rect x="${x+20+i*34}" y="${y+h*.5+10}" width="20" height="24" fill="#2a1a3a"/>`).join('')}<rect x="${x+122}" y="${y+h*.5-10}" width="22" height="44" fill="none" stroke="#efe2cc" stroke-dasharray="3 3"/>`;
+  if(k==='storm')frames+=`<path d="M${x} ${y+h*.6} q35 -20 70 0 t70 0 V${y+h} H${x}Z" fill="#1a3a4a"/><path d="M${x+60} ${y+h*.55} l10 -50 l10 50z" fill="#efe2cc"/><path d="M${x+100} ${y+10} l-10 30 h10 l-8 26" stroke="#ffe98a" stroke-width="3" fill="none"/>`;
+  if(k==='empty')frames+=`<text x="${x+w/2}" y="${y+h+40}" text-anchor="middle" font-family="DM Mono,monospace" font-size="10" fill="#cfa651">UNFINISHED</text>`;
+  frames+=`<circle cx="${x+w/2}" cy="${y-30}" r="40" fill="url(#glowW)" opacity=".4"/>`});
+  return svg(`<rect width="800" height="450" fill="#2a1820"/><rect y="330" width="800" height="120" fill="#160c10"/><path d="M0 330 H800" stroke="#cfa651" opacity=".5"/>${frames}
+  ${o.brush?'<g transform="translate(700,380) rotate(-30)"><rect width="80" height="6" fill="#7a4a1a"/><path d="M80 -2 l20 5 l-20 5z" fill="#c0392b"/></g><ellipse cx="620" cy="400" rx="50" ry="24" fill="#c9a86a"/><circle cx="600" cy="396" r="6" fill="#c0392b"/><circle cx="624" cy="390" r="6" fill="#3a8ab0"/><circle cx="644" cy="402" r="6" fill="#f6d33a"/>':''}`)};
+P.conserv=(o={})=>{const r=rng(91);let leaves='';for(let i=0;i<50;i++){const x=r()*800|0,y=180+r()*270|0,s=10+r()*40;leaves+=`<ellipse cx="${x}" cy="${y}" rx="${s|0}" ry="${(s/2.6)|0}" fill="${['#2a5a3a','#3a7a4a','#1e4a2e','#4a8a3a'][r()*4|0]}" transform="rotate(${(r()*180)|0} ${x} ${y})"/>`}
+  let panes='';for(let x=0;x<=800;x+=80)panes+=`<path d="M${x} 0 V200" stroke="#cfa651" stroke-width="3" opacity=".5"/>`;
+  return svg(`<rect width="800" height="450" fill="#0e1a1e"/><rect width="800" height="200" fill="#16263a"/>${stars(30,29,190)}${panes}<path d="M0 200 H800 M0 100 H800" stroke="#cfa651" stroke-width="3" opacity=".5"/>${moon(140,70,20)}
+  ${leaves}
+  <g transform="translate(400,330)"><path d="M0 100 V20" stroke="#3a7a4a" stroke-width="10"/><g transform="rotate(-10)"><path d="M-90 0 Q0 -100 90 0Z" fill="#6aa04a"/><path d="M-90 0 Q0 90 90 0Z" fill="#8a2a3a"/><path d="M-90 0 Q0 -100 90 0" stroke="#efe2cc" stroke-width="2" stroke-dasharray="2 8" fill="none"/><path d="M-84 0 Q0 40 84 0" stroke="#c94a5a" stroke-width="4" fill="none"/><circle cx="-30" cy="-34" r="6" fill="#ffd27a"/><circle cx="30" cy="-34" r="6" fill="#ffd27a"/></g></g>
+  ${[[150,260],[650,250],[600,330]].map(([x,y])=>`<g transform="translate(${x},${y})"><path d="M0 0 Q-20 -20 0 -40 Q20 -20 0 0Z" fill="#e8a0d0"/><path d="M0 -10 Q-26 -14 -30 -30 M0 -10 Q26 -14 30 -30" stroke="#e8a0d0" stroke-width="6" fill="none"/><circle cy="-18" r="4" fill="#ffd27a"/></g>`).join('')}
+  ${o.stalk?'<path d="M700 450 Q650 300 720 200 Q760 100 700 0" stroke="#4a8a3a" stroke-width="24" fill="none"/>':''}`)};
+P.spa=(o={})=>{let tiles='';for(let y=0;y<450;y+=30)for(let x=(y/30%2)*15;x<800;x+=30)tiles+=`<rect x="${x}" y="${y}" width="28" height="28" fill="#1e4a44" opacity=".55"/>`;
+  return svg(`<rect width="800" height="450" fill="#122a28"/>${tiles}
+  <ellipse cx="400" cy="370" rx="320" ry="60" fill="#0e2a2a"/><ellipse cx="400" cy="362" rx="300" ry="48" fill="#3a8a80"/><ellipse cx="400" cy="358" rx="270" ry="34" fill="#8fd3c4" opacity=".4"/>
+  ${o.octo?'<g transform="translate(560,300)"><ellipse cy="-40" rx="46" ry="54" fill="#c9607a"/><circle cx="-16" cy="-44" r="8" fill="#fff"/><circle cx="16" cy="-44" r="8" fill="#fff"/><circle cx="-16" cy="-44" r="3.5" fill="#111"/><circle cx="16" cy="-44" r="3.5" fill="#111"/>'+[...Array(6)].map((_,i)=>`<path d="M${-36+i*14} 0 q${(i%2?1:-1)*20} 30 ${(i%2?1:-1)*8} 60" stroke="#c9607a" stroke-width="10" fill="none" stroke-linecap="round"/>`).join('')+'<rect x="-30" y="-110" width="60" height="16" fill="#efe2cc"/></g>':''}
+  ${o.mud?'<ellipse cx="300" cy="360" rx="120" ry="26" fill="#5a3a2a"/><circle cx="300" cy="340" r="20" fill="#5a3a2a"/><circle cx="292" cy="336" r="3" fill="#efe2cc"/><circle cx="308" cy="336" r="3" fill="#efe2cc"/>':''}
+  <g fill="#e8f2ee">${[...Array(7)].map((_,i)=>`<ellipse class="steam" style="animation-delay:${i*.6}s" cx="${140+i*90}" cy="${250-(i%3)*30}" rx="70" ry="30" opacity=".18"/>`).join('')}</g>
+  <rect x="300" y="60" width="200" height="60" fill="#0c1e1c" stroke="#cfa651"/><text x="400" y="96" text-anchor="middle" font-family="Limelight,serif" font-size="18" fill="#cfa651" letter-spacing="3">BATHS</text>`)};
+P.laundry=(o={})=>{let sheets='';for(let i=0;i<6;i++)sheets+=`<g class="sway" style="animation-delay:${i*.4}s"><path d="M${60+i*120} 70 h90 v${130+(i%3)*20} q-15 10 -30 0 q-15 10 -30 0 q-15 10 -30 0Z" fill="#e8f2ee" opacity=".75"/><circle cx="${90+i*120}" cy="120" r="5" fill="#222"/><circle cx="${120+i*120}" cy="120" r="5" fill="#222"/></g>`;
+  let mach='';for(let i=0;i<5;i++)mach+=`<g transform="translate(${70+i*150},300)"><rect width="120" height="140" fill="#b0663a"/><circle cx="60" cy="74" r="40" fill="#2a1a14" stroke="#cfa651" stroke-width="6"/><circle cx="60" cy="74" r="28" fill="#3a5a6a" opacity=".6" class="${i%2?'spin':''}"/><circle cx="20" cy="18" r="5" fill="#cfa651"/></g>`;
+  return svg(`<rect width="800" height="450" fill="#1a1416"/><path d="M0 64 Q400 90 800 64" stroke="#5a4a3a" stroke-width="3" fill="none"/>${sheets}${mach}
+  ${o.sock?'<path d="M400 440 q0 -20 14 -20 h14 v-20 h12 v34 q0 6 -6 6Z" fill="#8a8a8a"/>':''}`)};
+P.shop=(o={})=>{let globes='';for(let i=0;i<6;i++){const x=90+i*80;globes+=`<g transform="translate(${x},${i<3?150:250})"><rect x="-20" y="18" width="40" height="14" fill="#5a3a24"/><circle r="26" fill="#cfe8ef" opacity=".35"/><path d="M-10 18 v-16 l10 -10 l10 10 v16z" fill="#2a1a20"/><circle r="26" fill="none" stroke="#efe2cc" stroke-opacity=".5"/>${[...Array(5)].map((_,k)=>`<circle cx="${(k*9)%30-14}" cy="${(k*13)%24-12}" r="1.6" fill="#fff" class="twinkle"/>`).join('')}</g>`}
+  return svg(`<rect width="800" height="450" fill="#21161c"/><rect x="40" y="186" width="480" height="8" fill="#5a3a24"/><rect x="40" y="286" width="480" height="8" fill="#5a3a24"/>${globes}
+  <path d="M400 0 V60" stroke="#444"/><circle cx="400" cy="70" r="10" fill="#ffd27a" class="neon"/><circle cx="400" cy="70" r="160" fill="url(#glowW)" opacity=".25" class="neon"/>
+  <g transform="translate(640,80)"><rect width="120" height="340" fill="#a3202c"/><rect x="10" y="40" width="100" height="280" fill="#2a1a20"/>${[...Array(6)].map((_,i)=>`<path d="M10 ${86+i*44} H110" stroke="#a3202c" stroke-width="5"/>`).join('')}<rect x="10" y="8" width="100" height="22" fill="#111"/><text x="60" y="24" text-anchor="middle" font-family="DM Mono,monospace" font-size="11" fill="#efe2cc">TELEPHONE</text><circle cx="60" cy="150" r="40" fill="url(#glowW)" opacity=".5"/></g>
+  <g transform="translate(560,420)"><path d="M-22 0 L-18 -110 H18 L22 0Z" fill="#c9b8a8"/><circle cy="-130" r="20" fill="#d9c8b8"/><rect x="14" y="-142" width="22" height="12" fill="#efe2cc" transform="rotate(20 14 -142)"/></g>
+  ${o.hat?'<g transform="translate(300,350)"><ellipse rx="50" ry="10" fill="#2a1a2a"/><rect x="-30" y="-50" width="60" height="50" fill="#2a1a2a"/><rect x="-30" y="-16" width="60" height="8" fill="#8f2f45"/></g>':''}`)};
+
+/* ---- the lift ---- */
+X('lift','The lift','x',[
+  'A brass cage lift clanks open. Inside, a lift boy in a pillbox hat stands at the controls. He is mostly freckles and partly fog.',
+  q('Evening. Fitz, lift operator,')+' he says. '+q('Floors are a bit unusual tonight. Mind the gap. The gap bites.'),
+  'The panel of buttons is longer than any building needs, and one red lever at the bottom is labelled, in very firm capitals, <b>NEVER</b>.'],[
+  ['Floor 7: the Attic of Lost Things, where everything anyone ever misplaced ends up','attic'],
+  ['Floor 4: the Rooftop Pool, which the sign says is “filled with night”','pool'],
+  ['Floor 3: Room 14, the room everyone complains about','room14'],
+  ['Floor 2: the Portrait Gallery, where the paintings follow you with their eyes','gallery'],
+  ['Floor 1½: the Conservatory, which smells of jungle and something hungry','conserv'],
+  ['Floor B2: the Steam Baths and Spa','spa'],
+  ['Floor B3: the Laundry, rumbling like a thunderstorm in a basement','laundry'],
+  ['Floor G: the Gift Shop, with a red telephone booth in the corner','shop'],
+  ['Ask Fitz where he would go, if he could go anywhere','liftboy',5],
+  ['Pull the red lever marked NEVER, because you have never been good at rules','lever',5],
+  ['Step back out into the Grand Corridor','hall',5]]);
+SC.lift.pic=()=>P.lift();
+
+X('liftboy','Fitz','x',[q('Me?')+' Fitz blinks. '+q('Nobody’s asked me that since 1938.')+' He leans in. '+q('There’s a button hidden under the panel. Floor Infinity. I’ve never dared press it. Also I was meant to go to the World’s Fair, once. The lift got stuck between floors, and so did I.')],[
+  ['Find the hidden button and press Floor Infinity together','liftinf'],
+  ['Offer to run the lift for a while so Fitz can finally take a break','end_liftswap'],
+  ['Promise to get him to a World’s Fair, somehow, tonight','end_worldsfair'],
+  ['Pat him on the shoulder and pick a floor instead','lift',5]]);
+SC.liftboy.pic=()=>P.lift({lit:10});
+X('liftinf','Floor Infinity','x',['The lift rises. Past the roof. Past the clouds. Past what looks like a very surprised satellite. The floor numbers on the dial stop being numbers and start being colours.',q('I think,')+' Fitz whispers, '+q('we should decide what to do before we run out of up.')],[
+  ['Open the gate and step out onto the top of the sky','end_skytop'],
+  ['Sit down on the floor, eat a mint, and just keep going','end_express'],
+  ['Hit the emergency stop button, hard','end_betweenfloors']]);
+SC.liftinf.pic=()=>P.lift({sky:1,lit:10});
+E('liftswap','Going Up',()=>P.lift(),'Fitz hands you his pillbox hat with shaking hands, steps out of the lift and walks straight through the front door into the night. You hear him laughing all the way down the hill.','You run the lift now. You learn every floor, including the ones that are only there on Thursdays. Fitz sends postcards from the seaside. He has learned to swim.');
+E('worldsfair','World’s Fair',()=>P.lift({fall:1}),'You grab the lift controls and push them sideways, which lifts should not do. The lift does it anyway, out of sheer surprise.','The doors open onto a sunny day in 1939: flags, a giant metal globe, the smell of popcorn. Fitz screams with joy. You both stay. You never quite get the hang of the money.');
+E('skytop','Top Floor',()=>P.coast(),'You step out onto a cloud. It holds. Up here the sun never quite sets and the neighbours are geese.','You rent a small cloud with a view and grow tomatoes in the rain. The rent is reasonable. The commute is terrible.');
+E('express','Express Service',()=>P.lift({sky:1,lit:10}),'You keep going up. And up. Fitz finds a radio under the panel that only plays songs nobody has written yet.','It has been eleven years. You are still going up. Honestly, it’s the most relaxing job you’ve ever had.');
+E('betweenfloors','Between Floors',()=>P.lift(),'The lift shudders to a halt somewhere between Infinity and Infinity Minus One.','You and Fitz play I Spy. It is round eight thousand. Fitz is winning, mostly because he keeps choosing “fog”.');
+
+X('lever','NEVER','x',['Fitz grabs your wrist. '+q('Not NEVER! Anything but NEVER!'),'Too late. The lift drops like a stone down a well, whistling cheerfully. The dial spins past B3, B30, B300. As you fall, five buttons light up on the panel, each flashing for attention.'],[
+  ['Slap the button marked CORE','end_core'],
+  ['Slap the button marked AUSTRALIA','end_australia'],
+  ['Slap the button marked YESTERDAY','end_yesterday'],
+  ['Slap every single button at once with both hands','end_everyfloor'],
+  ['Forget the buttons, hug Fitz and hope for the best','end_liftfriends']]);
+SC.lever.pic=()=>P.lift({fall:1,lit:0});
+E('core','Centre of the Earth',()=>P.basement(),'The doors open at the centre of the Earth, where there is another hotel. A much nicer one. It has a lava spa and the staff are all very polite rocks.','You transfer your booking. The room is warm. Everything is warm. It is the best sleep of your life.');
+E('australia','Upside Down',()=>P.coast(),'The lift comes out of the ground in a dusty field in Australia. You step out upside down and it takes three years to get used to.','You open a little café called Nocturne. It only opens at night. It is extremely popular with bats.');
+E('yesterday','Yesterday',()=>P.meadow({car:1}),'The doors open on yesterday morning. Your car hasn’t broken down yet. It’s parked outside your house, gleaming.','You take the train instead. You sit next to someone lovely. You never know what you avoided, but sometimes, in storms, you think of a cat in a waistcoat and you don’t know why.');
+E('everyfloor','Every Floor at Once',()=>P.hall(),'The lift stops at every floor at the same time, and so do you.','You exist everywhere in the hotel at once: in the kitchen, the pool, the gallery, the laundry. It’s confusing. But you are now extremely good at parties.');
+E('liftfriends','Lift Friends',()=>P.meadow({car:1}),'You hug. The lift, embarrassed, stops falling and quietly delivers you to the ground floor.','Fitz decides that if he can survive NEVER, he can survive outside. The two of you open a lift repair business in the real world. Four and a half stars on every review site. Customers say Fitz is “a bit foggy but very sweet”.');
+
+/* ---- attic ---- */
+X('attic','The Attic of Lost Things','x',['Floor 7 is an attic so big it has its own weather. Everything anyone ever lost ends up here. Odd socks lie in drifts like snow. Umbrellas roost in the rafters like bats. There is a mountain of car keys.','A hand-painted sign says <b>LOST PROPERTY. FINDERS KEEPERS. KEEPERS STAY.</b>'],[
+  ['Dig into the snowdrifts of odd socks, looking for a matching pair','socks'],
+  ['Follow the sound of quiet sobbing to a heap of lost toys','toys'],
+  ['Go looking for something that you, personally, once lost','yourlost'],
+  ['Open one of the umbrellas roosting in the rafters','end_umbrella'],
+  ['Get back in the lift before you lose something else','lift',5]]);
+SC.attic.pic=()=>P.attic();
+X('socks','Sock drifts','x',['You dig. Socks from every century. Stripy ones, woolly ones, one sock that is clearly a medieval chainmail sock. Deep in the drift your hand hits something wooden.','It’s a small door, made entirely of socks, with a sock for a doorknob.'],[
+  ['Turn the sock doorknob and go through','end_sockland'],
+  ['Ignore the door and keep digging for a matching pair, however long it takes','end_matched'],
+  ['Climb out of the drift and back away','attic',5]]);
+SC.socks.pic=()=>P.attic();
+E('sockland','The Land of Odd Socks',()=>P.attic(),'Beyond the door is a kingdom where every lost sock lives free. They have been waiting for a leader with two feet.','They crown you. The crown is a sock. You rule wisely and wear sandals to state occasions out of respect.');
+E('matched','A Perfect Pair',()=>P.attic(),'You dig for forty years. And then, one Tuesday, you find them: two socks, identical, the same stripe, the same tiny hole.','It is the greatest moment in the history of the attic. Everyone gathers to watch you put them on. They are slightly damp. You cry anyway.');
+X('toys','The lost toys','x',['A one-eyed teddy bear sits on a rocking horse, sobbing into its paws. '+q('Nobody comes for us,')+' it sniffs. '+q('Not in sixty years.'),'All around, the other lost toys look up at you hopefully: a tin soldier, a rag doll, a wind-up mouse with a rusty key.'],[
+  ['Promise them you’ll find every one of their children','toys2'],
+  ['Stand on a box and give a stirring speech about toys’ rights','end_toyrebel'],
+  ['Pick up the bear and give it the biggest hug you can','end_bearhug']]);
+SC.toys.pic=()=>P.attic({bear:1});
+X('toys2','A heavy basket','x',['You pile every toy into a laundry basket. It is very heavy. The bear sits on top, looking pleased.','Then it says, quietly: '+q('You do know they’re all grown-ups now? Some of them have grown-ups of their own.')],[
+  ['Deliver them anyway, door to door, all over the world','end_toydelivery'],
+  ['Open a toy shop where the toys choose their new children','end_toyshop'],
+  ['Put the basket down, apologise, and back away','attic',5]]);
+SC.toys2.pic=()=>P.attic({bear:1});
+E('toyrebel','The Nursery Uprising',()=>P.attic({bear:1}),'Your speech is so stirring that the toys march downstairs in formation. Pemberton surrenders to a wind-up soldier at 2:15 AM.','You are made General of the Toy Army. Your first order is bedtime stories for everyone. It is a popular order.');
+E('bearhug','Hug Retention',()=>P.attic({bear:1}),'The hug lasts so long that you both fall asleep.','You wake up as a well-loved toy on a shelf in a child’s bedroom in 2040. The child takes you everywhere. One of your ears is a bit chewed. You have never been happier.');
+E('toydelivery','Special Delivery',()=>P.attic({bear:1}),'You spend a year returning toys to grown-ups: a fisherman in Norway, a judge in Toronto, a grandmother in Peru.','Every single one of them cries. You end up on the news. The bear goes back to a man called Derek, who now sleeps with it every night and isn’t embarrassed at all.');
+E('toyshop','Second-Hand Smiles',()=>P.attic({bear:1}),'You open a little shop where the toys pick their own children, not the other way round.','There is a queue round the block every Saturday. The bear does the accounts. It is surprisingly strict about it.');
+X('yourlost','Aisle Four','x',['You think hard about what you’ve lost over the years. A sign drops from the rafters on a chain: <b>AISLE 4: YOURS</b>.','The shelves in Aisle 4 hold three things with your name on them.'],[
+  ['Take down the jar labelled “Sense of Direction”','end_direction'],
+  ['Take down the box labelled “Childhood Courage (age 9)”','end_courage'],
+  ['Take down the keys you lost in 2019 and swore you put somewhere safe','end_keys2019'],
+  ['Leave Aisle 4 alone, some things are lost for a reason','attic',5]]);
+SC.yourlost.pic=()=>P.attic();
+E('direction','Found: Sense of Direction',()=>P.coast(),'You open the jar and your sense of direction leaps back inside you.','You never get lost again. You walk straight out of the attic, the hotel, and the county, and become a famous explorer. Your car is still at mile 31.');
+E('courage','Brave Again',()=>P.lobby(),'Your childhood courage fits like a glove. You march downstairs and ask Pemberton for a refund. He is so stunned that he gives you one.','Then you go home, quit your job, and become a lion tamer. The lions find you hilarious.');
+E('keys2019','The Spare Key',()=>P.room(),'The keys fit the attic door. You open it and step straight into your own kitchen, in 2019, with toast in the toaster.','You decide to make much better choices this time round. You do not. But the toast is excellent.');
+E('umbrella','Fair Weather',()=>P.coast(),'The umbrella opens with a snap, and every other umbrella in the rafters opens too. They lift you up and out through a skylight.','You drift for days and land in a city where it always rains. Everyone there loves umbrellas. You are a celebrity.');
+
+/* ---- rooftop pool ---- */
+X('pool','The Rooftop Pool','x',['The roof has a swimming pool, and the water in it is the night sky. Stars glitter on the bottom. A comet drifts lazily across the deep end.','A lifeguard sits in a tall chair. The lifeguard is a large grey heron with a whistle.'],[
+  ['Take a run-up and dive straight into the starry water','pooldive'],
+  ['Wave to the heron lifeguard and strike up a conversation','heron'],
+  ['Lie down on a sunlounger and look up at the sky','lounger'],
+  ['Go back to the lift, slightly damp with starlight','lift',5]]);
+SC.pool.pic=()=>P.pool();
+X('pooldive','Starwater','x',['You plunge in. It isn’t wet. It’s cold and fizzy and goes on forever. You’re floating among the stars, and the hotel is a tiny lit thing far above you. Or below. Hard to say.','Far off, a strange green light pulses slowly.'],[
+  ['Swim toward the Moon, which turns out to be closer than you thought','end_moonbath'],
+  ['Grab the comet’s tail as it swims past','end_comet'],
+  ['Swim down, toward the green light','pooldeep'],
+  ['Paddle back to the edge and climb out','pool',10]]);
+SC.pooldive.pic=()=>P.pool({green:1,noheron:1});
+X('pooldeep','The green light','x',['The green light is a lighthouse, floating in space. On the gallery stands a keeper who looks exactly like you, but much older, and with an excellent beard (whether or not you have ever had one).',q('Ah. There you are,')+' says the old you. '+q('Right on time.')],[
+  ['Ask your older self for one piece of advice','end_notetoself'],
+  ['Offer to take over the lighthouse so the old you can rest','end_spacelight'],
+  ['Swim away, this is far too weird','pooldive',10]]);
+SC.pooldeep.pic=()=>P.pool({green:1,noheron:1});
+E('moonbath','Moonbather',()=>P.pool({noheron:1}),'The Moon has a beach. Nobody told you.','You stay. You get silver tan lines. Astronauts are very surprised to find a deckchair.');
+E('comet','Comet Rider',()=>P.coast(),'You hang on to the comet’s tail. You visit Saturn’s rings, a very lonely asteroid, and the far edge of the solar system.','You come back seventy-six years later. Nobody believes you, except Pemberton, who just says '+q('Ah, Halley’s. Lovely in spring.'));
+E('notetoself','Note to Self',()=>P.meadow(),q('Stop worrying,')+' says the old you. '+q('Call your sister. Buy the boat.'),'You swim back, climb out, drive home, and do all three. The boat is excellent. Your sister helps you name it.');
+E('spacelight','Keeper of the Light',()=>P.pool({green:1,noheron:1}),'The old you hands over the keys and swims off toward a nice warm star.','You guide lost satellites home. It’s quiet, and a bit lonely, and very, very beautiful.');
+X('heron','The lifeguard','x',['The heron peers down at you. '+q('No running. No bombing. No wishing in the deep end.'),'It says this in the voice of someone who has said it ten thousand times.'],[
+  ['Ask why on earth wishing is against the rules','herona',5],
+  ['Challenge the heron to a race, two lengths, freestyle','end_race'],
+  ['Thank it and leave it alone','pool',5]]);
+SC.heron.pic=()=>P.pool();
+X('herona','No wishing','x',[q('Because wishes come true in here, obviously,')+' sighs the heron. '+q('And then there’s the paperwork.'),'It looks at the deep end. It looks at you. It shrugs. '+q('Go on, then. One. Make it quick.')],[
+  ['Wade in and wish to be rich','end_rich'],
+  ['Wade in and wish to be at home, in your own bed','end_home'],
+  ['Wade in and wish for the heron to have a day off','end_heronday']]);
+SC.herona.pic=()=>P.pool();
+E('rich','Filthy Rich',()=>P.pool(),'Gold coins pour down on you from nowhere. A lot of gold coins. The heron has to fish you out from under them.','You are extremely rich and slightly flattened. You buy the hotel a better lift. Fitz cries.');
+E('home','Home Sweet Home',()=>P.room(),'You blink and you’re in your own bed, in your own pyjamas, with your own alarm going off.','Was it all a dream? Probably. Except there is a grey heron feather on your pillow, and it smells of stars.');
+E('heronday','Lifeguard Duty',()=>P.pool({noheron:1}),'The heron grins, which is hard to do with a beak, and flies off to a pond somewhere warm.','You’re the lifeguard now, forever. The whistle suits you. You are very strict about wishing.');
+E('race','Personal Best',()=>P.pool(),'You lose to the heron by a beak. So you train. For two hundred years.','And then, one night, you win. The heron shakes your hand with its wing. You both retire to a pond together and never race again.');
+X('lounger','The sunlounger','x',['The lounger is warm, as if it has been waiting for you. Shooting stars streak overhead, one every few seconds, each one hissing softly like a struck match.','One flies so low you could almost reach up and touch it.'],[
+  ['Start counting the shooting stars, just to see how many there are','end_countstars'],
+  ['Reach up and catch the next low one','end_catchstar'],
+  ['Get up before you get too comfortable','pool',5]]);
+SC.lounger.pic=()=>P.pool({lounger:1});
+E('countstars','Counting Stars',()=>P.meadow(),'You count to one million and two and fall asleep with a smile.','You wake on an empty hilltop at noon. No hotel. No pool. You are the most relaxed you have ever been in your life.');
+E('catchstar','Pocketful of Starlight',()=>P.pool({lounger:1}),'You catch it. It burns a hole in your pocket, and then in your whole life, in a good way: everything you touch glows faintly afterwards.','You become a famous designer of night lights. Children all over the world sleep better because of you.');
+
+/* ---- room 14 ---- */
+X('room14','Room 14','x',['Sea shanties come through the wall of Room 14, very loudly. The door opens before you knock.','Inside: a ship’s wheel, a hammock, sand on the carpet, and a pirate ghost with a parrot skeleton on her shoulder. '+q('Captain Mabel Grisly! Ye’ve come about the noise, have ye?')],[
+  ['Complain about the noise, firmly but politely','mabelcomplain'],
+  ['Ask if she has room on her crew for one more','mabelcrew'],
+  ['Ask about the treasure map pinned to the wall','mabelmap'],
+  ['Try to teach the parrot skeleton to talk','end_parrot'],
+  ['Back away to the lift, closing the door quietly','lift',5]]);
+SC.room14.pic=()=>P.room14();
+X('mabelcomplain','A complaint','x',['Mabel’s eyes narrow. '+q('Nobody complains to Grisly. Nobody but me mother.')+' Then her lip trembles. '+q('Ye remind me of me mother.')],[
+  ['Tell her it’s past her bedtime, in your best mum voice','end_bedtime'],
+  ['Put up your fists and challenge her to a duel','end_plank'],
+  ['Out-sing her: start a louder shanty of your own','end_shanty']]);
+SC.mabelcomplain.pic=()=>P.room14();
+E('bedtime','Lights Out, Captain',()=>P.room14(),'You tuck her into the hammock and read her a story about a brave little rowing boat. She falls asleep for the first time in three hundred years, and fades away smiling.','Room 14 is quiet at last. A week later, a postcard arrives with no stamp. It says: <i>Arr. Thanks, Ma.</i>');
+E('plank','Walk the Plank',()=>P.coast(),'Mabel has a plank. It goes out the window. Into a sea that definitely wasn’t there before.','You swim for days and wash up on a tiny island. You learn to fish. You learn to like it. You put up a sign: NO SHANTIES.');
+E('shanty','Shanty Superstar',()=>P.room14(),'Your duet with Mabel is so good that ghosts come up through the floorboards to listen.','You go on tour around the afterlife’s pubs. You are huge among the dead. Your merchandise is mostly bones.');
+X('mabelcrew','Crew trials','x',[q('Hah! Prove yerself,')+' says Mabel. '+q('Can ye tie a knot? Swab a deck? Insult someone in three languages? Steer?')],[
+  ['Tie the most impressive knot you know','end_knot'],
+  ['Admit, honestly, that you can’t do any of those things','end_cabincrew'],
+  ['Grab the ship’s wheel and give it a spin','mabelsail']]);
+SC.mabelcrew.pic=()=>P.room14();
+X('mabelsail','Set sail','x',['You spin the wheel. The room tilts. The walls fall away like paper, and Room 14 is a ship, sailing through the clouds above the hotel.',q('Ha HA!')+' roars Mabel. '+q('Where to, sailor?')],[
+  ['Steer toward the twinkling lights of a city on the horizon','end_portofcall'],
+  ['Steer straight up, toward the stars','end_captain'],
+  ['Steer back down and park neatly beside the hotel','lift',15]]);
+SC.mabelsail.pic=()=>P.room14({sky:1});
+E('knot','All Tied Up',()=>P.room14({sky:1}),'It is a very impressive knot. Unfortunately you have tied yourself to the mast with it.','The ship sets sail anyway. You’re the figurehead now. The views are incredible.');
+E('cabincrew','Cabin Crew',()=>P.room14({sky:1}),'Mabel respects honesty. '+q('Galley duty. Ye start now.'),'You sail the night skies on a ghost ship for years. You learn forty knots, nine shanties, and one recipe, which is soup.');
+E('portofcall','Port of Call',()=>P.coast(),'You dock in Amsterdam at dawn. The ghost crew go shopping for hats.','You stay, buy a canal boat, and turn it into a tiny hotel. It is the only hotel in the city where every room sways.');
+E('captain','Captain of the Night Sky',()=>P.room14({sky:1}),'You sail so high that Mabel weeps with pride. She takes off her hat and puts it on your head.','You’re the captain now. Mabel retires to a hammock on the poop deck. You are terrible at shanties but brilliant at stars.');
+X('mabelmap','The map','x',['The map shows the hotel grounds, drawn in brown ink with lots of little skulls for decoration. There is a big red X right under the garden fountain.',q('Me treasure!')+' says Mabel. '+q('Buried it in 1714. Can’t dig, see. Hands go straight through the shovel.')],[
+  ['Take the map and go dig it up right now','end_treasure'],
+  ['Sneak off and sell the map to the Moth Baron instead','end_mapsale'],
+  ['Hand the map back and wish her luck','room14',5]]);
+SC.mabelmap.pic=()=>P.room14();
+E('treasure','X Marks the Spot',()=>P.room14({chest:1}),'You dig all night. Under the fountain is a chest of gold coins and, for some reason, Mabel’s wooden leg.','She is so happy to have the leg back that she lets you keep the gold. She hops off into the sunrise, shouting thank-yous.');
+E('mapsale','Shrewd Dealer',()=>P.cards(),'The Baron pays you in moths. Moths are not a currency.','You open a moth-themed gift shop with them anyway. It does surprisingly well, mostly at night.');
+E('parrot','Bone Idle Parrot',()=>P.room14(),'You repeat your name to the parrot skeleton four hundred times. It finally learns one word. Your name.','It says it forever, every few seconds. Mabel says it’s the parrot’s first friend in 300 years. You live on as its favourite perch.');
+
+/* ---- gallery ---- */
+X('gallery','The Portrait Gallery','x',['A long gallery of oil paintings in heavy gold frames. Every painted eye follows you.','One painting shows a sunny Italian seaside. One shows a grand dinner party where one chair is empty. Very empty. Very you-shaped. At the end of the hall hangs a frame with nothing in it at all.'],[
+  ['Climb into the sunny seaside painting','gal_sea'],
+  ['Climb into the dinner party and see who saved you a seat','gal_dinner'],
+  ['Walk down to look closely at the empty frame','gal_empty'],
+  ['Ask the portraits, politely, who painted them','gal_painter'],
+  ['Back to the lift, feeling watched','lift',5]]);
+SC.gallery.pic=()=>P.gallery();
+X('gal_sea','Inside the painting','x',['You step through the frame. Warm sand, a lemon tree, a little boat with a striped sail. Everything has visible brushstrokes, including you.','The sea glitters. It smells of linseed oil and summer.'],[
+  ['Go for a swim in the painted sea','end_wetpaint'],
+  ['Pick and eat a lemon from the painted tree','end_lemon'],
+  ['Take the little boat and sail it out past the edge of the frame','end_outframe'],
+  ['Climb back out into the gallery','gallery',5]]);
+SC.gal_sea.pic=()=>P.gallery();
+E('wetpaint','Wet Paint',()=>P.gallery(),'You swim. The paint is still wet. You smear, beautifully, into the sea.','You are a lovely streak of blue now. Art critics write essays about you. “Note the bold brushwork in the lower left,” they say.');
+E('lemon','Still Life',()=>P.gallery(),'The lemon is perfect. Sharp. Sunny. A little bit oily.','You become a lemon in a bowl by a painted window. It is serene. Visitors call you “luminous”.');
+E('outframe','Out of the Frame',()=>P.coast(),'You sail off the edge of the canvas and into a real sea, off a real coast, in real sunshine.','You are still slightly oil-paint on one side, which makes you look permanently well-lit in photographs.');
+X('gal_dinner','Dinner, 1740','x',['The dinner guests all turn as you climb in. '+q('You’re late!')+' says a woman in a powdered wig. They were painted in 1740 and they are very, very hungry.','In the middle of the table, a painted roast pig with an apple in its mouth winks at you.'],[
+  ['Sit down in the empty chair and join the party','end_portraitguest'],
+  ['Attempt the famous tablecloth trick','end_tablecloth'],
+  ['Grab the pig and run for it','end_pig']]);
+SC.gal_dinner.pic=()=>P.gallery();
+E('portraitguest','Portrait of a Guest',()=>P.gallery(),'You sit. The paint settles around you. Your fork is forever halfway to your mouth.','You never eat. But the conversation is wonderful, and the wig lady tells the best stories in Europe.');
+E('tablecloth','The Great Tablecloth Trick',()=>P.gallery(),'It works perfectly. Not a single glass falls.','The guests applaud for three hundred years. You are now the most famous figure in the painting. Tour guides point you out.');
+E('pig','Pig Out',()=>P.meadow({sheep:1}),'You run out of the painting carrying the roast pig, which comes alive the moment it touches the real air.','You and the pig live on a little farm. It is called Gerald. It is vegetarian now, and very grateful.');
+X('gal_empty','The empty frame','x',['The little brass label reads: <b>Self-Portrait of the Next Owner. Unfinished.</b>','A brush and a palette of wet paint lie on the floor, as if someone just put them down.'],[
+  ['Pick up the brush and paint yourself into the frame','end_selfportrait'],
+  ['Paint a door in the frame instead','gal_door'],
+  ['Use the brush to give the next portrait along (it’s Pemberton) a moustache','end_vandal'],
+  ['Leave the brush alone','gallery',5]]);
+SC.gal_empty.pic=()=>P.gallery({brush:1});
+X('gal_door','The painted door','x',['You paint a door. It’s wonky. The handle is on the wrong side. But when you touch it, it opens a crack, and warm air comes through.'],[
+  ['Step through your door','end_painteddoor'],
+  ['Paint another door, just in case, and then another','end_toomanydoors']]);
+SC.gal_door.pic=()=>P.gallery({brush:1});
+E('selfportrait','Self-Portrait',()=>P.gallery({brush:1}),'Your portrait is terrible. One eye is higher than the other. It comes to life anyway, climbs out, and goes off to do your job.','It is also terrible at your job. Nobody notices. You stay in the frame and enjoy the quiet.');
+E('vandal','Vandal',()=>P.lobby(),'Pemberton notices. Pemberton notices everything. He chases you through nine floors.','You hide in a large vase in the lobby, so well that you become a vase. The moustache stays on the painting forever. Worth it.');
+E('painteddoor','The Door You Painted',()=>P.meadow(),'Your door leads to exactly what you were imagining while you painted it: a little cottage by a lake, with smoke curling from the chimney.','You live there for the rest of your life. The paint never quite dries, and the ducks are slightly the wrong colour.');
+E('toomanydoors','Too Many Doors',()=>P.gallery({brush:1}),'You paint a hundred doors. Each one leads to another gallery with another empty frame.','You are lost forever, painting doors. Your work is shown in several major museums, which you never get to visit.');
+X('gal_painter','The painter','x',['The portraits whisper all at once. '+q('Agatha. The witch. She painted us so that she would never have to eat alone.'),'A small girl in a blue portrait adds: '+q('We’ve never seen the real sea. Only the painted one.')],[
+  ['Ask them what they want, more than anything','end_galleryclosed'],
+  ['Offer to sit for a portrait yourself, so they have a new friend','end_sitting']]);
+SC.gal_painter.pic=()=>P.gallery();
+E('galleryclosed','Gallery Closed',()=>P.coast(),'They want to see the sea. So, one by one, you carry every painting up to the roof as dawn comes.','They see the real sea, shining. They smile. The paint fades gently into light. You are left holding a stack of empty frames and feeling wonderful.');
+E('sitting','Sitting for a Portrait',()=>P.gallery(),'You sit very still. A brush floats up on its own and paints you in quick, confident strokes.','You’re in the gallery now, third from the left. You look fantastic. The small girl in blue is your best friend.');
+
+/* ---- conservatory ---- */
+X('conserv','The Conservatory','x',['Floor 1½ is a glass conservatory packed with plants that are definitely awake. Orchids gossip in the corner. A Venus flytrap the size of a sofa is purring.','A sign on the door: <b>GARDENER WANTED. MUST BE EDIBLE-RESISTANT.</b>'],[
+  ['Go and pet the giant purring flytrap','con_trap'],
+  ['Lean in to listen to what the orchids are gossiping about','con_orchid'],
+  ['Find the head gardener and apply for the job','con_job'],
+  ['Eat one of the strange glowing fruits hanging from a vine','end_fruit'],
+  ['Leave before anything decides you’re lunch','lift',5]]);
+SC.conserv.pic=()=>P.conserv();
+X('con_trap','The flytrap','x',['You reach out. The flytrap rolls over like a happy dog and shows you its belly. Or its teeth. With flytraps it’s hard to tell.'],[
+  ['Scratch its belly','end_goodboy'],
+  ['Offer it one of your shoes as a treat','end_snacktime'],
+  ['Back away very, very slowly','conserv',5]]);
+SC.con_trap.pic=()=>P.conserv();
+E('goodboy','Good Boy',()=>P.conserv(),'The flytrap adopts you on the spot. Pemberton lets you take it home in the back of the car.','It eats your neighbour’s bins, two burglars (who are released, unharmed and very sorry), and all the wasps in the street. Best guard dog in town.');
+E('snacktime','Snack Time',()=>P.conserv(),'It eats the shoe. Then, gently, it eats you.','Inside, it’s like a warm green hammock. You’re its favourite toy now. It carries you around everywhere and never chews.');
+X('con_orchid','The orchids','x',[q('Have you heard?')+' whisper the orchids. '+q('Pemberton isn’t really a cat. The Moth Baron is in love with the chandelier. And YOU, darling, smell like a gardener.')],[
+  ['Gossip back: tell them one tiny secret of your own','end_rumour'],
+  ['Ask them what Pemberton really is','end_pembtruth'],
+  ['Pick one orchid to wear as a buttonhole','end_buttonhole']]);
+SC.con_orchid.pic=()=>P.conserv();
+E('rumour','Rumour Has It',()=>P.conserv(),'You tell the orchids one tiny secret. By dawn the entire hotel knows it, and has improved it.','You are now the most interesting person in the building. They make you editor of the hotel newspaper, The Nightly Whisper.');
+E('pembtruth','The Truth About Pemberton',()=>P.lobby(),'Pemberton, the orchids say, is three kittens standing on each other’s shoulders in a waistcoat.','You keep the secret. The kittens are so grateful they give you a suite for life. You visit every summer and bring yarn.');
+E('buttonhole','Buttonhole',()=>P.conserv(),'You pin the orchid to your collar. It whispers compliments to you, quietly, all day long.','You walk out of the hotel with unshakeable confidence. You ask for a raise. You get it. You ask someone out. They say yes.');
+X('con_job','The gardener','x',['The head gardener is a moss-covered man named Bramble who creaks when he moves. He hands you a watering can full of something that glows.',q('Water what needs watering,')+' he says. '+q('Mind the roses. They’re rude.')],[
+  ['Water the sad little seedling in the corner','con_seedling'],
+  ['Pour a little on your own head, just to see what happens','end_latebloomer'],
+  ['Prune the rude roses','end_thorn']]);
+SC.con_job.pic=()=>P.conserv();
+X('con_seedling','The seedling','x',['The seedling drinks, and grows. And grows. Up past your knees, your head, the glass roof, which it pushes open with a gentle crack.','It is still growing.'],[
+  ['Climb it, all the way up','end_longclimb'],
+  ['Sit down in its shade and let it grow','end_forest']]);
+SC.con_seedling.pic=()=>P.conserv({stalk:1});
+E('fruit','Forbidden Fruit',()=>P.conserv(),'It tastes like a green apple that knows a secret. Suddenly you understand every plant in the room.','You become the world’s most famous botanist. Your hair is a bit leafy now, but it suits you.');
+E('latebloomer','Late Bloomer',()=>P.conserv(),'You sprout. Leaves first, then blossom.','You are a cherry tree in the conservatory now. Every spring the guests have picnics under you. You enjoy the gossip.');
+E('thorn','Thorn in the Side',()=>P.conserv(),'The roses fight back. You fight back harder. It becomes a feud.','Eventually you become friends. Together you win the Hotel Flower Show forty years running. Nobody else even enters any more.');
+E('longclimb','The Long Climb',()=>P.coast(),'At the top of the stalk is a farm on a cloud. The farmer is kind and needs help.','You grow rain for a living. It’s honest work. Below you, the weather is noticeably better.');
+E('forest','Forest Nocturne',()=>P.meadow({ghost:1}),'By morning the seedling is a forest that covers the whole hotel. The hotel can’t move on. It is stuck, happily, among the trees.','Everyone stays. Hotel Nocturne becomes a hikers’ lodge. Pemberton complains, but secretly loves the birds.');
+
+/* ---- spa ---- */
+X('spa','The Steam Baths','x',['B2 is a steam bath of green tiles and warm fog. Somewhere in the steam a deep voice says '+q('Ahhhh.'),'A menu on the wall offers three treatments: <b>MUD OF AGES · MASSAGE BY OCTOPUS · THE BATH OF FORGETTING</b>.'],[
+  ['Book the Mud of Ages','spa_mud'],
+  ['Book the Massage by Octopus','spa_octo'],
+  ['Book the Bath of Forgetting','spa_forget'],
+  ['Leave, you’re steamed enough','lift',5]]);
+SC.spa.pic=()=>P.spa();
+X('spa_mud','Mud of Ages','x',['The mud is warm and smells of riverbanks. As you sink into it, it speaks in a slow, friendly voice.',q('How old,')+' it asks, '+q('would you like to be?')],[
+  ['“Ten. I want to be ten again.”','end_secondchildhood'],
+  ['“Ninety, and very wise.”','end_wiseold'],
+  ['“Exactly as old as I am, thank you.”','end_ageless']]);
+SC.spa_mud.pic=()=>P.spa({mud:1});
+E('secondchildhood','Second Childhood',()=>P.meadow(),'You climb out of the mud aged ten, with scabby knees and endless energy.','You borrow a bicycle and have the best summer of your life, again. Your grown-up worries don’t fit you any more, so you leave them in the spa.');
+E('wiseold','Wise Old Soul',()=>P.spa(),'You climb out aged ninety and you know everything. It’s tiring.','You become the hotel’s oracle. Guests come to ask you about love, life, and lottery numbers. You only answer the first two.');
+E('ageless','Ageless',()=>P.spa({mud:1}),'The mud is so moved by your contentment that it makes you stop ageing altogether.','It’s wonderful for a century. Then a bit odd. By the third century you have taken up every hobby in existence, twice.');
+X('spa_octo','Massage by Octopus','x',['An octopus in a white coat cracks all eight sets of knuckles. '+q('Relax,')+' it says. '+q('I have done this for two hundred years.')],[
+  ['Relax completely, as instructed','end_jelly'],
+  ['Ask if it could also do a manicure while it’s at it','end_eighthands'],
+  ['Tickle it back','end_inked']]);
+SC.spa_octo.pic=()=>P.spa({octo:1});
+E('jelly','Totally Relaxed',()=>P.spa(),'You relax so completely that you become a jellyfish.','You drift happily up to the rooftop pool and glow gently among the stars. Honestly? No complaints.');
+E('eighthands','Eight Hands Are Better',()=>P.spa({octo:1}),'The octopus does your nails, your toes, your hair, your shoulders, and your taxes, all at once.','You are so impressed you go into business together. Your salon is booked up for the next eleven years.');
+E('inked','Inked',()=>P.spa({octo:1}),'The octopus squeaks and inks you in surprise. It doesn’t wash off.','You are black-and-white forever, like an old film star. Very stylish. People keep asking for your autograph.');
+X('spa_forget','The Bath of Forgetting','x',['The water is perfectly clear and perfectly still. A small brass sign says: <b>SOAK AWAY ONE MEMORY. ONE ONLY.</b>'],[
+  ['Forget the swan incident, once and for all','end_cleanslate'],
+  ['Forget your own name, just to see what happens','end_biscuit'],
+  ['Forget this hotel ever existed','end_neverwas']]);
+SC.spa_forget.pic=()=>P.spa();
+E('cleanslate','Clean Slate',()=>P.spa(),'You forget it. Bliss.','Unfortunately, the swan did not forget. It finds you within the week. The feud continues, but now only one of you knows why.');
+E('biscuit','Biscuit',()=>P.lobby(),'You forget your name. Pemberton names you Biscuit.','You love it. You live happily as Biscuit, assistant concierge, for many years. Guests say you have a lovely smile.');
+E('neverwas','Never Was',()=>P.meadow({car:1,sheep:1}),'You wake up in your car at 6 AM with the rain stopping. The tow truck arrives.','You feel oddly, deeply happy all day, and you have a craving for cake you can’t explain.');
+
+/* ---- laundry ---- */
+X('laundry','The Laundry','x',['B3 is the laundry: copper washing machines rumbling like thunder, and long lines of white sheets hanging into the darkness.','The sheets are moving. They’re ghosts. Off-duty ghosts, drying after a long night of haunting. Near the drain, a single grey sock is creeping away.'],[
+  ['Offer to help fold the ghosts','l_fold'],
+  ['Climb into the giant tumble dryer to warm up','l_dryer'],
+  ['Follow the escaping sock','end_downdrain'],
+  ['Grab the escaping sock before it gets away','end_sockpuppet'],
+  ['Go back to the lift','lift',5]]);
+SC.laundry.pic=()=>P.laundry({sock:1});
+X('l_fold','Folding','x',['A ghost on the line yawns. '+q('Mind my corners,')+' it says. '+q('I’m very particular about my corners.')],[
+  ['Fold them perfectly, corners and all','end_foldmaster'],
+  ['Try one on as a costume','end_sheethappens'],
+  ['Get out the iron and press one','end_pressed']]);
+SC.l_fold.pic=()=>P.laundry();
+E('foldmaster','Fold Master',()=>P.laundry(),'You fold so well that Pemberton puts you in charge of the laundry.','Ghosts travel from other haunted hotels just to be folded by you. It is the most prestigious job in the afterlife.');
+E('sheethappens','Sheet Happens',()=>P.laundry(),'You put on a sheet. Everyone mistakes you for a ghost, including the hotel.','At dawn you float off with the rest of the staff. You’re a ghost now, more or less. It suits you. You’re very good at going “Woo”.');
+E('pressed','Pressed',()=>P.laundry(),'The ghost is so smooth and crisp afterwards that it nearly cries.','It haunts you lovingly for the rest of your life, keeping all your shirts ironed. Your colleagues think you have your life together.');
+X('l_dryer','The tumble dryer','x',['Inside the drum it is warm and dark and smells of clean towels. It’s turning, very slowly, and somewhere in the back you feel a breeze.'],[
+  ['Pull the door shut and enjoy the spin','end_spincycle'],
+  ['Crawl further in, toward the breeze','end_lint'],
+  ['Pour in some fabric softener, then get comfy','end_softtouch']]);
+SC.l_dryer.pic=()=>P.laundry();
+E('spincycle','Spin Cycle',()=>P.attic(),'You tumble for an hour. When the door opens, you are six inches tall.','You move into a dollhouse in the attic. It’s very cosy. The lost toys are excellent neighbours.');
+E('lint','The Lint Dimension',()=>P.laundry(),'Behind the drum is a soft grey world of lint, hair ties and lost buttons.','The fluffy people there have been waiting for a ruler. They crown you with a hair tie. You rule fairly and sneeze a lot.');
+E('softtouch','Soft Touch',()=>P.laundry(),'You come out impossibly soft. Like a cloud wearing a jumper.','Cats follow you everywhere for the rest of your life, Pemberton included. He pretends it is a coincidence.');
+E('downdrain','Down the Drain',()=>P.coast(),'You follow the sock into the drain, through the pipes, and out into the sea.','You become a professional sock-rescuer for ships. It’s a niche job, but you are the best in the world at it.');
+E('sockpuppet','Sock Puppet',()=>P.laundry({sock:1}),'You grab the sock. It wriggles onto your hand and says, '+q('Well, finally. Someone with ambition.'),'Your hand has opinions now. Together you become a famous comedy act. The sock gets top billing.');
+
+/* ---- gift shop and telephone ---- */
+X('shop','The Gift Shop','x',['The gift shop is lit by one flickering bulb. Shelves of snow globes each hold a tiny copy of the hotel. A hat on a stand is labelled <b>CURSED (50% OFF)</b>.','The shopkeeper is a mannequin with a price tag on its ear: <b>NOT FOR SALE (probably)</b>. In the corner stands a red telephone booth.'],[
+  ['Pick up a snow globe and give it a good shake','s_globe'],
+  ['Try on the cursed hat','s_hat'],
+  ['Slip a postcard into your pocket when the mannequin isn’t looking','end_shoplifter'],
+  ['Step into the telephone booth','phone'],
+  ['Go back to the lift','lift',5]]);
+SC.shop.pic=()=>P.shop();
+X('s_globe','Inside the snow globe','x',['Snow swirls, and when it settles you’re inside the globe, standing in a tiny snowy town. Above you, the gift shop looms like a giant cathedral, wobbly through the glass.'],[
+  ['Build a snowman, since you’re here','end_snowday'],
+  ['Bang on the glass and shout for help','end_snowedin'],
+  ['Walk into the tiny hotel in the middle of the tiny town','end_tinyhotel']]);
+SC.s_globe.pic=()=>P.shop();
+E('snowday','Snow Day',()=>P.shop(),'You build a snowman. It comes to life and is elected mayor of the globe by a landslide.','You’re his deputy. It’s Christmas forever. You never get tired of it, which surprises everyone, including you.');
+E('snowedin','Snowed In',()=>P.shop(),'Nobody hears you. A little girl buys the globe the next day and puts it on her windowsill in Norway.','You watch her grow up, get a dog, become a pilot. Every winter she shakes you, gently, and says goodnight.');
+E('tinyhotel','A Hotel Inside a Hotel',()=>P.shop(),'In the tiny hotel there is a tiny gift shop with tinier snow globes. You shake one. And another.','You keep going down. You’re the size of an atom now, mostly empty space, and still checking in.');
+X('s_hat','The cursed hat','x',['It is a beautiful hat. Deep plum, with a ribbon. The label flutters: <i>Curse: wearer may only tell the truth.</i>'],[
+  ['Wear it boldly and see what happens','end_hatcurse'],
+  ['Buy it as a gift for Pemberton','end_pembhat']]);
+SC.s_hat.pic=()=>P.shop({hat:1});
+E('hatcurse','Honest Hat',()=>P.shop({hat:1}),'You can only tell the truth. You tell the mannequin its pose is a bit stiff. You tell Pemberton his waistcoat is magnificent.','Out in the world, you become the worst salesperson in history and the most trusted friend anyone has ever had.');
+E('pembhat','A Gift for the Cat',()=>P.lobby(),'Pemberton opens the box. He goes very quiet. Nobody has given him a present in a hundred years.','He gives you Room 13 forever. The curse turns his whiskers pink. He is delighted. He wears the hat every Sunday.');
+E('shoplifter','Shoplifter',()=>P.shop(),'The mannequin turns its head, very slowly, and looks at your pocket.','The next morning you are in the shop window, posed mid-step, holding the postcard. Your price tag says <b>NOT FOR SALE (definitely)</b>.');
+X('phone','The telephone booth','x',['The telephone has no dial. Just a brass plate: <b>SPEAK YOUR DESTINATION</b>. The receiver is warm, as if someone just hung up.'],[
+  ['Ask to be put through to yourself, aged twelve','ph_past'],
+  ['Ask to be put through to yourself, forty years from now','ph_future'],
+  ['Ask for the operator','ph_op'],
+  ['Hang up and step out','shop',5]]);
+SC.phone.pic=()=>P.shop();
+X('ph_past','A call to the past','x',[q('Hello?')+' It’s you, aged twelve, sounding confused and a bit sticky.','You have one call. Twelve-year-old you is listening.'],[
+  ['Read out next Saturday’s winning lottery numbers','end_jackpot'],
+  ['Tell them everything is going to be okay','end_itgetsbetter'],
+  ['Warn them never, ever to drive down Route 9','end_paradox']]);
+SC.ph_past.pic=()=>P.shop();
+E('jackpot','Jackpot (Past Tense)',()=>P.coast(),'Suddenly you are rich. You have always been rich. Your house is enormous and you have a boat called “Hello?”.','It’s very confusing. Your car never broke down, so you were never here. Somewhere, a cat in a waistcoat shrugs.');
+E('itgetsbetter','It Gets Better',()=>P.meadow(),'Twelve-year-old you hangs up and is a little bit braver from then on.','The present wobbles. When it steadies, you’re home, and you’re the kind of person who takes the scenic route. It’s how you met everyone you love.');
+E('paradox','Paradox',()=>P.shop(),'Twelve-year-old you never drives Route 9. So you never come here. So you never call. So you do come here.','You’re stuck in a loop at the phone booth, picking up the receiver forever. '+q('Hello?'));
+X('ph_future','A call to the future','x',[q('Oh, it’s you,')+' says an older version of your voice. '+q('I’ve been waiting for this call. Listen carefully, I won’t say it twice.')],[
+  ['Listen carefully','end_futureproof'],
+  ['Interrupt to tell them about your evening','end_talkingover'],
+  ['Ask, quietly, how it all ends','end_spoilersagain']]);
+SC.ph_future.pic=()=>P.shop();
+E('futureproof','Future Proof',()=>P.meadow(),q('Buy the yellow house. Learn the accordion. Say yes in March.'),'You do all three. It all works out, especially March.');
+E('talkingover','Talking Over Yourself',()=>P.shop(),'You argue with yourself for an hour about whose evening was weirder. The line goes dead.','You never get the advice. A week later, an annoyed letter arrives in your own handwriting. It just says: <i>Honestly.</i>');
+E('spoilersagain','Spoilers, Again',()=>P.meadow(),q('Peacefully, at a hundred and four, laughing at a joke about a swan.'),'You relax completely. Life is wonderful from then on, because you know exactly how it ends: laughing.');
+X('ph_op','The operator','x',[q('Operator,')+' says a crackly, charming voice. '+q('Where to, caller? Anywhere you like. We go everywhere.')],[
+  ['Ask for the North Pole','end_northpole'],
+  ['Ask for “anywhere but here”','end_anywhere'],
+  ['Ask the operator if they’re free for dinner','end_partyline']]);
+SC.ph_op.pic=()=>P.shop();
+E('northpole','Long Distance',()=>P.coast(),'You go down the line with a crackle and come out of a phone box at the North Pole. It is cold. A polar bear raises an eyebrow.','You stay and train reindeer. You’re a natural. The polar bear becomes your assistant.');
+E('anywhere','Anywhere But Here',()=>P.coast(),'You come out of a phone on the wall of a submarine’s kitchen, a hundred metres under the Pacific.','The crew adopt you on the spot. You’re the cook now. Your soup is legendary.');
+E('partyline','Party Line',()=>P.shop(),'The operator laughs, and says yes. You talk every night for a year.','On Valentine’s Day you finally meet in the phone booth. The operator is a phone. You run away together anyway. It’s a very happy marriage, with excellent reception.');
+
+/* ---- chess with Pemberton ---- */
+X('chess','Chess','x',['Pemberton puts down his newspaper. His pupils go very wide. '+q('A game? It’s been years.')+' He sets up a board of tiny silver mice and tiny silver cats.',q('The stakes, naturally, are everything.')],[
+  ['Play aggressively, attack from the very first move','end_checkmate'],
+  ['Pull a loose feather from a cushion and dangle it at the edge of the board','end_catdistracted'],
+  ['Play carefully and offer a draw','end_stalemate'],
+  ['Lose on purpose, but make it look convincing','end_goodsport']]);
+SC.chess.pic=()=>P.lobby();
+E('checkmate','Checkmate',()=>P.lobby({cap:1}),'He beats you in four moves. You didn’t know you could lose that fast.','You’re the new night manager. Pemberton takes his first holiday in a century and sends you a photo from a beach in Majorca, in sunglasses.');
+E('catdistracted','Cat Distracted',()=>P.lobby(),'Pemberton’s eyes follow the feather. His tail twitches. He leaps.','He chases it around the lobby for six hours. You walk out of the front door, free, and nobody stops you.');
+E('stalemate','Stalemate',()=>P.lobby(),'Draw. You play again. Draw. And again.','You play every night for two hundred years. It is always a draw. You become best friends, and the hotel puts up a plaque.');
+E('goodsport','Good Sport',()=>P.lobby(),'Pemberton wins and looks at you for a long moment. He knows.','He slides a small golden key across the desk. <i>VIP. Any night, any year.</i> You come back every summer for a holiday, and the room is always ready.');
+
+/* ---- extra dawn choices ---- */
+E('wardrobe','Wardrobe Malfunction',()=>P.room(),'You hide in the wardrobe in Room 13 between the forty grey dressing gowns.','When the hotel moves on, so do you. You are dressing gown number forty-one. You are fluffy, and you are needed.');
+E('leap','Leap of Faith',()=>P.meadow(),'You climb onto the roof as the hotel lifts off like a hot-air balloon, and you jump.','You land in a haystack, perfectly. A farmer gives you tea. Above, the hotel waves its curtains and disappears into the pink sky.');
+E('fasttrack','Fast Track',()=>P.lobby({cap:1}),q('Before you say anything,')+' you tell Pemberton, '+q('I’d like to apply for Assistant Manager.'),'He is so impressed that he hires you on the spot. In ten years you run the place. You introduce Taco Tuesdays. The ghosts love it.');
+
+/* ===================== ENGINE ===================== */
+function clock(t){const m=(23*60+t)%(24*60);let h=Math.floor(m/60),mm=m%60;const ap=h>=12?'PM':'AM';h=h%12||12;return `${h}:${String(mm).padStart(2,'0')} ${ap}`}
+function loadFound(){try{return JSON.parse(localStorage.getItem('nocturne-endings')||'[]')}catch(e){return []}}
+function saveFound(f){try{localStorage.setItem('nocturne-endings',JSON.stringify(f))}catch(e){}}
+let found=loadFound(), pendingSay=null, view='game';
+const arr=x=>x==null?[]:Array.isArray(x)?x:[x];
+
+function choose(c){
+  arr(c.give).forEach(k=>{if(!S.items.includes(k)){S.items.push(k);S.newItem=k}});
+  arr(c.take).forEach(k=>{S.items=S.items.filter(i=>i!==k)});
+  arr(c.flag).forEach(f=>{if(!S.flags.includes(f))S.flags.push(f)});
+  S.t+=c.cost||0;
+  let to=typeof c.go==='function'?c.go():c.go;
+  if(to==='cards_win'&&c.goGive&&!S.items.includes(c.goGive)){S.items.push(c.goGive);S.newItem=c.goGive}
+  pendingSay=c.say||null;
+  const inHotel=S.flags.includes('paid');
+  if(inHotel&&S.t>=DAWN&&!to.startsWith('end_'))to='dawn';
+  S.scene=to;
+  render(true);
+}
+function render(scroll){
+  view='game';
+  const sc=SC[S.scene];
+  const still=document.getElementById('still');
+  still.innerHTML=sc.pic()+(sc.cap&&!sc.end?`<span class="caption">${sc.cap}</span>`:'');
+  // bar
+  const pct=Math.min(100,S.t/DAWN*100);
+  const items=S.items.map(k=>`<span class="${k===S.newItem?'new':''}">${ITEMS[k]}</span>`).join('');
+  document.getElementById('bar').innerHTML=`<span class="clock">${clock(S.t)}</span><div class="night" title="Time until dawn"><i style="left:${pct}%"></i></div><span>Dawn 4:00 AM</span><div class="pocket">${items||'<em>Pockets: empty</em>'}</div>`;
+  S.newItem=null;
+  const main=document.getElementById('main');
+  if(sc.end){
+    const isNew=!found.includes(sc.end);if(isNew){found.push(sc.end);saveFound(found)}
+    const idx=ENDINGS.findIndex(e=>e[0]===sc.end);
+    main.innerHTML=`<div class="story fade">${sc.text()}</div>
+    <div class="ending fade"><span class="lbl">${isNew?'A new ending':'An ending you have seen before'} · ${found.length} found so far</span><h2>${ENDINGS[idx][1]}</h2></div>
+    ${grid(sc.end)}
+    <div class="choices" style="margin-top:14px"><button class="choice" id="again" type="button"><span class="tag">1</span><span class="t">Check in again</span></button></div>`;
+    document.getElementById('again').onclick=restart;
+  } else {
+    const say=pendingSay?`<p class="aside">${pendingSay}</p>`:'';
+    const cs=sc.choices().filter(Boolean);
+    main.innerHTML=`<div class="story fade">${say}${sc.text()}</div><div class="choices">${cs.map((c,i)=>`<button class="choice" type="button" data-i="${i}"><span class="tag">${i+1}</span><span class="t">${c.l}</span>${c.cost&&S.flags.includes('paid')?`<span class="cost">${c.cost} min</span>`:''}</button>`).join('')}</div>`;
+    main.querySelectorAll('.choice').forEach(b=>b.onclick=()=>choose(cs[+b.dataset.i]));
+  }
+  pendingSay=null;
+  if(scroll){const top=still.getBoundingClientRect().top+window.scrollY-10;if(window.scrollY>top)window.scrollTo({top,behavior:'smooth'})}
+}
+function grid(cur){const f=found.filter(k=>ENDINGS.some(e=>e[0]===k));if(!f.length)return '';return `<div class="grid" style="margin-top:14px">${f.map((k,i)=>`<div class="${k===cur?'cur':''}"><b>No. ${String(i+1).padStart(2,'0')}</b>${ENDINGS.find(e=>e[0]===k)[1]}</div>`).join('')}<div class="lock"><b>&nbsp;</b>…and more</div></div>`}
+function restart(){S=fresh();render(true)}
+function showLedger(){
+  if(view==='ledger'){render();return}
+  view='ledger';
+  document.getElementById('main').innerHTML=`<div class="ledger fade"><h3>Guest ledger</h3><p>You have found ${found.length} ending${found.length===1?'':'s'}. There are more. Every choice matters, the clock is always running, and dawn comes at four.</p>${grid()}
+  <div class="choices"><button class="choice" type="button" id="back"><span class="tag">1</span><span class="t">Return to the story</span></button><button class="choice" type="button" id="wipe"><span class="tag">2</span><span class="t">Start a new stay from the road</span></button></div></div>`;
+  document.getElementById('back').onclick=()=>render();
+  document.getElementById('wipe').onclick=restart;
+}
+document.getElementById('ledgerBtn').onclick=showLedger;
+document.addEventListener('keydown',e=>{if(e.metaKey||e.ctrlKey||e.altKey)return;const n=parseInt(e.key,10);if(!n)return;const b=document.querySelectorAll('#main .choice')[n-1];if(b){e.preventDefault();b.click()}});
+
+function start(data){S=(data&&data.S&&SC[data.S.scene])?data.S:fresh();render()}
+window.claude?.hot?.snapshot?.(()=>({S}));
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+</script>
+
+
+</body>
+</html>

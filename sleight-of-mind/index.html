@@ -1,0 +1,1139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<title>Sleight of Mind</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Limelight&family=Manrope:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one theatre stage box with a program-notes panel beneath; the stage hosts every level, the panel explains it. Single dark "velvet" look by choice. */
+:root{
+  color-scheme: dark;
+  --ground:#140b18;
+  --velvet:#221126;
+  --plush:#3b1a35;
+  --brass:#d8ab52;
+  --cream:#f1e7d3;
+  --mist:#a7939e;
+  --hair:rgba(241,231,211,.13);
+  --hit:#8bd1a9;
+  --miss:#e68c6e;
+  --f-display:'Limelight', 'Didot', 'Bodoni 72', Georgia, serif;
+  --f-body:'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --f-mono:'DM Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html{background:var(--ground)}
+body{background:var(--ground);color:var(--cream);font-family:var(--f-body);font-size:15px;line-height:1.55}
+button{font:inherit;color:inherit}
+.wrap{max-width:980px;margin:0 auto;padding-block:16px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:14px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{font-family:var(--f-display);font-size:26px;color:var(--brass);letter-spacing:.03em;line-height:1}
+.pips{display:flex;gap:5px;align-items:center;flex-wrap:wrap;min-width:0}
+.pip{width:clamp(10px,2.6vw,20px);height:6px;border-radius:3px;background:var(--hair);transition:background .3s}
+.pip.on{background:var(--cream)}.pip.hit{background:var(--hit)}.pip.miss{background:var(--miss)}
+.score{font-family:var(--f-mono);font-size:12px;color:var(--mist);letter-spacing:.06em;margin-left:8px}
+
+.stage{position:relative;height:clamp(400px,62vh,580px);border-radius:16px;overflow:hidden;border:1px solid var(--hair);
+  background:radial-gradient(120% 85% at 50% -10%, var(--plush), var(--velvet) 55%, var(--ground) 100%)}
+.stage::before{content:"";position:absolute;inset:0 0 auto;height:18px;z-index:1;pointer-events:none;
+  background:radial-gradient(circle at 12px -4px, #5a1f3a 13px, transparent 14px) 0 0/24px 18px repeat-x}
+.board{position:absolute;inset:0}
+.board.veiled{visibility:hidden}
+.seal{position:absolute;top:26px;right:14px;z-index:3;display:flex;align-items:center;gap:8px;font-family:var(--f-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mist);
+  padding:6px 10px 6px 8px;border:1px solid var(--hair);border-radius:999px;background:rgba(20,11,24,.6)}
+.seal svg{width:18px;height:14px;flex:none}
+.seal.open{color:var(--brass);border-color:rgba(216,171,82,.5)}
+
+.overlay{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;padding:40px 22px 24px;
+  background:radial-gradient(120% 85% at 50% -10%, var(--plush), var(--velvet) 55%, var(--ground) 100%)}
+.overlay .eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--brass)}
+.overlay h1,.overlay h2{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance;line-height:1.05}
+.overlay h1{font-size:clamp(40px,8vw,72px);color:var(--brass)}
+.overlay h2{font-size:clamp(30px,5.5vw,46px)}
+.overlay p{margin:0;max-width:52ch;color:var(--cream);font-size:16px;text-wrap:pretty}
+.overlay p.sub{color:var(--mist);font-size:14px}
+.overlay.top{justify-content:flex-start;padding-top:56px}
+.overlay{overflow-y:auto;justify-content:safe center}
+.stage.auto{height:auto;min-height:clamp(400px,62vh,580px)}
+.stage.auto .overlay{position:relative;inset:auto;min-height:inherit;padding-block:36px 28px}
+
+.btn{appearance:none;border:1px solid var(--brass);background:var(--brass);color:#24120c;font-weight:700;font-size:15px;letter-spacing:.02em;padding:12px 22px;border-radius:999px;cursor:pointer;transition:transform .15s, box-shadow .15s}
+.btn:hover{box-shadow:0 0 0 4px rgba(216,171,82,.18)}
+.btn:active{transform:scale(.97)}
+.btn.ghost{background:transparent;color:var(--brass)}
+:focus-visible{outline:2px solid var(--brass);outline-offset:3px}
+
+.panel{border-top:1px solid var(--hair);padding-top:16px;display:flex;flex-direction:column;gap:16px}
+.panel .meta{font-family:var(--f-mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--mist)}
+.panel .prompt{font-family:var(--f-display);font-size:28px;line-height:1.1;margin:0}
+.vrow{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.verdict{font-family:var(--f-display);font-size:clamp(30px,5vw,42px);line-height:1}
+.verdict.hit{color:var(--hit)}.verdict.miss{color:var(--miss)}
+.said{margin:4px 0 0;color:var(--mist)}
+.said b{color:var(--cream);font-weight:600}
+.cols{display:grid;grid-template-columns:1.2fr 1fr;gap:28px}
+.cols > section{min-width:0}
+.cols h3{font-family:var(--f-mono);font-weight:500;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--brass);margin:0 0 8px}
+.cols ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px}
+.cols p{margin:0}
+.odds{font-family:var(--f-mono);font-size:12px;color:var(--mist);letter-spacing:.04em;font-variant-numeric:tabular-nums}
+.technique{display:inline-block;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--hair);border-radius:999px;padding:3px 10px;color:var(--cream)}
+@media (max-width:680px){.cols{grid-template-columns:1fr;gap:18px}.panel .prompt{font-size:24px}}
+
+/* Reveal markers */
+.pick{position:relative;cursor:pointer}
+.tag{position:absolute;left:50%;bottom:calc(100% + 6px);transform:translateX(-50%);white-space:nowrap;font-family:var(--f-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:999px;pointer-events:none;z-index:4;font-weight:500}
+.tag.pred{background:var(--brass);color:#24120c}
+.tag.you{background:var(--cream);color:#24120c}
+.tag.match{background:var(--hit);color:#0f2418}
+.tag.low{bottom:auto;top:calc(100% + 6px)}
+.is-target{outline:2px solid var(--brass);outline-offset:4px}
+.is-pick:not(.is-target){outline:2px dashed var(--cream);outline-offset:4px}
+.board.revealed .pick{cursor:default}
+
+/* Level: number */
+.lv-num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;padding:40px 16px 16px}
+.dots{display:flex;gap:10px}
+.dots i{width:10px;height:10px;border-radius:50%;background:var(--cream);opacity:.8;transition:opacity .6s}
+.dots i.out{opacity:.12}
+.numgrid{display:grid;grid-template-columns:repeat(5,minmax(48px,72px));gap:12px}
+.num{aspect-ratio:1;border-radius:12px;border:1px solid rgba(241,231,211,.18);background:rgba(241,231,211,.06);font-family:var(--f-display);font-size:clamp(22px,4vw,30px)}
+.num:hover{background:rgba(241,231,211,.12)}
+.num.n7{background:rgba(241,231,211,.095)}
+.cues .dots i{background:var(--brass);opacity:1}
+
+/* Level: centre */
+.lv-row{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:clamp(8px,2.4vw,26px);padding:60px 16px 20px}
+.giftbox{width:clamp(52px,13vw,120px);background:none;border:0;padding:0;border-radius:8px}
+.giftbox svg{display:block;width:100%;height:auto}
+.giftbox:hover svg{transform:translateY(-3px)}
+.giftbox svg{transition:transform .2s}
+.cues.lv-row::after{content:"";position:absolute;left:50%;top:40px;bottom:16px;border-left:1px dashed rgba(216,171,82,.45)}
+
+/* Level: constellation */
+.lv-sky{position:absolute;inset:0}
+.leads{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.leads line{stroke:var(--brass);stroke-opacity:.2;stroke-width:1;vector-effect:non-scaling-stroke}
+.cues .leads line{stroke-opacity:.8;stroke-dasharray:4 4}
+.star{position:absolute;width:28px;height:28px;margin:-14px 0 0 -14px;border:0;background:none;padding:0;border-radius:50%}
+.star::before{content:"";position:absolute;left:50%;top:50%;width:var(--s);height:var(--s);transform:translate(-50%,-50%);border-radius:50%;background:var(--cream);opacity:var(--o,.85)}
+.star:hover::before{opacity:1;box-shadow:0 0 8px rgba(241,231,211,.7)}
+.star.gold::before{background:#f0cf8a;opacity:1;box-shadow:0 0 10px 2px rgba(216,171,82,.45)}
+
+/* Level: doors */
+.lv-doors{position:absolute;inset:0}
+.portrait{position:relative;aspect-ratio:4/5;border-radius:50%;
+  background:radial-gradient(circle at 50% 42%, var(--skin,#c79b7f) 0 30%, #2e1a24 31%);border:var(--bw,5px) solid #8e6a33;box-shadow:inset 0 0 0 2px #b88a43, 0 6px 18px rgba(0,0,0,.4)}
+.lv-doors .portrait{position:absolute;left:50%;top:34px;transform:translateX(-50%);width:clamp(80px,14vw,104px)}
+.portrait.mini{position:absolute;width:40px;--bw:3px;pointer-events:none;opacity:.8}
+.face{position:absolute;inset:0}
+.hair{position:absolute;left:50%;top:9%;width:var(--hw,46%);height:var(--hh,20%);transform:translateX(-50%);background:var(--hairc,#3a2418);border-radius:var(--hr,50% 50% 30% 30%)}
+.eye{position:absolute;top:38%;width:15%;height:9%;background:#f4ece0;border-radius:50%;overflow:hidden}
+.eye.l{left:33%}.eye.r{right:33%}
+.eye b{position:absolute;left:50%;top:50%;width:62%;height:100%;margin:-50% 0 0 -31%;background:#20140f;border-radius:50%;transition:transform .5s}
+.mouth{position:absolute;left:50%;top:58%;width:var(--mw,14%);height:3%;transform:translateX(-50%);background:#8a4e44;border-radius:4px}
+.doorrow{position:absolute;left:5%;right:5%;bottom:12%;height:44%;display:flex;gap:3%;justify-content:center;align-items:flex-end}
+.door{flex:1;max-width:110px;height:100%;border-radius:40px 40px 3px 3px;border:3px solid #7a5a3a;background:linear-gradient(180deg,#4b2b3a,#36202c);padding:0;box-shadow:inset 0 0 0 6px rgba(0,0,0,.18)}
+.door:hover{background:linear-gradient(180deg,#56324a,#3d2433)}
+.door .knob{position:absolute;right:14%;top:56%;width:8px;height:8px;border-radius:50%;background:var(--brass)}
+.door .light{position:absolute;left:4px;right:4px;bottom:-3px;height:3px;background:#ffd98f;opacity:0;box-shadow:0 0 12px 3px rgba(255,217,143,.55)}
+.door.lit .light{opacity:.85}
+.floorline{position:absolute;left:0;right:0;bottom:12%;border-top:1px solid rgba(241,231,211,.12)}
+.gaze{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3}
+.gaze line{stroke:var(--brass);stroke-width:1.5;stroke-dasharray:5 5}
+
+/* Level: cups */
+.lv-cups{position:absolute;inset:0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));align-content:center;gap:16px;padding:60px clamp(16px,5vw,60px) 30px}
+.cup{border:0;background:none;padding:0;justify-self:center;width:min(100%,110px)}
+.cup svg{display:block;width:100%;height:auto;transition:transform .2s}
+.cup:hover svg{transform:translateY(-4px)}
+.cup.breathe svg{animation:breathe 2.6s ease-in-out infinite;transform-origin:50% 100%}
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.025)}}
+.cues .cup.breathe svg{animation:breatheBig 1.3s ease-in-out infinite}
+@keyframes breatheBig{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+@media (max-width:620px){.lv-cups{grid-template-columns:repeat(3,minmax(0,1fr));gap:40px 16px}}
+@media (prefers-reduced-motion:reduce){.cup.breathe svg,.cues .cup.breathe svg{animation:none}}
+
+/* Level: embedded */
+.lv-cards{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:clamp(8px,2.2vw,22px);padding:60px 14px 20px}
+.ccard{width:clamp(52px,13vw,112px);aspect-ratio:5/7;border-radius:10px;border:0;background:var(--c);box-shadow:inset 0 0 0 4px rgba(255,255,255,.12), 0 6px 14px rgba(0,0,0,.35)}
+.ccard:hover{transform:translateY(-4px)}
+.ccard{transition:transform .2s}
+.ec{font-weight:700;color:#fff8e8}
+.cues-text .ec{color:var(--brass);text-decoration:underline;text-underline-offset:3px}
+
+/* Level: worn deck */
+.wcard{width:clamp(52px,13vw,104px);aspect-ratio:5/8;border-radius:8px;border:1px solid rgba(216,171,82,.6);padding:0;
+  background:repeating-linear-gradient(-45deg,rgba(216,171,82,.07) 0 5px,transparent 5px 10px),#2c1630;box-shadow:inset 0 0 0 5px #2c1630, inset 0 0 0 6px rgba(216,171,82,.35);transition:transform .2s}
+.wcard .emb{font-size:clamp(16px,3vw,24px);color:var(--brass);opacity:.8}
+.wcard:hover{transform:translateY(-4px)}
+.wcard.worn{transform:rotate(-2.2deg) translateY(2px);border-color:rgba(216,171,82,.36);
+  background:radial-gradient(ellipse 9px 12px at 30% 72%,rgba(241,231,211,.085),transparent),radial-gradient(ellipse 7px 9px at 66% 26%,rgba(241,231,211,.07),transparent),repeating-linear-gradient(-45deg,rgba(216,171,82,.05) 0 5px,transparent 5px 10px),#311a33}
+.wcard.worn:hover{transform:rotate(-2.2deg) translateY(-2px)}
+.wcard.worn::after{content:"";position:absolute;right:-1px;top:-1px;width:15px;height:15px;border-radius:0 8px 0 0;background:linear-gradient(225deg,#241228 50%,#6a5440 50%)}
+.cues .wcard.worn{box-shadow:inset 0 0 0 5px #311a33, inset 0 0 0 6px rgba(216,171,82,.25), 0 0 0 1px rgba(241,231,211,.4)}
+
+/* Level: lamps */
+.lamps{gap:clamp(8px,2.6vw,28px)}
+.wire{position:absolute;left:6%;right:6%;top:50%;border-top:1px solid rgba(241,231,211,.18)}
+.lamp{width:clamp(34px,8vw,64px);aspect-ratio:1;border-radius:50%;border:2px solid rgba(216,171,82,.45);background:radial-gradient(circle at 40% 35%,#4a3040,#2a1a28);transition:background .12s, box-shadow .12s;padding:0}
+.lamp:hover{border-color:var(--brass)}
+.lamp.on{background:radial-gradient(circle at 40% 35%,#fff1c4,#e2b85c);box-shadow:0 0 22px 6px rgba(226,184,92,.55)}
+.cues .lamp:not(.is-target){opacity:.7}
+
+/* Level: coins */
+.lv-coins{position:absolute;inset:0}
+.coin{position:absolute;width:clamp(34px,7vw,56px);aspect-ratio:1;transform:translate(-50%,-50%) rotate(var(--r));border-radius:50%;padding:0;
+  border:2px solid #9c7a3c;background:radial-gradient(circle at 38% 32%,#d9b46a,#a5803e 60%,#7d5f2c);color:#5e4520;font-size:clamp(12px,2.4vw,18px);box-shadow:0 3px 6px rgba(0,0,0,.35)}
+.coin:hover{filter:brightness(1.12)}
+.cues .coin.is-target{box-shadow:0 0 0 clamp(18px,4vw,30px) rgba(216,171,82,.12), 0 3px 6px rgba(0,0,0,.35)}
+
+/* Level: wallpaper */
+.lv-wall{position:absolute;inset:0}
+.wallpaper{position:absolute;inset:0;width:100%;height:100%}
+.wallpaper path{fill:none;stroke:var(--cream);stroke-opacity:.075;stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round}
+.cues .wallpaper path{stroke:var(--brass);stroke-opacity:.6}
+.frames{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:clamp(14px,4vw,40px);padding:64px clamp(20px,10vw,130px) 28px}
+.frame{border:clamp(5px,1vw,9px) solid #8e6a33;border-radius:3px;background:rgba(20,11,24,.75);box-shadow:inset 0 0 0 2px #b88a43, 0 6px 14px rgba(0,0,0,.4);padding:0;transition:transform .15s}
+.frame:hover{transform:translateY(-2px)}
+
+/* Level: tokens, words, moon marks */
+.token{width:clamp(44px,11vw,88px);aspect-ratio:1;border-radius:50%;border:2px solid rgba(216,171,82,.5);background:radial-gradient(circle at 40% 35%,#4a2a44,#2a1529);font-family:var(--f-display);font-size:clamp(20px,4vw,32px);color:var(--cream);padding:0}
+.token:hover{border-color:var(--brass)}
+.lv-words{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-content:center;gap:16px;padding:60px clamp(16px,8vw,120px) 24px}
+.word{padding:18px 8px;border-radius:10px;border:1px solid rgba(241,231,211,.18);background:rgba(241,231,211,.05);font-family:var(--f-display);font-size:clamp(18px,3.4vw,28px);letter-spacing:.02em}
+.word:hover{background:rgba(241,231,211,.11)}
+.moonmark{position:absolute;width:26px;height:26px;opacity:.16;pointer-events:none}
+.moonmark svg,.emb svg{width:100%;height:100%;display:block}
+.wcard .emb{display:block;width:44%;margin:0 auto}
+.wcard .emb .glyph{stroke:var(--brass);stroke-width:3.5}
+.coin .emb{display:block;width:52%;margin:0 auto}
+.coin .emb .glyph{stroke:#5e4520;stroke-width:5}
+
+/* Level: audience, crossing, gems, lineup */
+.lv-crowd{position:absolute;inset:0}
+.shelf{position:absolute;left:8%;right:8%;top:20%;height:30%;display:flex;justify-content:center;align-items:flex-end;gap:clamp(8px,2.4vw,26px);border-bottom:6px solid #5a3a2a}
+.jar{width:clamp(36px,9vw,78px);border:0;background:none;padding:0;transition:transform .15s}
+.jar:hover{transform:translateY(-3px)}
+.jar svg{display:block;width:100%;height:auto}
+.audience{position:absolute;left:3%;right:3%;bottom:6%;display:flex;justify-content:space-around;align-items:flex-end}
+.head{position:relative;width:clamp(38px,8vw,64px);aspect-ratio:5/6;border-radius:48% 48% 44% 44%;background:var(--skin,#c79b7f);box-shadow:0 4px 12px rgba(0,0,0,.4)}
+.head .hair{top:-3%;width:96%;height:34%;border-radius:50% 50% 22% 22%}
+.head .eye{top:44%;width:18%;height:12%}.head .eye.l{left:24%}.head .eye.r{right:24%}
+.head .mouth{top:70%}
+.lv-cross{position:absolute;inset:0}
+.lv-cross .portrait{position:absolute;width:clamp(50px,9vw,84px)}
+.tiles{position:absolute;top:60px;bottom:20px;left:clamp(72px,18%,230px);right:clamp(72px,18%,230px);display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));gap:10px}
+.tile{border-radius:8px;border:1px solid rgba(241,231,211,.16);background:rgba(241,231,211,.05);padding:0}
+.tile:hover{background:rgba(241,231,211,.11)}
+.gaze line{stroke:var(--brass);stroke-width:1.5;stroke-dasharray:5 5;stroke-opacity:.85}
+.gem{width:clamp(44px,11vw,88px);aspect-ratio:1;border:0;background:none;padding:6px;border-radius:10px}
+.gem .stone{display:block;width:100%;height:100%;clip-path:polygon(50% 0,100% 36%,80% 100%,20% 100%,0 36%);transition:transform .15s}
+.gem:hover .stone{transform:translateY(-3px) scale(1.04)}
+.numgrid.nine{grid-template-columns:repeat(3,minmax(52px,80px))}
+.lineup{border:0;background:none;padding:0;width:clamp(48px,12vw,100px);border-radius:50%;transition:transform .15s}
+.lineup:hover{transform:translateY(-3px)}
+.lineup .portrait{width:100%;--bw:clamp(3px,.8vw,5px)}
+
+/* Level: mugs, balloons */
+.mug{width:clamp(48px,12vw,96px);border:0;background:none;padding:0;transition:transform .15s}
+.mug:hover{transform:translateY(-3px)}
+.mug svg{display:block;width:100%;height:auto}
+.balloon{position:absolute;width:clamp(36px,7vw,58px);aspect-ratio:4/5;transform:translate(-50%,-50%);border:0;padding:0;border-radius:50% 50% 48% 48%;background:radial-gradient(circle at 35% 30%,#e7a6a0,#b85d5a 60%,#7e3a3c)}
+.balloon::after{content:"";position:absolute;left:50%;top:100%;width:1px;height:clamp(60px,14vh,120px);background:rgba(241,231,211,.3)}
+.balloon:hover{filter:brightness(1.1)}
+
+/* Level: finale keypad */
+.lv-dial{position:absolute;inset:0}
+.dialbox{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:54px 16px 16px}
+.digits{display:flex;gap:10px}
+.digits span{width:clamp(44px,9vw,62px);height:clamp(54px,11vw,74px);border-radius:10px;border:1px solid rgba(241,231,211,.22);background:rgba(20,11,24,.6);display:flex;align-items:center;justify-content:center;font-family:var(--f-display);font-size:clamp(30px,6vw,44px)}
+.digits span.filled{border-color:rgba(216,171,82,.6)}
+.digits span.dhit{border-color:var(--hit);color:var(--hit)}
+.digits span.dmiss{border-color:var(--miss);color:var(--miss)}
+.keypad{display:grid;grid-template-columns:repeat(3,clamp(54px,12vw,74px));gap:8px}
+.key{height:clamp(38px,7vh,52px);border-radius:10px;border:1px solid rgba(241,231,211,.18);background:rgba(241,231,211,.06);font-family:var(--f-display);font-size:22px;cursor:pointer}
+.key:hover:not(:disabled){background:rgba(241,231,211,.12)}
+.key.fn{font-family:var(--f-body);font-size:13px;font-weight:700}
+.key.ok{background:var(--brass);color:#24120c;border-color:var(--brass)}
+.key.ok:disabled{opacity:.35;cursor:default}
+.board.revealed .key{pointer-events:none}
+.truth{margin:0;font-family:var(--f-mono);font-size:13px;letter-spacing:.06em;color:var(--brass)}
+.truth b{font-size:16px}
+.bignum{font-family:var(--f-display);font-size:clamp(60px,14vw,110px);color:var(--cream);letter-spacing:.04em}
+.masknum{opacity:.9}
+.door .plate{position:absolute;top:16%;left:50%;transform:translateX(-50%);font-family:var(--f-mono);font-size:clamp(8px,1.4vw,11px);color:var(--brass);opacity:.75;letter-spacing:.04em}
+.clock{position:absolute;left:6%;top:16%;width:clamp(28px,5vw,40px);height:auto;pointer-events:none}
+
+/* Level: flash */
+.lv-flash{position:absolute;inset:0}
+.fx{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.fx .cross{font-family:var(--f-mono);font-size:44px;color:var(--cream);line-height:1}
+.fx svg{width:150px;height:150px}
+.fx .mask{position:relative;width:170px;height:170px}
+.fx .mask svg{position:absolute;inset:0;width:100%;height:100%}
+.fx .note{position:absolute;bottom:22px;left:0;right:0;text-align:center;font-family:var(--f-mono);font-size:12px;color:var(--mist);letter-spacing:.08em;text-transform:uppercase}
+.symrow{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:clamp(8px,2.4vw,24px);padding:60px 14px 20px;visibility:hidden}
+.symrow.ready{visibility:visible}
+.sym{width:clamp(56px,13vw,108px);aspect-ratio:1;border-radius:14px;border:1px solid rgba(241,231,211,.18);background:rgba(241,231,211,.05);padding:clamp(10px,2.4vw,18px)}
+.sym:hover{background:rgba(241,231,211,.11)}
+.sym svg{width:100%;height:100%;display:block}
+.glyph{fill:none;stroke:var(--cream);stroke-width:3;stroke-linejoin:round;stroke-linecap:round}
+
+/* Level: parked */
+.lv-park{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));gap:12px;padding:58px clamp(16px,14vw,180px) 18px}
+.tarot{border-radius:10px;border:1px solid rgba(216,171,82,.55);background:repeating-linear-gradient(45deg,rgba(216,171,82,.06) 0 6px,transparent 6px 12px),#2c1630;font-family:var(--f-display);font-size:clamp(18px,3vw,26px);color:var(--brass);transition:background .15s, transform .15s}
+.tarot:hover,.tarot.hov{background:repeating-linear-gradient(45deg,rgba(216,171,82,.12) 0 6px,transparent 6px 12px),#43204a;transform:translateY(-2px)}
+.ghostcursor{position:absolute;z-index:4;width:22px;height:22px;margin:-4px 0 0 -4px;pointer-events:none}
+#go.parked{position:absolute;transform:translate(-50%,-50%)}
+
+/* Final */
+.final-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 22px;text-align:left;max-width:560px;width:100%}
+.final-list li{display:flex;gap:10px;align-items:baseline;border-bottom:1px solid var(--hair);padding:5px 0;min-width:0}
+.final-list .mk{font-family:var(--f-mono);font-size:12px;width:58px;flex:none}
+.final-list .mk.hit{color:var(--hit)}.final-list .mk.miss{color:var(--miss)}
+@media (max-width:560px){.final-list{grid-template-columns:1fr}}
+.bigscore{font-family:var(--f-display);font-size:clamp(56px,12vw,96px);color:var(--brass);line-height:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">Sleight of Mind</div>
+    <div class="pips" id="pips" aria-label="Progress"></div>
+  </header>
+  <div class="stage" id="stage">
+    <div class="board" id="board"></div>
+    <div class="seal" id="seal" hidden>
+      <svg viewBox="0 0 18 14" aria-hidden="true"><rect x=".75" y=".75" width="16.5" height="12.5" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M1 1.5 9 8l8-6.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+      <span id="sealText">Sealed · No. 147</span>
+    </div>
+    <div class="overlay" id="overlay"></div>
+  </div>
+  <div class="panel" id="panel"></div>
+</div>
+
+<script>
+const $ = (s, r = document) => r.querySelector(s);
+const stage = $('#stage'), board = $('#board'), overlay = $('#overlay'), panel = $('#panel'), seal = $('#seal'), sealText = $('#sealText'), pipsEl = $('#pips');
+const rand = n => Math.floor(Math.random() * n);
+const pickFrom = a => a[rand(a.length)];
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = rand(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let timers = [];
+const later = (fn, ms) => timers.push(setTimeout(fn, ms));
+const clearTimers = () => { timers.forEach(clearTimeout); timers = []; };
+let lastPtr = { x: -1, y: -1 };
+addEventListener('pointermove', e => { lastPtr = { x: e.clientX, y: e.clientY }; }, { passive: true });
+addEventListener('pointerdown', e => { lastPtr = { x: e.clientX, y: e.clientY }; }, { passive: true });
+
+const GLYPHS = {
+  circle: '<circle class="glyph" cx="30" cy="30" r="20"/>',
+  triangle: '<path class="glyph" d="M30 9 52 49H8Z"/>',
+  square: '<rect class="glyph" x="11" y="11" width="38" height="38"/>',
+  star: '<path class="glyph" d="M30 8l6.5 14 15 1.6-11.3 10 3.3 14.8L30 40.8l-13.5 7.6 3.3-14.8L8.5 23.6l15-1.6z"/>',
+  waves: '<path class="glyph" d="M8 24c6-6 10-6 16 0s10 6 16 0 10-5 12-2M8 38c6-6 10-6 16 0s10 6 16 0 10-5 12-2"/>'
+};
+const CHARMS = {
+  sun: '<circle class="glyph" cx="30" cy="30" r="9"/><path class="glyph" d="M30 8v7M30 45v7M8 30h7M45 30h7M14.5 14.5l5 5M40.5 40.5l5 5M14.5 45.5l5-5M40.5 19.5l5-5"/>',
+  moon: '<path class="glyph" d="M38 10a21 21 0 1 0 14 34A17 17 0 1 1 38 10z"/>',
+  anchor: '<circle class="glyph" cx="30" cy="12" r="4.5"/><path class="glyph" d="M30 16.5V50M21 24h18M12 34c2 10 10 16 18 16s16-6 18-16"/>',
+  heart: '<path class="glyph" d="M30 48C12 36 8 22 17 16c6-4 11 0 13 5 2-5 7-9 13-5 9 6 5 20-13 32z"/>',
+  eye: '<path class="glyph" d="M7 30Q30 8 53 30Q30 52 7 30z"/><circle class="glyph" cx="30" cy="30" r="7"/>',
+  leaf: '<path class="glyph" d="M13 47C13 24 29 12 48 12c0 21-13 35-35 35zM13 47l22-22"/>'
+};
+const MOON = '<svg viewBox="0 0 60 60" aria-hidden="true"><path class="glyph" d="M38 10a21 21 0 1 0 14 34A17 17 0 1 1 38 10z"/></svg>';
+const moonMark = (css) => `<span class="moonmark" style="${css}">${MOON}</span>`;
+const FACES = [
+  { skin: '#e0b896', hairc: '#a8743a', hh: '14%', hw: '50%', hr: '50% 50% 20% 20%', mw: '12%' },
+  { skin: '#8d5f45', hairc: '#1c1210', hh: '26%', hw: '54%', hr: '45% 45% 40% 40%', mw: '16%' },
+  { skin: '#d7a98a', hairc: '#5b3222', hh: '18%', hw: '40%', hr: '30% 30% 10% 10%', mw: '10%' },
+  { skin: '#b78462', hairc: '#cfc6b8', hh: '16%', hw: '48%', hr: '50%', mw: '14%' },
+  { skin: '#f0cfb1', hairc: '#7a2f22', hh: '24%', hw: '58%', hr: '50% 50% 20% 20%', mw: '12%' }
+];
+const faceVars = v => v ? Object.entries(v).map(([k, x]) => `--${k}:${x};`).join('') : '';
+const FACE_INNER = '<div class="face"><span class="hair"></span><span class="eye l"><b></b></span><span class="eye r"><b></b></span><span class="mouth"></span></div>';
+const portrait = (cls = '', v = null, css = '') => `<div class="portrait ${cls}" style="${faceVars(v)}${css}" aria-hidden="true">${FACE_INNER}</div>`;
+const portraitMark = css => portrait('mini', null, css);
+const head = (v, css = '') => `<div class="head gazer" style="${faceVars(v)}${css}" aria-hidden="true"><span class="hair"></span><span class="eye l"><b></b></span><span class="eye r"><b></b></span><span class="mouth"></span></div>`;
+const centre = r => ({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
+function aimEyes(scope, targetEl) {
+  const t = centre(targetEl.getBoundingClientRect());
+  scope.querySelectorAll('.eye').forEach(eye => {
+    const er = eye.getBoundingClientRect(), e = centre(er);
+    const dx = t.x - e.x, dy = t.y - e.y, d = Math.hypot(dx, dy) || 1;
+    eye.firstElementChild.style.transform = `translate(${(dx / d) * er.width * .3}px, ${(dy / d) * er.height * .28}px)`;
+  });
+}
+function gazeLines(b, targetEl) {
+  const sr = stage.getBoundingClientRect(), t = centre(targetEl.getBoundingClientRect());
+  const lines = [...b.querySelectorAll('.gazer')].map(g => {
+    const eyes = [...g.querySelectorAll('.eye')].map(e => centre(e.getBoundingClientRect()));
+    const ex = (eyes[0].x + eyes[1].x) / 2 - sr.left, ey = (eyes[0].y + eyes[1].y) / 2 - sr.top;
+    return `<line x1="${ex}" y1="${ey}" x2="${t.x - sr.left}" y2="${t.y - sr.top}"/>`;
+  }).join('');
+  b.insertAdjacentHTML('beforeend', `<svg class="gaze" aria-hidden="true">${lines}</svg>`);
+}
+const JAR = `<svg viewBox="0 0 60 80" aria-hidden="true"><rect x="16" y="3" width="28" height="9" rx="2" fill="#8e6a33"/><path d="M12 14h36c4 0 7 3 7 7v48c0 5-3 8-8 8H13c-5 0-8-3-8-8V21c0-4 3-7 7-7z" fill="rgba(241,231,211,.12)" stroke="rgba(241,231,211,.45)" stroke-width="2"/><rect x="13" y="38" width="34" height="17" rx="2" fill="#d9cdb4" opacity=".5"/></svg>`;
+const glyphSvg = k => `<svg viewBox="0 0 60 60" aria-hidden="true">${GLYPHS[k]}</svg>`;
+const BOX = `<svg viewBox="0 0 100 100" aria-hidden="true"><rect x="12" y="40" width="76" height="52" rx="3" fill="#6e2b44"/><rect x="6" y="28" width="88" height="16" rx="3" fill="#86354f"/><rect x="45" y="28" width="10" height="64" fill="#d8ab52"/><path d="M50 28c-8-14-24-14-22-4 2 7 14 5 22 4zm0 0c8-14 24-14 22-4-2 7-14 5-22 4z" fill="none" stroke="#d8ab52" stroke-width="4"/></svg>`;
+const CUP = `<svg viewBox="0 0 100 100" aria-hidden="true"><path d="M20 88 30 16h40l10 72z" fill="#9a5b3a"/><path d="M30 16h40l1.2 8.5H28.8z" fill="#b8744d"/><ellipse cx="50" cy="88" rx="30" ry="6" fill="#7a432a"/><path d="M38 24 33 80" stroke="#c98a60" stroke-width="3" stroke-linecap="round" opacity=".55"/></svg>`;
+
+/* ---------------- Levels ---------------- */
+const LEVELS = [
+{
+  key: 'number', name: 'The Warm-up', technique: 'Priming and a known favourite',
+  title: 'Any number',
+  intro: 'A quick warm-up. You get seven seconds. Click any number from 1 to 10, the first one that comes to mind.',
+  prompt: 'Click any number from 1 to 10.',
+  build(b) {
+    b.innerHTML = `<div class="lv-num"><div class="dots" aria-hidden="true">${'<i></i>'.repeat(7)}</div>
+      ${moonMark('left:5%;bottom:6%')}<div class="numgrid">${Array.from({ length: 10 }, (_, k) => `<button class="pick num${k === 6 ? ' n7' : ''}" data-i="${k}">${k + 1}</button>`).join('')}</div></div>`;
+    return { target: 6, labels: Array.from({ length: 10 }, (_, k) => String(k + 1)) };
+  },
+  onShow(b) { b.querySelectorAll('.dots i').forEach((d, k) => later(() => d.classList.add('out'), (k + 1) * 1000)); },
+  how: [
+    'The intro said “seven seconds”, and the timer above the numbers was seven dots. Both put 7 in your head before you chose.',
+    'The 7 key was a shade lighter than the other keys. Hard to see, easy to land on.',
+    '7 is already the most popular answer to this question, so the odds were on my side before I said a word.'
+  ],
+  science: 'Ask people for a number from 1 to 10 and roughly a quarter to a third say 7, with 3 in second place. Mentalists call this a force and lean on it all the time. The priming adds a small push on top of a strong habit.'
+},
+{
+  key: 'centre', name: 'Five Boxes', technique: 'Centre-stage effect',
+  title: 'Any box you like',
+  intro: 'Five boxes, all exactly alike, and none of them is locked. The key is not to overthink it. Click any of them.',
+  prompt: 'Click any of the boxes.',
+  build(b) {
+    b.innerHTML = `<div class="lv-row">${Array.from({ length: 5 }, (_, k) => `<button class="pick giftbox" data-i="${k}" aria-label="Box ${k + 1}">${BOX}</button>`).join('')}</div>`;
+    return { target: 2, labels: ['box 1', 'box 2', 'box 3', 'box 4', 'box 5'] };
+  },
+  onReveal(b) { b.querySelector('.lv-row').classList.add('cues'); },
+  how: [
+    'Nothing at all. The boxes were identical, and I said nothing about any of them.',
+    'I predicted the middle box because people choosing between identical options drift to the centre. It feels like the safe, typical choice.'
+  ],
+  science: 'This is the centre-stage effect. Christenfeld (1995) found people pick the middle item from a row of identical ones far more often than chance, and shoppers do the same with products on a shelf. It is one of the more reliable effects in this game, and I used no trick at all.'
+},
+{
+  key: 'stars', name: 'The Constellation', technique: 'Pop-out and leading lines',
+  title: 'Any star you like',
+  intro: 'Somewhere up there is your star. Look around the sky and click any of them.',
+  prompt: 'Click any star.',
+  build(b) {
+    const T = { x: 60 + Math.random() * 7, y: 33 + Math.random() * 8 };
+    const stars = [];
+    let guard = 0;
+    while (stars.length < 38 && guard++ < 4000) {
+      const s = { x: 5 + Math.random() * 90, y: 14 + Math.random() * 80 };
+      if (Math.hypot(s.x - T.x, s.y - T.y) < 9) continue;
+      if (s.x > 72 && s.y < 22) continue; // keep clear of the seal badge
+      if (stars.some(o => Math.hypot(o.x - s.x, o.y - s.y) < 8)) continue;
+      stars.push(s);
+    }
+    // leading lines: three chains converging on the target
+    const lines = [];
+    const a0 = Math.random() * Math.PI * 2;
+    const used = new Set();
+    for (let k = 0; k < 3; k++) {
+      const ang = a0 + k * (Math.PI * 2 / 3);
+      const best = (lo, hi, from, dirAng) => {
+        let bi = -1, bs = 1e9;
+        stars.forEach((s, i) => {
+          if (used.has(i)) return;
+          const d = Math.hypot(s.x - from.x, s.y - from.y);
+          if (d < lo || d > hi) return;
+          let da = Math.abs(Math.atan2(s.y - from.y, s.x - from.x) - dirAng) % (Math.PI * 2);
+          if (da > Math.PI) da = Math.PI * 2 - da;
+          if (da < bs) { bs = da; bi = i; }
+        });
+        return bs < 0.9 ? bi : -1;
+      };
+      const n1 = best(12, 26, T, ang);
+      if (n1 < 0) continue;
+      used.add(n1);
+      lines.push([stars[n1], T]);
+      const n2 = best(10, 22, stars[n1], ang);
+      if (n2 >= 0) { used.add(n2); lines.push([stars[n2], stars[n1]]); }
+    }
+    const all = stars.map(s => ({ ...s, gold: false }));
+    const ti = rand(all.length + 1);
+    all.splice(ti, 0, { ...T, gold: true });
+    b.innerHTML = `<div class="lv-sky">${moonMark('left:9%;top:13%;width:22px;opacity:.55')}<svg class="leads" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">${lines.map(([p, q]) => `<line x1="${p.x}" y1="${p.y}" x2="${q.x}" y2="${q.y}"/>`).join('')}</svg>
+      ${all.map((s, i) => `<button class="pick star${s.gold ? ' gold' : ''}" data-i="${i}" aria-label="Star ${i + 1}" style="left:${s.x}%;top:${s.y}%;--s:${s.gold ? 10 : (3 + Math.random() * 4).toFixed(1)}px;--o:${s.gold ? 1 : (.55 + Math.random() * .4).toFixed(2)}"></button>`).join('')}</div>`;
+    return { target: ti, labels: all.map(s => s.gold ? 'the gold star' : 'a white star') };
+  },
+  onReveal(b) { b.querySelector('.lv-sky').classList.add('cues'); },
+  how: [
+    'One star was a little bigger and warmer in colour than the rest. Your visual system flags an odd one out before you go looking for it.',
+    'Faint lines between the stars all ran toward it, the way leading lines in a photograph steer your eye.',
+    'It sat close to a rule-of-thirds point, where painters and photographers put the thing they want you to look at.'
+  ],
+  science: 'Pop-out, or preattentive salience, is solid research: an item that differs in colour or size from everything around it is found almost instantly, however many others there are. What you notice first, you tend to choose.'
+},
+{
+  key: 'doors', name: 'The Gallery', technique: 'Gaze cueing',
+  title: 'Any door you like',
+  intro: 'You are in an old gallery. Five unlocked doors, and a portrait on the wall. Click any of the doors.',
+  prompt: 'Click any door.',
+  build(b) {
+    const target = pickFrom([0, 1, 3, 4]);
+    b.innerHTML = `<div class="lv-doors">
+      <div class="portrait" aria-hidden="true"><div class="face"><span class="hair"></span><span class="eye l"><b></b></span><span class="eye r"><b></b></span><span class="mouth"></span></div></div>
+      <div class="floorline"></div><svg class="clock" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="17" fill="#2a1726" stroke="#8e6a33" stroke-width="2.5"/><g stroke="#d8ab52" stroke-linecap="round"><line x1="20" y1="20" x2="${20 + 8 * Math.sin(53.5 * Math.PI / 180)}" y2="${20 - 8 * Math.cos(53.5 * Math.PI / 180)}" stroke-width="2.5"/><line x1="20" y1="20" x2="${20 + 13 * Math.sin(282 * Math.PI / 180)}" y2="${20 - 13 * Math.cos(282 * Math.PI / 180)}" stroke-width="1.6"/></g></svg>${moonMark('right:4%;bottom:3%')}
+      <div class="doorrow">${Array.from({ length: 5 }, (_, k) => `<button class="pick door${k === target ? ' lit' : ''}" data-i="${k}" aria-label="Door ${k + 1}"><span class="plate">${145 + k}</span><span class="knob"></span><span class="light"></span></button>`).join('')}</div></div>`;
+    return { target, labels: ['door 1', 'door 2', 'door 3', 'door 4', 'door 5'] };
+  },
+  aim(b) {
+    const t = b.querySelectorAll('.door')[cur.target];
+    if (!t) return;
+    const tr = t.getBoundingClientRect();
+    const tx = tr.left + tr.width / 2, ty = tr.top + tr.height * .45;
+    b.querySelectorAll('.eye').forEach(eye => {
+      const er = eye.getBoundingClientRect();
+      const ex = er.left + er.width / 2, ey = er.top + er.height / 2;
+      const dx = tx - ex, dy = ty - ey, d = Math.hypot(dx, dy) || 1;
+      eye.firstElementChild.style.transform = `translate(${(dx / d) * er.width * .3}px, ${(dy / d) * er.height * .28}px)`;
+    });
+  },
+  onShow(b) { this.aim(b); },
+  onReveal(b) {
+    const sr = stage.getBoundingClientRect();
+    const eyes = [...b.querySelectorAll('.eye')].map(e => e.getBoundingClientRect());
+    const ex = (eyes[0].left + eyes[1].right) / 2 - sr.left, ey = eyes[0].top + eyes[0].height / 2 - sr.top;
+    const tr = b.querySelectorAll('.door')[cur.target].getBoundingClientRect();
+    const tx = tr.left + tr.width / 2 - sr.left, ty = tr.top + tr.height * .45 - sr.top;
+    b.insertAdjacentHTML('beforeend', `<svg class="gaze" aria-hidden="true"><line x1="${ex}" y1="${ey + 6}" x2="${tx}" y2="${ty}"/></svg>`);
+  },
+  how: [
+    'The portrait’s eyes looked straight at one door. Attention follows another face’s gaze automatically.',
+    'A thin line of light glowed under that same door: a small bright spot for your eye to land on.',
+    'I never aimed at the middle door, so the centre-stage habit from level 2 could not take the credit.'
+  ],
+  science: 'Gaze cueing is well established (Friesen and Kingstone, 1998). People shift their attention toward where a face is looking even when they are told it means nothing. Looking first is not the same as choosing, but it tilts the odds.'
+},
+{
+  key: 'cups', name: 'The Cups', technique: 'Barely visible motion',
+  title: 'Any cup you like',
+  intro: 'The oldest game on the street. I have already shuffled four times. Six cups, one coin, and it could be under any of them.',
+  prompt: 'Click any cup.',
+  build(b) {
+    const target = rand(6);
+    b.innerHTML = `<div class="lv-cups">${Array.from({ length: 6 }, (_, k) => `<button class="pick cup${k === target ? ' breathe' : ''}" data-i="${k}" aria-label="Cup ${k + 1}">${CUP}</button>`).join('')}</div>`;
+    return { target, labels: Array.from({ length: 6 }, (_, k) => 'cup ' + (k + 1)) };
+  },
+  onReveal(b) { b.querySelector('.lv-cups').classList.add('cues'); },
+  how: [
+    'One cup was breathing: growing and shrinking by about two percent, very slowly. On the reveal I made it much bigger so you can see it.',
+    'Your peripheral vision is built to catch motion. Movement too small to notice consciously still pulls your attention.'
+  ],
+  get science() {
+    return 'Motion onset and looming are among the strongest attention grabbers known (Abrams and Christ, 2003). Ads, loading shimmer and notification badges use the same thing.' + (reduceMotion ? ' Your device asks for reduced motion, so the cup stayed still for you and this level had no nudge.' : '');
+  }
+},
+{
+  key: 'green', name: 'Spring Morning', technique: 'Imagery priming and embedded commands',
+  title: 'Any card you like',
+  intro: 'Before you click, breathe in. Picture a quiet park in spring: fresh grass, leaves moving in the wind, everything <span class="ec">green</span> and calm. Hold that for a second. Now let your hand <span class="ec">go</span> wherever it wants. There is no wrong card, so <span class="ec">go</span> with your gut.',
+  prompt: 'Click any card. <span class="ec">Go</span> with your gut.',
+  build(b) {
+    const cols = [['red', '#b8574a'], ['blue', '#4f74b0'], ['yellow', '#b39a42'], ['green', '#5c9168'], ['purple', '#85609f']];
+    b.innerHTML = `<div class="lv-cards">${cols.map(([n, c], k) => `<button class="pick ccard" data-i="${k}" aria-label="${n} card" style="--c:${c}"></button>`).join('')}</div>`;
+    return { target: 3, labels: cols.map(c => 'the ' + c[0] + ' card') };
+  },
+  how: [
+    'The intro asked you to picture fresh grass and spring leaves, which primes the idea of green.',
+    'Three words were set a touch heavier and brighter: <span class="ec">green</span>, <span class="ec">go</span> and <span class="ec">go</span>. In NLP this is called an embedded command, and “go” also pairs with green in everyday life.',
+    'The green card sat fourth, not in the middle, so position could not explain a hit.'
+  ],
+  science: 'Semantic priming is real in the lab: thinking about grass makes “green” come to mind faster. Its effect on actual choices is small and fragile, and NLP’s embedded commands have essentially no scientific support. If this one worked on you, the imagery or plain luck is the likelier cause.'
+},
+{
+  key: 'crowd', name: 'The Audience', technique: 'A crowd’s gaze',
+  title: 'Any jar you like',
+  intro: 'The audience has been waiting four minutes for the show to start. Six jars on the shelf. Click any of them.',
+  prompt: 'Click any jar.',
+  build(b) {
+    const target = rand(6);
+    const heads = Array.from({ length: 7 }, (_, k) => head(FACES[k % 5], `margin-bottom:${[0, 10, -4, 6, -2, 12, 2][k]}px`)).join('');
+    b.innerHTML = `<div class="lv-crowd"><div class="shelf">${Array.from({ length: 6 }, (_, k) => `<button class="pick jar" data-i="${k}" aria-label="Jar ${k + 1}">${JAR}</button>`).join('')}</div><div class="audience">${heads}</div></div>`;
+    return { target, labels: Array.from({ length: 6 }, (_, k) => 'jar ' + (k + 1)) };
+  },
+  layout(b) { aimEyes(b, b.querySelectorAll('.jar')[cur.target]); },
+  onReveal(b) { gazeLines(b, b.querySelectorAll('.jar')[cur.target]); },
+  how: [
+    'Seven people in the audience were all looking up at the same jar. When a group looks at something, you look too, almost before you notice them.',
+    'Unlike the single portrait in The Gallery, a crowd adds social weight: if everyone is looking, there must be something there.'
+  ],
+  science: 'In a classic street experiment, Milgram and colleagues (1969) had people stand on a New York pavement staring up at a window. The more people staring, the more passers-by stopped and looked up too. Crowd gaze is a strong pull on attention, and attention tends to lead the hand.'
+},
+{
+  key: 'worn', name: 'The Old Deck', technique: 'Signs of wear',
+  title: 'Any card from the deck',
+  intro: 'Five cards from a fortune teller’s old deck. Click any of them.',
+  prompt: 'Click any of the cards.',
+  build(b) {
+    const target = pickFrom([0, 1, 3, 4]);
+    b.innerHTML = `<div class="lv-row">${Array.from({ length: 5 }, (_, k) => `<button class="pick wcard${k === target ? ' worn' : ''}" data-i="${k}" aria-label="Card ${k + 1}"><span class="emb">${MOON}</span></button>`).join('')}${portraitMark('left:5%;top:34px')}</div>`;
+    return { target, labels: ['card 1', 'card 2', 'card 3', 'card 4', 'card 5'] };
+  },
+  onReveal(b) { b.querySelector('.lv-row').classList.add('cues'); },
+  how: [
+    'One card looked handled: a folded corner, faint thumb smudges, its gold edge a little faded, and sitting very slightly askew.',
+    'Wear says “other people picked this one”. It works like a footpath worn across a lawn: you follow it without deciding to.',
+    'It also simply looked different from the four clean cards, which drew your eye first.'
+  ],
+  science: 'Social proof is one of the best-supported nudges when it is spelled out, as in the hotel study where “most guests reuse their towels” changed behaviour (Goldstein, Cialdini and Griskevicius, 2008). Silent cues like wear are less studied. Part of any hit here is plain salience: the odd card out gets looked at.'
+},
+{
+  key: 'sweep', name: 'The Lamps', technique: 'Momentum of a sequence',
+  title: 'Any lamp you like',
+  intro: 'Seven lamps on four metres of old wire. Watch them warm up, then click any of them.',
+  prompt: 'Click any lamp.',
+  build(b) {
+    const target = pickFrom([4, 5]);
+    b.innerHTML = `<div class="lv-row lamps"><span class="wire" aria-hidden="true"></span>${Array.from({ length: 7 }, (_, k) => `<button class="pick lamp" data-i="${k}" aria-label="Lamp ${k + 1}"></button>`).join('')}</div>`;
+    return { target, labels: Array.from({ length: 7 }, (_, k) => 'lamp ' + (k + 1)) };
+  },
+  async preRoll(b) {
+    const lamps = [...b.querySelectorAll('.lamp')];
+    await wait(500);
+    for (let round = 0; round < 2; round++) {
+      for (let k = 0; k < cur.target; k++) {
+        if (!cur || cur.level.key !== 'sweep') return;
+        lamps[k].classList.add('on');
+        await wait(170);
+        lamps[k].classList.remove('on');
+      }
+      await wait(420);
+    }
+  },
+  onReveal(b) { b.querySelector('.lamps').classList.add('cues'); },
+  how: [
+    'The lights ran left to right, twice, and stopped one lamp short of the prediction. Your eye wants to finish the movement.',
+    'The predicted lamp was never the middle one, so the centre-stage habit could not explain a hit.'
+  ],
+  science: 'Representational momentum is a real effect (Freyd and Finke, 1984): we remember a moving thing as a little further along its path than it really was. Whether that steers a click is less tested. Stage magicians use the same idea when they let a gesture carry the eye past the spot that matters.'
+},
+{
+  key: 'left', name: 'After the Party', technique: 'Embedded word: left',
+  title: 'Any mug you like',
+  intro: 'Five mugs <span class="ec">left</span> on the table after the party. No catch, nothing hidden. Most guests just grabbed one and <span class="ec">left</span>. Click any of them.',
+  prompt: 'Click any mug.',
+  build(b) {
+    b.innerHTML = `<div class="lv-row">${Array.from({ length: 5 }, (_, k) => `<button class="pick mug" data-i="${k}" aria-label="Mug ${k + 1}"><svg viewBox="0 0 80 80" aria-hidden="true"><path d="M14 18h40v42c0 6-4 10-10 10H24c-6 0-10-4-10-10z" fill="#d9cdb4"/><path d="M54 28h6c6 0 9 4 9 10s-3 10-9 10h-6" fill="none" stroke="#d9cdb4" stroke-width="6"/><ellipse cx="34" cy="18" rx="20" ry="4" fill="#6b4a3a"/></svg></button>`).join('')}</div>`;
+    return { target: 0, labels: Array.from({ length: 5 }, (_, k) => 'mug ' + (k + 1)) };
+  },
+  how: [
+    'The word <span class="ec">left</span> appeared twice, set a touch heavier, while the meaning of the sentence was about something else entirely.',
+    'The predicted mug was the leftmost one. It is also the first one you read, since we scan left to right.'
+  ],
+  science: 'This is the same embedded-word trick as Spring Morning, with a direction instead of a colour. On its own it is weak. The left-to-right reading habit is real though: in lists and rows, first items get extra attention, a primacy effect. Here both pushes point the same way, so a hit tells you little about which did the work.'
+},
+{
+  key: 'apart', name: 'The Coins', technique: 'Room to breathe',
+  title: 'Any coin you like',
+  intro: 'A handful of old coins, tipped out of a drawer someone forgot to lock. Click any of them.',
+  prompt: 'Click any coin.',
+  build(b) {
+    const tc = pickFrom([1, 3]), tr = 1;
+    const pts = [];
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 5; c++) pts.push({ x: 14 + c * 18, y: 36 + r * 22, t: r === tr && c === tc });
+    const T = pts.find(p => p.t);
+    pts.forEach(p => {
+      if (p.t) return;
+      const dx = p.x - T.x, dy = (p.y - T.y) * 1.2, d = Math.hypot(dx, dy);
+      if (d < 32) { p.x += dx / d * 4.5; p.y += dy / d * 4.5; }
+      p.x += (Math.random() - .5) * 3; p.y += (Math.random() - .5) * 3;
+    });
+    b.innerHTML = `<div class="lv-coins">${pts.map((p, i) => `<button class="pick coin" data-i="${i}" aria-label="Coin ${i + 1}" style="left:${p.x}%;top:${p.y}%;--r:${(Math.random() * 40 - 20).toFixed(0)}deg"><span class="emb">${MOON}</span></button>`).join('')}</div>`;
+    return { target: pts.indexOf(T), labels: pts.map((_, i) => 'coin ' + (i + 1)) };
+  },
+  onReveal(b) { b.querySelector('.lv-coins').classList.add('cues'); },
+  how: [
+    'All fifteen coins were identical. The only difference was space: the coins around the predicted one had been pushed back a little.',
+    'A gap acts like a spotlight. An item with room around it reads as its own group of one, separate from the crowd.'
+  ],
+  science: 'The isolation (Von Restorff) effect is well established for memory and attention: the item that stands apart gets noticed and remembered. Designers use white space around a button for exactly this. Its pull on a free click is modest but real, and grows the more uniform everything else is.'
+},
+{
+  key: 'cross', name: 'The Crossing', technique: 'Two gazes that meet',
+  title: 'Any tile you like',
+  intro: 'Nine tiles on the floor and two portraits on the walls. Click any of the tiles.',
+  prompt: 'Click any tile.',
+  build(b) {
+    const target = pickFrom([0, 1, 2, 3, 5, 6, 7, 8]);
+    b.innerHTML = `<div class="lv-cross">${portrait('gazer', null, 'left:2%;top:30%')}${portrait('gazer', FACES[1], 'right:2%;top:54%')}
+      <div class="tiles">${Array.from({ length: 9 }, (_, k) => `<button class="pick tile" data-i="${k}" aria-label="Tile ${k + 1}"></button>`).join('')}</div></div>`;
+    return { target, labels: Array.from({ length: 9 }, (_, k) => 'tile ' + (k + 1)) };
+  },
+  layout(b) { aimEyes(b, b.querySelectorAll('.tile')[cur.target]); },
+  onReveal(b) { gazeLines(b, b.querySelectorAll('.tile')[cur.target]); },
+  how: [
+    'Both portraits were looking at the same tile from opposite sides. One gaze gives you a direction. Two gazes give you a point, right where they cross.',
+    'The left portrait was the same face as the one in The Gallery. Keep that in mind.'
+  ],
+  science: 'Gaze following is automatic from infancy, and adults use it to work out what someone is attending to, a skill called joint attention. Two gazers converging on one spot is less studied than a single face, but each gaze is a known attention cue, and here they agree.'
+},
+{
+  key: 'wall', name: 'The Wallpaper', technique: 'Hidden arrows',
+  title: 'Any frame you like',
+  intro: 'A wall of empty picture frames, hung four days ago. Click any of them.',
+  prompt: 'Click any frame.',
+  build(b) {
+    const target = rand(6);
+    b.innerHTML = `<div class="lv-wall"><svg class="wallpaper" aria-hidden="true"></svg><div class="frames">${Array.from({ length: 6 }, (_, k) => `<button class="pick frame" data-i="${k}" aria-label="Frame ${k + 1}"><span></span></button>`).join('')}</div></div>`;
+    return { target, labels: Array.from({ length: 6 }, (_, k) => 'frame ' + (k + 1)) };
+  },
+  layout(b) {
+    const svg = b.querySelector('.wallpaper'), t = b.querySelectorAll('.frame')[cur.target];
+    if (!svg || !t) return;
+    const sr = svg.getBoundingClientRect(), tr = t.getBoundingClientRect();
+    const tx = tr.left + tr.width / 2 - sr.left, ty = tr.top + tr.height / 2 - sr.top;
+    let out = '';
+    for (let y = 18; y < sr.height; y += 30) for (let x = 18 + ((y / 30) % 2) * 15; x < sr.width; x += 30) {
+      if (Math.hypot(x - tx, y - ty) < 40) continue;
+      const a = Math.atan2(ty - y, tx - x) * 180 / Math.PI;
+      out += `<path d="M-4 -4 L2 0 L-4 4" transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${a.toFixed(1)})"/>`;
+    }
+    svg.setAttribute('viewBox', `0 0 ${sr.width} ${sr.height}`);
+    svg.innerHTML = out;
+  },
+  onReveal(b) { b.querySelector('.lv-wall').classList.add('cues'); },
+  how: [
+    'The wallpaper was made of tiny, faint arrowheads, and every one of them pointed at the predicted frame. On the reveal I turned them up so you can see.',
+    'No single arrow is noticeable, but hundreds of them agreeing give the whole wall a direction.'
+  ],
+  science: 'Arrows shift attention automatically, nearly as strongly as a face’s gaze does (Tipples, 2002; Ristic and colleagues). Arrows this faint are a much weaker cue, so treat this level as an experiment. If you landed on the prediction, a lucky one-in-six is just as likely.'
+},
+{
+  key: 'up', name: 'The Balloons', technique: 'Embedded words: up, higher',
+  title: 'Any balloon you like',
+  intro: 'Chin <span class="ec">up</span>. Six balloons are drifting <span class="ec">up</span> toward the ceiling. Let your eyes float <span class="ec">higher</span>, then click any of them.',
+  prompt: 'Click any balloon.',
+  build(b) {
+    const target = pickFrom([0, 1, 4, 5]);
+    const tops = shuffle([40, 44, 48, 52, 56]);
+    let j = 0;
+    const ys = Array.from({ length: 6 }, (_, k) => k === target ? 30 : tops[j++]);
+    b.innerHTML = `<div class="lv-sky">${ys.map((y, k) => `<button class="pick balloon" data-i="${k}" aria-label="Balloon ${k + 1}" style="left:${12 + k * 15.2}%;top:${y}%"></button>`).join('')}</div>`;
+    return { target, labels: Array.from({ length: 6 }, (_, k) => 'balloon ' + (k + 1)) };
+  },
+  how: [
+    'Three words were set slightly heavier: <span class="ec">up</span>, <span class="ec">up</span> and <span class="ec">higher</span>. All the imagery in the sentence was about rising.',
+    'The predicted balloon floated a little higher than the others. The words told your eyes where to go, and that balloon was waiting there.',
+    'It was never one of the two middle balloons.'
+  ],
+  science: 'Words about space really do shift attention a little: reading “up” or “sky” makes people slightly faster to notice things at the top of a screen (Estes and colleagues, 2008). That is a measurable but tiny effect. The height difference itself is the bigger cue, since an item that breaks a line stands out.'
+},
+{
+  key: 'one', name: 'The Tokens', technique: 'The instruction is the answer',
+  title: 'Choose one',
+  intro: 'Six tokens. No tricks this time, no story. Just choose one.',
+  prompt: 'Choose one.',
+  build(b) {
+    const order = shuffle([1, 2, 3, 4, 5, 6]);
+    b.innerHTML = `<div class="lv-row">${portraitMark('left:5%;top:34px')}${order.map((n, k) => `<button class="pick token" data-i="${k}" aria-label="Token ${n}">${n}</button>`).join('')}</div>`;
+    return { target: order.indexOf(1), labels: order.map(n => 'token ' + n) };
+  },
+  how: [
+    'This is the one level where I said “choose one” on purpose. Twice. The word you were told to act on was also the name of a token.',
+    'One is also the first number in counting order, and first items have a pull of their own.',
+    'The tokens were shuffled, so the 1 was not sitting in a favoured spot like the middle.'
+  ],
+  science: 'Words in an instruction get processed alongside the instruction, which is why the Stroop effect exists: you cannot quite ignore what a word says. Using that to steer a choice is a mentalist’s verbal force. It is cheap and sometimes works, but a careful chooser tends to resist it once they notice.'
+},
+{
+  key: 'flash', name: 'The Flash', technique: 'Masked subliminal flash',
+  title: 'Any symbol you like',
+  intro: 'Keep your eyes on the cross in the middle while I calibrate. It takes about five seconds. Then click any of the symbols.',
+  prompt: 'Click any symbol.',
+  build(b) {
+    const order = shuffle(Object.keys(GLYPHS));
+    const target = rand(5);
+    b.innerHTML = `<div class="lv-flash"><div class="fx" id="fx"></div>
+      <div class="symrow">${order.map((g, k) => `<button class="pick sym" data-i="${k}" aria-label="${g}">${glyphSvg(g)}</button>`).join('')}</div></div>`;
+    return { target, labels: order.map(g => 'the ' + g), glyph: order[target] };
+  },
+  async preRoll(b) {
+    const fx = b.querySelector('#fx');
+    const mask = `<div class="mask">${Object.keys(GLYPHS).map((g, i) => `<svg viewBox="0 0 60 60" style="transform:rotate(${i * 37}deg) scale(${1 + i * .06})">${GLYPHS[g]}</svg>`).join('')}</div>`;
+    const cross = '<div class="cross">+</div><div class="note">Calibrating. Watch the cross.</div>';
+    const flashFor = async ms => { const t0 = performance.now(); do { await new Promise(r => requestAnimationFrame(r)); } while (performance.now() - t0 < ms); };
+    fx.innerHTML = cross;
+    await wait(1100);
+    for (let k = 0; k < 3; k++) {
+      if (!cur || cur.level.key !== 'flash') return;
+      fx.innerHTML = `<div>${glyphSvg(cur.glyph)}</div>`;
+      await flashFor(30);
+      fx.innerHTML = mask;
+      await wait(120);
+      fx.innerHTML = cross;
+      await wait(900 + Math.random() * 500);
+    }
+    fx.innerHTML = '';
+    b.querySelector('.symrow').classList.add('ready');
+  },
+  how: [
+    'While you watched the cross, I flashed the target symbol for about 33 milliseconds, three times. Each flash was covered right away by a jumble of all five symbols.',
+    'The jumble, called a mask, stops you seeing the flash consciously. The hope is that the symbol then feels slightly familiar, and familiar things feel right.'
+  ],
+  science: 'This is the weakest technique in the game. Masked priming gives small, short-lived effects in careful lab studies, mostly on speed rather than choice. The famous 1957 “Eat popcorn” cinema experiment was later admitted to be made up. Expect this level to land near chance, 1 in 5.'
+},
+{
+  key: 'key', name: 'The Words', technique: 'A word planted levels ago',
+  title: 'Any word you like',
+  intro: 'Six words on six cards. Click any of them, whichever stands out.',
+  prompt: 'Click any word.',
+  build(b) {
+    const order = shuffle(['river', 'key', 'candle', 'mirror', 'apple', 'bell']);
+    b.innerHTML = `<div class="lv-words">${order.map((w, k) => `<button class="pick word" data-i="${k}">${w}</button>`).join('')}</div>`;
+    return { target: order.indexOf('key'), labels: order.map(w => '“' + w + '”') };
+  },
+  how: [
+    'This nudge started long before this level. Five Boxes said “none of them is locked” and “the key is not to overthink it”. The Gallery had “unlocked” doors. The Coins came from a drawer “someone forgot to lock”.',
+    'None of those lines mattered at the time, so you had no reason to notice them. Each one made “key” a little easier to reach for.',
+    'Today the words were shuffled, so position played no part.'
+  ],
+  science: 'Repetition priming is durable: a word you have recently read is recognised faster for minutes or even hours afterwards (Tulving and Schacter, 1990). Easier-to-process options also feel more appealing, a link called processing fluency. Whether a handful of mentions is enough to swing a free choice is far less certain.'
+},
+{
+  key: 'moon', name: 'The Charms', technique: 'A symbol you kept seeing',
+  title: 'Any charm you like',
+  intro: 'A bracelet with six silver charms. Click any of them.',
+  prompt: 'Click any charm.',
+  build(b) {
+    const order = shuffle(Object.keys(CHARMS));
+    b.innerHTML = `<div class="lv-row">${order.map((g, k) => `<button class="pick sym" data-i="${k}" aria-label="${g}"><svg viewBox="0 0 60 60" aria-hidden="true">${CHARMS[g]}</svg></button>`).join('')}</div>`;
+    return { target: order.indexOf('moon'), labels: order.map(g => 'the ' + g) };
+  },
+  how: [
+    'A crescent moon has been following you around. It sat faintly beside the numbers in the warm-up, hung in the sky in The Constellation, waited by the doors in The Gallery, was the emblem on every card of The Old Deck and stamped on all fifteen of The Coins.',
+    'You saw it maybe twenty times without being asked to look at it. Familiarity builds quietly, and familiar things feel safe and likeable.'
+  ],
+  science: 'This is the mere-exposure effect, one of the most replicated findings in psychology (Zajonc, 1968): repeated, unremarkable exposure to something makes people like it a bit more, and it works even better when they did not consciously register the exposures. It is a small push, but brands spend fortunes on it.'
+},
+{
+  key: 'gold', name: 'The Gems', technique: 'A colour you learned to watch',
+  title: 'Any gem you like',
+  intro: 'Six cut stones on velvet. Click any of them.',
+  prompt: 'Click any gem.',
+  build(b) {
+    const gems = shuffle([['ruby', '#e08a90', '#b8434f', '#6e1f2a'], ['sapphire', '#8fb0ea', '#3f67b5', '#1f3466'], ['emerald', '#8fd6ae', '#3f9a6a', '#1d5236'], ['amethyst', '#c6a4e6', '#8a5bb8', '#4a2a6e'], ['amber', '#f6dc9c', '#d8ab52', '#8a6420'], ['pearl', '#f6f1e6', '#d0c7b6', '#8a8172']]);
+    b.innerHTML = `<div class="lv-row">${gems.map(([n, a, c, d], k) => `<button class="pick gem" data-i="${k}" aria-label="${n}"><span class="stone" style="background:linear-gradient(150deg,${a},${c} 55%,${d})"></span></button>`).join('')}</div>`;
+    return { target: gems.findIndex(g => g[0] === 'amber'), labels: gems.map(g => 'the ' + g[0]) };
+  },
+  how: [
+    'Gold has been the colour of the answer all game: the gold star, the light under the door, the lamps, the sealed envelope and every Prediction tag that popped up on a reveal.',
+    'Without trying, your attention has been learning that gold is where the action is.'
+  ],
+  science: 'This is value-driven attentional capture (Anderson, Laurent and Yantis, 2011): a colour that has been linked to reward keeps grabbing attention later, even when it no longer matters. The twist here is that you may also have learned that gold means “the trap”, and steered away from it on purpose. Both are learned reactions to the same colour.'
+},
+{
+  key: 'red', name: 'Read Between the Lines', technique: 'A hidden word and a stop',
+  title: 'Any card you like',
+  intro: 'Relax for a moment.<br>Every card here is a fair choice.<br>Don’t rush, and when you are ready, <span class="ec">stop</span> and click any of them.',
+  prompt: 'Click any card.',
+  build(b) {
+    const cols = [['red', '#b8574a'], ['blue', '#4f74b0'], ['yellow', '#b39a42'], ['green', '#5c9168'], ['purple', '#85609f']];
+    let order;
+    do { order = shuffle(cols); } while (order[2][0] === 'red');
+    b.innerHTML = `<div class="lv-cards">${order.map(([n, c], k) => `<button class="pick ccard" data-i="${k}" aria-label="${n} card" style="--c:${c}"></button>`).join('')}</div>`;
+    return { target: order.findIndex(c => c[0] === 'red'), labels: order.map(c => 'the ' + c[0] + ' card') };
+  },
+  how: [
+    'Read the first letter of each line of the intro: <span class="ec">R</span>elax, <span class="ec">E</span>very, <span class="ec">D</span>on’t. It spelled RED.',
+    'One word was set heavier: <span class="ec">stop</span>. Stop pairs with red the way go pairs with green, the reverse of Spring Morning.',
+    'The cards were shuffled, and the red one never sat in the middle. If you remembered that green was the answer last time, you may also have avoided green, which helps the others.'
+  ],
+  science: 'Acrostics are a fun way to hide a word, but there is no good evidence that people pick them up without noticing. The stop and red link is a real association in memory, so it can make red come to mind a little faster. Treat this one as a parlour trick more than a science result.'
+},
+{
+  key: 'four', name: 'The Second Number', technique: 'A number dropped in passing',
+  title: 'Any number, again',
+  intro: 'One more number before the finale. Click any number from 1 to 9.',
+  prompt: 'Click any number from 1 to 9.',
+  build(b) {
+    b.innerHTML = `<div class="lv-num"><div class="numgrid nine">${Array.from({ length: 9 }, (_, k) => `<button class="pick num" data-i="${k}">${k + 1}</button>`).join('')}</div></div>`;
+    return { target: 3, labels: Array.from({ length: 9 }, (_, k) => String(k + 1)) };
+  },
+  how: [
+    'Four kept coming up in passing. The cups had been shuffled four times, the audience had waited four minutes, the lamps hung on four metres of wire and the frames went up four days ago. In Spring Morning, the reveal told you the green card sat fourth.',
+    'After the warm-up you know 7 is the classic answer, so most people now avoid it. That frees up the rest.',
+    'The 4 sat middle-left, not in the centre of the grid, and its key looked exactly like the others.'
+  ],
+  science: 'Incidental numbers can shift later number judgements. This is anchoring, one of the best-known findings in judgement research (Tversky and Kahneman, 1974), though anchors that are clearly irrelevant have a weaker and less reliable effect. Using it to force a free pick is a mentalist favourite with mixed results.'
+},
+{
+  key: 'lineup', name: 'The Lineup', technique: 'A face you kept seeing',
+  title: 'Any face you like',
+  intro: 'Six portraits from the attic. Nobody remembers who they were. Click any of them.',
+  prompt: 'Click any portrait.',
+  build(b) {
+    const faces = shuffle([null, ...FACES]);
+    b.innerHTML = `<div class="lv-row">${faces.map((v, k) => `<button class="pick lineup" data-i="${k}" aria-label="Portrait ${k + 1}">${portrait('', v)}</button>`).join('')}</div>`;
+    return { target: faces.indexOf(null), labels: faces.map((v, k) => v ? 'portrait ' + (k + 1) : 'the Gallery face') };
+  },
+  how: [
+    'The predicted portrait was the face from The Gallery. It has been following you since: hanging small on the wall in The Old Deck and The Tokens, and staring at a tile in The Crossing.',
+    'All six faces looked straight ahead this time, so only familiarity set that one apart.'
+  ],
+  science: 'Mere exposure works especially well with faces. In Zajonc’s original 1968 studies, faces shown more often were rated as more likeable, and later work found familiar faces are also judged more trustworthy. That is a big reason why politicians and brands want to be seen often, even saying nothing.'
+},
+{
+  key: 'parked', name: 'The Deal', technique: 'Where your cursor already is',
+  title: 'Any of the nine',
+  intro: 'Nine cards, face down. When you are ready, deal them and click any of them.',
+  prompt: 'Click any card.',
+  beginLabel: 'Deal the cards',
+  parked: true,
+  build(b) {
+    const target = pickFrom([3, 5, 6, 8]);
+    const nums = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX'];
+    b.innerHTML = `<div class="lv-park">${nums.map((n, k) => `<button class="pick tarot" data-i="${k}" aria-label="Card ${n}">${n}</button>`).join('')}</div>`;
+    return { target, labels: nums.map(n => 'card ' + n) };
+  },
+  onShow(b) {
+    const el = document.elementFromPoint(lastPtr.x, lastPtr.y);
+    const p = el && el.closest && el.closest('.pick');
+    if (p) { p.classList.add('hov'); p.addEventListener('pointerleave', () => p.classList.remove('hov'), { once: true }); }
+  },
+  onReveal(b) {
+    const sr = stage.getBoundingClientRect();
+    const x = cur.beginAt.x - sr.left - stage.clientLeft, y = cur.beginAt.y - sr.top - stage.clientTop;
+    b.insertAdjacentHTML('beforeend', `<svg class="ghostcursor" style="left:${x}px;top:${y}px" viewBox="0 0 22 22" aria-hidden="true"><path d="M3 2v16l4.5-4 3 6.5 3-1.4-3-6.3H17z" fill="#d8ab52" stroke="#24120c" stroke-width="1.2"/></svg>`);
+  },
+  how: [
+    'The Deal the cards button sat exactly where the predicted card would appear. When the cards landed, your cursor or thumb was already resting on it. The gold arrow marks that spot.',
+    'With a mouse, that card was already lit up in its hover state, which reads like an invitation.',
+    'Every other card needed a movement. That one needed none.'
+  ],
+  science: 'This works on effort, not on the subconscious. Fitts’s law says closer and bigger targets are faster to hit, and people lean toward the path of least effort. Interface designers use the same idea for default buttons and pre-selected options, sometimes against your interest.'
+},
+{
+  key: 'finale', name: 'The Grand Finale', technique: 'Everything at once', finale: true,
+  title: 'Any number at all',
+  intro: '<span class="ec">One</span> last trick, the big one. Take a breath, hold it <span class="ec">for</span> a moment, and let it out slowly, as if you had all the time in <span class="ec">heaven</span>. Then dial any three-digit number you like.',
+  prompt: 'Dial any three-digit number.',
+  beginLabel: 'Open the keypad',
+  build(b) {
+    const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'del', '0', 'ok'];
+    b.innerHTML = `<div class="lv-dial"><div class="fx" id="fx"></div><div class="dialbox">
+      <div class="digits" aria-live="polite"><span></span><span></span><span></span></div>
+      <div class="keypad">${keys.map(k => k === 'del' ? '<button class="key fn" data-k="del" aria-label="Delete">⌫</button>' : k === 'ok' ? '<button class="key fn ok" data-k="ok" disabled>Lock</button>' : `<button class="key" data-k="${k}">${k}</button>`).join('')}</div>
+      <p class="truth" hidden></p></div></div>`;
+    let val = '';
+    const digits = [...b.querySelectorAll('.digits span')], ok = b.querySelector('.ok');
+    const draw = () => { digits.forEach((d, i) => { d.textContent = val[i] || ''; d.classList.toggle('filled', !!val[i]); }); ok.disabled = val.length !== 3; };
+    b.querySelector('.keypad').addEventListener('click', e => {
+      const k = e.target.closest('.key');
+      if (!k || !cur || !cur.live) return;
+      if (k.dataset.k === 'del') val = val.slice(0, -1);
+      else if (k.dataset.k === 'ok') { if (val.length === 3) { cur.live = false; reveal(null, performance.now() - cur.t0, { value: val }); } return; }
+      else if (val.length < 3) val += k.dataset.k;
+      draw();
+    });
+    return { target: 0, labels: ['147'] };
+  },
+  async preRoll(b) {
+    const fx = b.querySelector('#fx'), box = b.querySelector('.dialbox');
+    box.style.visibility = 'hidden';
+    const flashFor = async ms => { const t0 = performance.now(); do { await new Promise(r => requestAnimationFrame(r)); } while (performance.now() - t0 < ms); };
+    const cross = '<div class="cross">+</div><div class="note">Clearing your mind. Watch the cross.</div>';
+    fx.innerHTML = cross;
+    await wait(1000);
+    for (let k = 0; k < 3; k++) {
+      if (!cur || cur.level.key !== 'finale') return;
+      fx.innerHTML = '<div class="bignum">147</div>';
+      await flashFor(30);
+      fx.innerHTML = `<div class="bignum masknum">${['8#8', '%8&', '#88'][k]}</div>`;
+      await wait(120);
+      fx.innerHTML = cross;
+      await wait(900 + Math.random() * 400);
+    }
+    fx.innerHTML = '';
+    box.style.visibility = '';
+  },
+  onReveal(b, value) {
+    const digits = [...b.querySelectorAll('.digits span')];
+    digits.forEach((d, i) => d.classList.add(value[i] === '147'[i] ? 'dhit' : 'dmiss'));
+    const t = b.querySelector('.truth');
+    t.hidden = false;
+    t.innerHTML = 'Sealed prediction: <b>147</b>';
+  },
+  how: [
+    'The sealed envelope in the corner of every single level said <b>No. 147</b>. So did the sign over the door on the title screen.',
+    'In The Gallery, the doors were numbered 145 to 149 with 147 in the middle, and the clock on the wall read 1:47.',
+    'Digit by digit: the warm-up planted 7, The Tokens told you to “choose one”, and The Second Number was built around 4.',
+    'The intro just now said <span class="ec">One</span>, <span class="ec">for</span> and <span class="ec">heaven</span>, which sound like one, four and seven.',
+    'While you watched the cross, 147 flashed three times for about 33 milliseconds, each time hidden behind a jumble of symbols.',
+    'On a phone-style keypad, 1, 4 and 7 are a straight line down the left column. It is the easiest three-digit path there is.'
+  ],
+  science: 'This is how mentalists really work: no single cue is strong, so they stack a dozen weak ones that all point the same way and hope enough of them land. Even so, an exact three-digit hit is rare, since pure chance is 1 in 1000. Getting one or two digits right is already the cues doing something. On stage, performers also hedge with outs, like a second prediction in another pocket.'
+}
+];
+
+/* ---------------- Flow ---------------- */
+let state = { idx: -1, results: [] };
+let cur = null;
+
+function renderPips() {
+  pipsEl.innerHTML = LEVELS.map((_, i) => {
+    const r = state.results[i];
+    const cls = r ? (r.hit ? 'hit' : 'miss') : (i === state.idx ? 'on' : '');
+    return `<span class="pip ${cls}"></span>`;
+  }).join('') + `<span class="score">${state.results.filter(r => r && r.hit).length} steered</span>`;
+}
+
+function showTitle() {
+  clearTimers(); stage.classList.remove('auto'); cur = null; state.idx = -1; board.innerHTML = ''; seal.hidden = true;
+  overlay.className = 'overlay'; overlay.hidden = false;
+  overlay.innerHTML = `<div class="eyebrow">Parlour No. 147 · A room of small choices</div><h1>Sleight of Mind</h1>
+    <p>${LEVELS.length} levels. In each one you click anything you like, and before you do, I seal a prediction.</p>
+    <p class="sub">After every level I open the envelope and show you exactly how I tried to steer your hand.</p>
+    <button class="btn" id="go">Take a seat</button>`;
+  $('#go').onclick = () => startLevel(0);
+  panel.innerHTML = `<div class="meta">How to play</div><p style="margin:0;max-width:65ch;color:var(--mist)">Play each level once and go with your first instinct. The less you try to outsmart it, the more you will learn about what pulled you. Works with a mouse or a touchscreen.</p>`;
+  renderPips();
+}
+
+function startLevel(i) {
+  clearTimers(); stage.classList.remove('auto');
+  state.idx = i;
+  const L = LEVELS[i];
+  board.className = 'board veiled';
+  const built = L.build(board);
+  cur = { level: L, ...built, live: false, t0: 0 };
+  seal.hidden = true; seal.classList.remove('open'); sealText.textContent = 'Sealed · No. 147';
+  overlay.className = 'overlay' + (L.parked ? ' top' : '');
+  overlay.hidden = false;
+  overlay.innerHTML = `<div class="eyebrow">Level ${i + 1} of ${LEVELS.length} · ${L.name}</div><h2>${L.title}</h2><p>${L.intro}</p>
+    <button class="btn" id="go">${L.beginLabel || 'Begin'}</button>`;
+  const go = $('#go');
+  if (L.parked) placeOverTarget(go);
+  go.onclick = e => { if (L.parked) cur.beginAt = { x: e.clientX || lastPtr.x, y: e.clientY || lastPtr.y }; begin(); };
+  panel.innerHTML = `<div class="meta">Level ${i + 1} of ${LEVELS.length}</div><p class="prompt">${L.prompt}</p>`;
+  renderPips();
+  go.focus({ preventScroll: true });
+}
+
+function placeOverTarget(go) {
+  const t = board.querySelectorAll('.pick')[cur.target];
+  const tr = t.getBoundingClientRect(), sr = stage.getBoundingClientRect();
+  go.classList.add('parked');
+  go.style.left = (tr.left - sr.left - stage.clientLeft + tr.width / 2) + 'px';
+  go.style.top = (tr.top - sr.top - stage.clientTop + tr.height / 2) + 'px';
+}
+
+async function begin() {
+  const L = cur.level;
+  overlay.hidden = true;
+  L.layout && L.layout(board);
+  board.classList.remove('veiled');
+  seal.hidden = false;
+  if (L.preRoll) await L.preRoll(board);
+  if (!cur || cur.level !== L) return;
+  L.onShow && L.onShow(board);
+  cur.live = true;
+  cur.t0 = performance.now();
+}
+
+board.addEventListener('click', e => {
+  const p = e.target.closest('.pick');
+  if (!p || !cur || !cur.live) return;
+  cur.live = false;
+  clearTimers();
+  reveal(+p.dataset.i, performance.now() - cur.t0);
+});
+
+function reveal(pick, ms, fin) {
+  const L = cur.level;
+  const hit = fin ? fin.value === '147' : pick === cur.target;
+  const pickLabel = fin ? fin.value : cur.labels[pick], predLabel = cur.labels[cur.target];
+  state.results[state.idx] = { hit, n: fin ? 1000 : cur.labels.length, pick: pickLabel, pred: predLabel };
+  board.classList.add('revealed');
+  const picks = board.querySelectorAll('.pick');
+  if (!fin) {
+  const tEl = picks[cur.target], pEl = picks[pick];
+  tEl.classList.add('is-target'); pEl.classList.add('is-pick');
+  const tagPos = el => {
+    const r = el.getBoundingClientRect(), s = stage.getBoundingClientRect();
+    return (r.top - s.top < 60) ? ' low' : '';
+  };
+  if (hit) tEl.insertAdjacentHTML('beforeend', `<span class="tag match${tagPos(tEl)}">Predicted</span>`);
+  else {
+    tEl.insertAdjacentHTML('beforeend', `<span class="tag pred${tagPos(tEl)}">Prediction</span>`);
+    pEl.insertAdjacentHTML('beforeend', `<span class="tag you${tagPos(pEl)}">You</span>`);
+  }
+  }
+  L.onReveal && L.onReveal(board, fin && fin.value);
+  seal.classList.add('open');
+  sealText.textContent = 'Predicted: ' + predLabel;
+  const n = fin ? 1000 : picks.length, last = state.idx === LEVELS.length - 1;
+  const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+  panel.innerHTML = `
+    <div class="vrow">
+      <div>
+        <div class="verdict ${hit ? 'hit' : 'miss'}">${fin ? (hit ? 'Steered, all the way.' : ([...fin.value].filter((d, i) => d === '147'[i]).length ? [...fin.value].filter((d, i) => d === '147'[i]).length + ' of 3 digits.' : 'You slipped every nudge.')) : (hit ? 'Steered.' : 'You slipped the nudge.')}</div>
+        <p class="said">You ${fin ? 'dialled' : 'chose'} <b>${pickLabel}</b> in ${(ms / 1000).toFixed(1)}s. The sealed prediction was <b>${predLabel}</b>.</p>
+      </div>
+      <button class="btn" id="next">${last ? 'See your results' : 'Next level'}</button>
+    </div>
+    <div><span class="technique">${L.technique}</span> <span class="odds">&nbsp;Pure chance would match 1 in ${n}</span></div>
+    <div class="cols ${['green', 'left', 'up', 'red', 'finale'].includes(L.key) ? 'cues-text' : ''}">
+      <section><h3>How I nudged you</h3><ul>${L.how.map(h => `<li>${h}</li>`).join('')}</ul></section>
+      <section><h3>Does it really work?</h3><p>${L.science}</p></section>
+    </div>`;
+  renderPips();
+  const next = $('#next');
+  next.onclick = () => last ? showFinal() : startLevel(state.idx + 1);
+  if (matchMedia('(max-width: 680px)').matches) panel.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+}
+
+function showFinal() {
+  clearTimers(); cur = null; seal.hidden = true; board.innerHTML = ''; stage.classList.add('auto');
+  state.idx = LEVELS.length;
+  const hits = state.results.filter(r => r && r.hit).length;
+  const chance = state.results.reduce((s, r) => s + (r && r.n ? 1 / r.n : 0), 0);
+  overlay.className = 'overlay'; overlay.hidden = false;
+  const ratio = hits / LEVELS.length;
+  const line = ratio >= .55 ? 'Your hand is easier to steer than you think. Most people\'s is.' : ratio >= .3 ? 'Some nudges landed, some bounced off. That is about typical.' : 'A hard subject. Either you resist well, or you were trying to beat me, which is a nudge too.';
+  overlay.innerHTML = `<div class="eyebrow">The envelopes are open</div>
+    <div class="bigscore">${hits} of ${LEVELS.length}</div>
+    <p>${line} Choosing at random, you would expect about ${chance.toFixed(1)} matches.</p>
+    <ul class="final-list">${LEVELS.map((L, i) => { const r = state.results[i]; return `<li><span class="mk ${r && r.hit ? 'hit' : 'miss'}">${r && r.hit ? 'Steered' : 'Missed'}</span><span>${L.technique}</span></li>`; }).join('')}</ul>
+    <button class="btn" id="go">Play again</button>`;
+  $('#go').onclick = () => { state.results = []; startLevel(0); };
+  panel.innerHTML = `<div class="meta">What to take away</div><p style="margin:0;max-width:68ch">The strongest nudges in this game had nothing to do with hidden messages. Position, contrast, a face’s gaze, a little motion and where your cursor already sat did most of the work. The truly subliminal ones, the flash and the embedded words, are the weakest. That is roughly what the research says too: attention is easy to steer, and the mind is much harder to program.</p>`;
+  renderPips();
+}
+
+addEventListener('resize', () => {
+  if (!cur) return;
+  if (cur.level.parked && !overlay.hidden) { const go = $('#go'); go && placeOverTarget(go); }
+  if (cur.level.key === 'doors' && cur.live) cur.level.aim(board);
+  if (cur.level.layout && !board.classList.contains('veiled')) cur.level.layout(board);
+});
+
+/* Keep progress across live updates of the page */
+try { window.claude?.hot?.snapshot?.(() => ({ results: state.results, idx: state.idx })); } catch (e) {}
+function boot(d) {
+  if (d && Array.isArray(d.results) && d.idx >= 0) {
+    state.results = d.results;
+    if (d.idx >= LEVELS.length) return showFinal();
+    return startLevel(Math.min(d.idx, LEVELS.length - 1));
+  }
+  showTitle();
+}
+window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? {});
+</script>
+
+
+</body>
+</html>

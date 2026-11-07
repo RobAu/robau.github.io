@@ -1,0 +1,989 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<title>Contraptionary</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
+<style>
+/* Layout: one-screen workshop app. Header (machine + goal), pegboard canvas, run controls, parts tray. */
+:root{
+  --walnut:#221913;      /* workbench chrome */
+  --walnut-2:#33261d;    /* raised panels */
+  --hardboard:#9a7550;   /* pegboard */
+  --cream:#f4e7cf;       /* text */
+  --muted:#c4ae8e;       /* secondary text */
+  --safety:#ff7a1a;      /* accent: start / action */
+  --teal:#2fa39a;
+  --mustard:#e9b62e;
+  --signal:#d9412b;
+  --steel:#a5adb4;
+  --ok:#7fd36b;
+  --display:"Bungee", "Arial Black", Impact, sans-serif;
+  --body:"Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+body{
+  background:var(--walnut);color:var(--cream);font-family:var(--body);
+  overflow:hidden;overscroll-behavior:none;-webkit-user-select:none;user-select:none;
+  -webkit-tap-highlight-color:transparent;
+}
+#app{
+  height:100%;display:flex;flex-direction:column;gap:8px;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+  padding-block:8px;box-sizing:border-box;max-width:560px;margin:0 auto;
+}
+header{display:flex;align-items:center;gap:10px;min-height:0}
+.brand{font-family:var(--display);font-size:13px;letter-spacing:.04em;color:var(--safety);line-height:1}
+.lvl{flex:1;min-width:0}
+.lvl h1{margin:2px 0 0;font-family:var(--display);font-weight:400;font-size:19px;line-height:1.1;text-wrap:balance;color:var(--cream)}
+.goal{margin:3px 0 0;font-size:15px;line-height:1.25;color:var(--muted)}
+.goal b{color:var(--cream);font-weight:600}
+[hidden]{display:none!important}
+button{font-family:var(--body);font-weight:700;color:var(--cream);background:var(--walnut-2);border:2px solid #4a372a;border-radius:10px;cursor:pointer;touch-action:manipulation}
+button:focus-visible{outline:3px solid var(--mustard);outline-offset:2px}
+button:active{transform:translateY(1px)}
+.iconbtn{width:44px;height:44px;display:grid;place-items:center;padding:0;flex:none}
+.iconbtn svg{width:22px;height:22px}
+#stage{flex:1;min-height:0;position:relative;display:flex;align-items:center;justify-content:center}
+#cv{display:block;touch-action:none;border-radius:6px;box-shadow:0 0 0 3px #4a372a, 0 10px 28px rgba(0,0,0,.45)}
+#status{position:absolute;left:50%;top:10px;transform:translateX(-50%);background:rgba(34,25,19,.88);padding:6px 12px;border-radius:999px;font-size:14px;font-weight:600;white-space:nowrap;pointer-events:none}
+#selbar{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);display:flex;gap:6px;background:rgba(34,25,19,.92);padding:6px;border-radius:14px;box-shadow:0 6px 18px rgba(0,0,0,.4)}
+#selbar button{width:46px;height:42px;display:grid;place-items:center;padding:0}
+#selbar svg{width:22px;height:22px}
+#selbar .del{border-color:#6b2a20;color:#ff9a86}
+#controls{display:flex;gap:8px}
+#controls button{height:48px;font-size:18px;letter-spacing:.02em}
+#runbtn{flex:1;background:var(--safety);border-color:#b8520c;color:#2a1405;font-family:var(--display);font-weight:400;font-size:18px}
+#runbtn.stop{background:var(--walnut-2);border-color:#4a372a;color:var(--cream)}
+#hintbtn{padding:0 14px}
+#tray{display:grid;grid-template-columns:repeat(auto-fit,minmax(64px,1fr));gap:6px;touch-action:none}
+.part{position:relative;height:66px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:4px 2px;background:var(--walnut-2);border:2px solid #4a372a;border-radius:10px;touch-action:none}
+.part canvas{width:56px;height:34px;pointer-events:none}
+.part span{font-size:12px;font-weight:600;color:var(--muted);line-height:1;pointer-events:none;white-space:nowrap}
+.part i{position:absolute;top:-6px;right:-4px;min-width:20px;height:20px;border-radius:10px;background:var(--mustard);color:#2a1d05;font-style:normal;font-weight:700;font-size:13px;display:grid;place-items:center;pointer-events:none}
+.part.empty{opacity:.35}
+.part.empty i{background:#5a4535;color:var(--muted)}
+.overlay{position:fixed;inset:0;background:rgba(18,12,9,.78);display:grid;place-items:center;z-index:20;padding:20px max(16px, env(safe-area-inset-right, 0px)) 20px max(16px, env(safe-area-inset-left, 0px))}
+.card{background:var(--walnut-2);border:2px solid #5a4535;border-radius:16px;padding:20px;width:min(100%,380px);box-sizing:border-box;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.card h2{font-family:var(--display);font-weight:400;font-size:24px;margin:0 0 6px;color:var(--mustard);text-wrap:balance}
+.card p{margin:0 0 14px;font-size:16px;line-height:1.35;color:var(--muted)}
+.card .row{display:flex;gap:8px}
+.card .row button{flex:1;height:48px;font-size:17px}
+.primary{background:var(--safety);border-color:#b8520c;color:#2a1405}
+#levels{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+#levels button{text-align:left;padding:10px;min-height:64px;display:flex;flex-direction:column;gap:2px}
+#levels button small{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+#levels button.done small{color:var(--ok)}
+#levels button span{font-size:16px}
+@media (prefers-reduced-motion: reduce){ *{transition:none!important;animation:none!important} }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="lvl">
+      <div class="brand">Contraptionary</div>
+      <h1 id="lvlname">First Drop</h1>
+      <p class="goal" id="goal"></p>
+    </div>
+    <button class="iconbtn" id="menubtn" aria-label="Choose machine">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg>
+    </button>
+  </header>
+  <div id="stage">
+    <canvas id="cv" width="360" height="540"></canvas>
+    <div id="status" hidden></div>
+    <div id="selbar" hidden>
+      <button id="rotl" aria-label="Rotate left"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 3-6.2"/><path d="M4 3v5h5"/></svg></button>
+      <button id="rotr" aria-label="Rotate right"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-3-6.2"/><path d="M20 3v5h-5"/></svg></button>
+      <button id="flip" aria-label="Flip direction"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h14l-4-4"/><path d="M20 16H6l4 4"/></svg></button>
+      <button id="del" class="del" aria-label="Put back in tray"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"/></svg></button>
+    </div>
+  </div>
+  <div id="controls">
+    <button id="hintbtn">Hint</button>
+    <button id="runbtn">Start machine</button>
+  </div>
+  <div id="tray"></div>
+</div>
+
+<div class="overlay" id="menu" hidden>
+  <div class="card">
+    <h2>Pick a machine</h2>
+    <p>Drag parts from the tray onto the board. Tap a part to turn it. Press Start and watch it go.</p>
+    <div id="levels"></div>
+    <div class="row"><button id="menuclose">Back to the bench</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="win" hidden>
+  <div class="card">
+    <h2 id="wintitle">It works!</h2>
+    <p id="wintext">The machine did its job.</p>
+    <div class="row"><button id="winstay">Tinker more</button><button id="winnext" class="primary">Next machine</button></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+<script>
+(function(){
+const {Engine, Bodies, Body, Composite, Constraint, Events, Query} = Matter;
+const W = 360, H = 540, FLOOR = 530, DEG = Math.PI/180;
+const SUBSTEPS = 4, STEP_MS = 1000/60/SUBSTEPS;   // four physics substeps per 60Hz frame
+const GRAVITY = 1.8;                // toy-scale gravity: a drop across the board takes about a second
+const FAN_RANGE = 200, FAN_K = 0.0000032*GRAVITY, BELT_V = 4.3, MAX_SPEED = 30, BALLOON_LIFT = 2.6;
+// Air drag: speed lost per frame = k * speed^2, so each object has a top speed of sqrt(g / k).
+const DRAG = {ball:0.0008, iron:0.0006};
+
+const COL = { teal:'#2fa39a', mustard:'#e9b62e', signal:'#d9412b', steel:'#a5adb4', cream:'#f4e7cf', ink:'#1d140f', orange:'#ff7a1a' };
+
+// Part catalogue. Sizes are in board units (board is 360 x 540).
+const SPEC = {
+  plank:     {label:'Plank',      w:100, h:12, rot:true},
+  longplank: {label:'Long plank', w:160, h:12, rot:true},
+  spring:    {label:'Spring',     w:56,  h:16, rot:true},
+  fan:       {label:'Fan',        w:36,  h:36, rot:true, flip:true},
+  belt:      {label:'Belt',       w:124, h:16, rot:true, flip:true},
+  ball:      {label:'Rubber ball', r:11},
+  iron:      {label:'Iron ball',  r:15},
+  balloon:   {label:'Balloon',    r:17},
+  seesaw:    {label:'Seesaw',     w:150, h:10},
+  wall:      {label:'Wall'},
+  basket:    {label:'Bin', w:74, h:54},
+  star:      {label:'Star', r:24},
+  rope:      {label:'Rope'},
+};
+const TIEABLE = {ball:1, iron:1, balloon:1, seesaw:1};
+
+// ---------- Levels ----------
+// Fixed parts are bolted down. `goal` names the part that must reach the target.
+const LEVELS = [
+  { name:'First Drop', goalText:'Get the <b>red ball</b> into the <b>bin</b>.',
+    hint:'Tilt a plank under the ball so it rolls right, then catch it with the second plank.',
+    tray:{plank:2},
+    fixed:[
+      {id:'g', type:'ball', x:50, y:40, goal:true},
+      {type:'wall', x:60, y:150, w:70, h:12, a:8},
+      {id:'t', type:'basket', x:300, y:FLOOR},
+      {type:'wall', x:226, y:470, w:14, h:120},
+    ]},
+  { name:'Bounce House', goalText:'Bounce the <b>red ball</b> into the <b>bin on the shelf</b>.',
+    hint:'A spring never bounces higher than the drop. Put it under the ball, low down, tilted a little to the right.',
+    tray:{spring:1, plank:1},
+    fixed:[
+      {id:'g', type:'ball', x:40, y:40, goal:true},
+      {type:'wall', x:290, y:370, w:140, h:14},
+      {id:'t', type:'basket', x:310, y:363},
+      {type:'wall', x:180, y:320, w:14, h:80},
+    ]},
+  { name:'Tailwind', goalText:'Blow the <b>red ball</b> off the shelf and into the <b>bin</b>.',
+    hint:'Set the fan on the shelf behind the ball, facing it. Move the fan closer or further back to change how far the ball flies.',
+    tray:{fan:1, plank:1},
+    fixed:[
+      {type:'wall', x:85, y:200, w:170, h:14},
+      {id:'g', type:'ball', x:95, y:182, goal:true},
+      {type:'wall', x:200, y:440, w:14, h:180},
+      {id:'t', type:'basket', x:300, y:FLOOR},
+    ]},
+  { name:'Belt Drive', goalText:'Carry the <b>red ball</b> over to the <b>bin on the left shelf</b>.',
+    hint:'Catch the ball on a belt running left. Where it drops off, a tilted spring can kick it up.',
+    tray:{belt:1, spring:1, plank:1},
+    fixed:[
+      {id:'g', type:'ball', x:320, y:40, goal:true},
+      {type:'wall', x:60, y:380, w:120, h:14},
+      {id:'t', type:'basket', x:55, y:373},
+      {type:'wall', x:150, y:120, w:14, h:120},
+    ]},
+  { name:'Heavy Hand', goalText:'Fling the <b>red ball</b> over the wall into the <b>bin</b>.',
+    hint:'Drop the iron ball onto the high end of the seesaw. A drop from higher up throws harder, and a plank can steer the flying ball.',
+    tray:{iron:1, plank:1},
+    fixed:[
+      {type:'seesaw', x:225, y:488},
+      {id:'g', type:'ball', x:160, y:446, goal:true},
+      {type:'wall', x:110, y:435, w:14, h:190},
+      {id:'t', type:'basket', x:50, y:FLOOR},
+    ]},
+  { name:'Lift Off', goalText:'Float the <b>balloon</b> up to the <b>star</b>.',
+    hint:'The balloon is trapped under the ledge. Blow it out from the side, then steer it with planks.',
+    tray:{fan:1, plank:2},
+    fixed:[
+      {id:'g', type:'balloon', x:70, y:480, goal:true},
+      {type:'wall', x:100, y:360, w:200, h:14},
+      {id:'t', type:'star', x:160, y:55},
+    ]},
+  { name:'Pendulum', goalText:'Knock the <b>red ball</b> off the ledge into the <b>bin</b>.',
+    hint:'Put the iron ball off to the left, then tie it with the rope to a peg above the red ball. Let it swing.',
+    tray:{iron:1, rope:1},
+    fixed:[
+      {type:'wall', x:240, y:300, w:120, h:14},
+      {id:'g', type:'ball', x:200, y:282, goal:true},
+      {id:'t', type:'basket', x:315, y:FLOOR},
+      {type:'wall', x:130, y:420, w:14, h:220},
+    ]},
+  { name:'Balloon Taxi', goalText:'Fly the <b>red ball</b> up to the <b>star</b>.',
+    hint:'Tie the balloon to the red ball. A tilted plank overhead can steer the balloon sideways.',
+    tray:{balloon:1, rope:1, plank:1},
+    fixed:[
+      {id:'g', type:'ball', x:60, y:519, goal:true},
+      {type:'wall', x:300, y:420, w:120, h:14},
+      {id:'t', type:'star', x:230, y:70},
+    ]},
+  { name:'Wrecking Ball', goalText:'Smash the <b>red ball</b> off its post and into the <b>bin</b>.',
+    hint:'The iron ball swings by itself. Use planks to catch the red ball and roll it to the bin.',
+    tray:{plank:2},
+    fixed:[
+      {id:'w', type:'iron', x:30, y:150},
+      {type:'rope', ends:[{x:120, y:60}, {x:30, y:150, to:'w'}]},
+      {type:'wall', x:140, y:366, w:16, h:328},
+      {id:'g', type:'ball', x:140, y:191, goal:true},
+      {type:'wall', x:250, y:200, w:14, h:120},
+      {id:'t', type:'basket', x:300, y:FLOOR},
+    ]},
+  { name:'Uphill', goalText:'Get the <b>red ball</b> up to the <b>bin on the shelf</b>.',
+    hint:'A belt tilted uphill will carry a ball up it. Chain two belts together.',
+    tray:{belt:2, spring:1},
+    fixed:[
+      {id:'g', type:'ball', x:40, y:40, goal:true},
+      {type:'wall', x:300, y:260, w:120, h:14},
+      {id:'t', type:'basket', x:310, y:253},
+      {type:'wall', x:200, y:415, w:14, h:230},
+      {type:'wall', x:110, y:130, w:220, h:14},
+    ]},
+  { name:'Swing Set', goalText:'Swing the <b>red ball</b> up to the <b>star</b>.',
+    hint:'The ball is tied to a peg. Push it with a fan, or hit it with the iron ball on its own rope.',
+    tray:{fan:1, iron:1, rope:1},
+    fixed:[
+      {id:'g', type:'ball', x:180, y:250, goal:true},
+      {type:'rope', ends:[{x:180, y:60}, {x:180, y:250, to:'g'}]},
+      {id:'t', type:'star', x:300, y:200},
+    ]},
+  { name:'Grand Contraption', goalText:'Get the <b>red ball</b> out from under the ledge and up to the <b>star</b>.',
+    hint:'Tie the balloon to the red ball. A fan can blow the pair out from under the ledge, and a plank can steer them.',
+    tray:{balloon:1, rope:1, fan:1, plank:1},
+    fixed:[
+      {id:'g', type:'ball', x:50, y:519, goal:true},
+      {type:'wall', x:110, y:380, w:220, h:14},
+      {type:'wall', x:250, y:150, w:14, h:160},
+      {id:'t', type:'star', x:310, y:70},
+    ]},
+];
+
+// ---------- State ----------
+let levelIdx = 0, parts = [], placed = [], counts = {}, mode = 'build';
+let selected = null, nextId = 1;
+let sim = null;      // {engine, goalBody, target, time, won, lost, held}
+let solved = loadSolved();
+
+function loadSolved(){ try{ return JSON.parse(localStorage.getItem('contraptionary-solved')||'{}') }catch(e){ return {} } }
+function saveSolved(){ try{ localStorage.setItem('contraptionary-solved', JSON.stringify(solved)) }catch(e){} }
+
+function loadLevel(i, keepPlaced){
+  levelIdx = i; const L = LEVELS[i];
+  parts = L.fixed.map((f,k)=>({...f, a:(f.a||0)*DEG, dir:f.dir||1, fixed:true, uid:'f'+k, ends: f.ends && f.ends.map(e=>({...e}))}));
+  for(const r of parts){ if(r.type!=='rope') continue;
+    for(const e of r.ends){ if(e.to){ const q=parts.find(z=>z.id===e.to); e.att={uid:q.uid, lx:e.lx||0, ly:0}; } }
+  }
+  if(!keepPlaced) placed = [];
+  counts = {...L.tray};
+  for(const p of placed) counts[p.type]--;
+  nextId = Math.max(nextId, ...placed.map(p=>+String(p.uid).slice(1)+1||0), 1);
+  selected = null; stopSim();
+  if(typeof document!=='undefined') refreshUI();
+}
+
+function allParts(){ return parts.concat(placed); }
+
+// ---------- Rope helpers ----------
+// A rope end is either tied to a part ({att:{uid,lx,ly}} in that part's own frame) or pinned to a peg on the board.
+function findPart(uid){ return allParts().find(q=>q.uid===uid); }
+function endWorld(e){
+  if(e.att){ const q=findPart(e.att.uid); if(q){ const ps=pose(q), c=Math.cos(ps.a), s=Math.sin(ps.a); return {x:ps.x+e.att.lx*c-e.att.ly*s, y:ps.y+e.att.lx*s+e.att.ly*c}; } }
+  return {x:e.x, y:e.y};
+}
+// Tie points: the end of a balloon's string, the middle of a ball, and four spots along a seesaw.
+function tiePoints(){
+  const pts=[];
+  for(const q of allParts()){
+    if(!TIEABLE[q.type]) continue; const S=SPEC[q.type];
+    const locals = q.type==='balloon' ? [[0,S.r+22]] : q.type==='seesaw' ? [[-S.w/2+6,0],[-S.w/4,0],[S.w/4,0],[S.w/2-6,0]] : [[0,0]];
+    for(const [lx,ly] of locals){ const att={uid:q.uid, lx, ly}, w=endWorld({att});
+      // dropping onto the balloon itself also ties to its string
+      const alt = q.type==='balloon' ? endWorld({att:{uid:q.uid, lx:0, ly:0}}) : null;
+      pts.push({att, x:w.x, y:w.y, alt, label:SPEC[q.type].label.toLowerCase()}); }
+  }
+  return pts;
+}
+const SNAP_R = 26;
+function nearestTie(pt){
+  let best=null, bd=SNAP_R;
+  for(const t of tiePoints()){
+    let d=Math.hypot(t.x-pt.x, t.y-pt.y);
+    if(t.alt) d=Math.min(d, Math.hypot(t.alt.x-pt.x, t.alt.y-pt.y));
+    if(d<bd){ bd=d; best=t; } }
+  return best;
+}
+function attachAt(pt){ const t=nearestTie(pt); return t ? {...t.att} : null; }
+function settleEnd(e){ e.att = attachAt(e); if(e.att){ const w=endWorld(e); e.x=w.x; e.y=w.y; } }
+function ropeLen(r){ const a=endWorld(r.ends[0]), b=endWorld(r.ends[1]); return Math.hypot(a.x-b.x, a.y-b.y); }
+function ropeOK(r){
+  const a=endWorld(r.ends[0]), b=endWorld(r.ends[1]), L=Math.hypot(a.x-b.x,a.y-b.y);
+  const inB=p=>p.x>=0&&p.x<=W&&p.y>=0&&p.y<=FLOOR;
+  return L>=20 && inB(a) && inB(b);
+}
+function newRope(x,y){ return {type:'rope', uid:'p'+(nextId++), x, y, a:0, dir:1, ends:[{x,y,att:null},{x,y:y+80,att:null}]}; }
+
+// ---------- Bodies ----------
+function tag(b, p, kind){ b.plugin = {part:p, kind:kind||p.type}; return b; }
+function makeBodies(p){
+  const S = SPEC[p.type], out = [], cons = [];
+  const st = {isStatic:true, angle:p.a||0, friction:0.35, restitution:0.1};
+  switch(p.type){
+    case 'plank': case 'longplank': case 'spring': case 'fan':
+      out.push(tag(Bodies.rectangle(p.x,p.y,S.w,S.h,st), p)); break;
+    case 'belt':
+      out.push(tag(Bodies.rectangle(p.x,p.y,S.w,S.h,{...st, friction:0.9}), p)); break;
+    case 'wall':
+      out.push(tag(Bodies.rectangle(p.x,p.y,p.w,p.h,st), p)); break;
+    case 'ball':
+      out.push(tag(Bodies.circle(p.x,p.y,S.r,{restitution:0.55, friction:0.3, frictionStatic:0.6, frictionAir:0.0005, density:0.0012}), p)); break;
+    case 'iron':
+      out.push(tag(Bodies.circle(p.x,p.y,S.r,{restitution:0.08, friction:0.4, frictionStatic:0.8, frictionAir:0.0002, density:0.02}), p)); break;
+    case 'balloon':
+      { const b=tag(Bodies.circle(p.x,p.y,S.r,{restitution:0.35, friction:0.05, frictionAir:0.045, density:0.0006}), p); Body.setInertia(b, Infinity); out.push(b); } break;
+    case 'seesaw': {
+      const plank = tag(Bodies.rectangle(p.x,p.y,S.w,S.h,{density:0.003, friction:0.7, angle:p.a||0, collisionFilter:{group:-7}}), p);
+      const postH = Math.max(10, FLOOR - (p.y+4));
+      const post = tag(Bodies.rectangle(p.x, p.y+4+postH/2, 14, postH, {isStatic:true, collisionFilter:{group:-7}}), p, 'post');
+      out.push(plank, post);
+      cons.push(Constraint.create({pointA:{x:p.x,y:p.y}, bodyB:plank, pointB:{x:0,y:0}, length:0, stiffness:1}));
+      break;
+    }
+    case 'basket': {
+      const w=S.w, h=S.h, t=8;
+      out.push(tag(Bodies.rectangle(p.x-w/2+t/2, p.y-h/2, t, h, st), p));
+      out.push(tag(Bodies.rectangle(p.x+w/2-t/2, p.y-h/2, t, h, st), p));
+      out.push(tag(Bodies.rectangle(p.x, p.y-t/2, w, t, st), p));
+      break;
+    }
+  }
+  return {bodies:out, cons};
+}
+
+function boundaryBodies(){
+  return [
+    Bodies.rectangle(W/2, FLOOR+30, W+400, 60, {isStatic:true, friction:0.5, label:'floor'}),
+    Bodies.rectangle(-30, H/2-200, 60, H+400, {isStatic:true, label:'wall'}),
+    Bodies.rectangle(W+30, H/2-200, 60, H+400, {isStatic:true, label:'wall'}),
+  ];
+}
+
+// Placement is valid if the part sits on the board and touches nothing else.
+function placementOK(p){
+  const mine = makeBodies(p).bodies.filter(b=>b.plugin.kind!=='post');
+  for(const b of mine){
+    if(b.bounds.min.x < 0 || b.bounds.max.x > W || b.bounds.min.y < 0 || b.bounds.max.y > FLOOR+0.5) return false;
+  }
+  const others = [];
+  for(const q of allParts()){ if(q!==p && q.type!=='star') others.push(...makeBodies(q).bodies); }
+  for(const b of mine){ if(Query.collides(b, others).length) return false; }
+  // keep clear of the star target
+  for(const q of parts){ if(q.type==='star'){ for(const b of mine){ if(Query.point([b],{x:q.x,y:q.y}).length) return false; } } }
+  return true;
+}
+
+// ---------- Simulation ----------
+function startSim(){
+  const engine = Engine.create({positionIterations:10, velocityIterations:8});
+  engine.gravity.y = GRAVITY;
+  const world = engine.world;
+  Composite.add(world, boundaryBodies());
+  const fans=[], dyn=[];
+  let goalBody=null, target=null;
+  for(const p of allParts()){
+    if(p.type==='star'){ if(p.id==='t') target=p; continue; }
+    if(p.type==='rope') continue;
+    const {bodies, cons} = makeBodies(p);
+    p.bodies = bodies;
+    Composite.add(world, bodies); if(cons.length) Composite.add(world, cons);
+    for(const b of bodies){ if(!b.isStatic) dyn.push(b); }
+    if(p.type==='fan') fans.push(p);
+    if(p.goal) goalBody = bodies[0];
+    if(p.id==='t') target = p;
+  }
+  // Ropes are constraints that only pull: they switch on when stretched to full length and go slack otherwise.
+  const ropes = [];
+  for(const r of allParts()){
+    if(r.type!=='rope') continue;
+    const L = ropeLen(r);
+    const ends = r.ends.map(e=>{
+      if(e.att){ const q=findPart(e.att.uid), b=q&&q.bodies&&q.bodies[0];
+        if(b && !b.isStatic){ const c=Math.cos(b.angle), s=Math.sin(b.angle); return {body:b, point:{x:e.att.lx*c-e.att.ly*s, y:e.att.lx*s+e.att.ly*c}}; } }
+      const w=endWorld(e); return {body:undefined, point:{x:w.x, y:w.y}};
+    });
+    if(!ends[0].body && !ends[1].body) continue;
+    const c = Constraint.create({bodyA:ends[0].body, pointA:ends[0].point, bodyB:ends[1].body, pointB:ends[1].point, length:L, stiffness:0, damping:0});
+    Composite.add(world, c); ropes.push(c); r.con = c;
+  }
+  const springHits = [];
+  Events.on(engine, 'beforeUpdate', ()=>{
+    for(const c of ropes){
+      const a=ropeEnd(c,'A'), b=ropeEnd(c,'B');
+      c.stiffness = Math.hypot(a.x-b.x, a.y-b.y) >= c.length ? 1 : 0;
+    }
+    for(const b of dyn){
+      if(b.plugin.kind==='balloon') Body.applyForce(b, b.position, {x:0, y:-b.mass*engine.gravity.scale*engine.gravity.y*BALLOON_LIFT});
+    }
+    for(const f of fans){
+      const dx=Math.cos(f.a), dy=Math.sin(f.a);
+      for(const b of dyn){
+        if(b.plugin.kind==='seesaw') continue;
+        const rx=b.position.x-f.x, ry=b.position.y-f.y;
+        const along = rx*dx+ry*dy, perp = Math.abs(-rx*dy+ry*dx);
+        const r = b.circleRadius||10;
+        if(along>14 && along<FAN_RANGE && perp<20+r){
+          const k = FAN_K*r*r*(1-0.55*along/FAN_RANGE);
+          Body.applyForce(b, b.position, {x:dx*k, y:dy*k});
+        }
+      }
+    }
+  });
+  Events.on(engine, 'collisionStart', ev=>{
+    for(const pair of ev.pairs){
+      let s=pair.bodyA, o=pair.bodyB;
+      if(!(s.plugin&&s.plugin.kind==='spring')){ s=pair.bodyB; o=pair.bodyA; }
+      if(!(s.plugin&&s.plugin.kind==='spring') || o.isStatic) continue;
+      const ux=Math.sin(s.angle), uy=-Math.cos(s.angle);
+      const side = ((o.position.x-s.position.x)*ux + (o.position.y-s.position.y)*uy) >= 0 ? 1 : -1;
+      const nx=ux*side, ny=uy*side, v=Body.getVelocity(o), vn=v.x*nx+v.y*ny;
+      if(vn<0) springHits.push({o, nx, ny, target:-vn}); // gives back the impact speed: with air drag it never goes higher than the drop
+      s.plugin.part.boing = 1;
+    }
+  });
+  Events.on(engine, 'afterUpdate', ()=>{
+    while(springHits.length){
+      const h=springHits.pop(), v=Body.getVelocity(h.o), vn=v.x*h.nx+v.y*h.ny;
+      if(vn<h.target) Body.setVelocity(h.o, {x:v.x+h.nx*(h.target-vn), y:v.y+h.ny*(h.target-vn)});
+    }
+    for(const pair of engine.pairs.list){
+      if(!pair.isActive) continue;
+      let s=pair.bodyA, o=pair.bodyB;
+      if(!(s.plugin&&s.plugin.kind==='belt')){ s=pair.bodyB; o=pair.bodyA; }
+      if(!(s.plugin&&s.plugin.kind==='belt') || o.isStatic) continue;
+      const d=s.plugin.part.dir, tx=Math.cos(s.angle)*d, ty=Math.sin(s.angle)*d;
+      const v=Body.getVelocity(o), vt=v.x*tx+v.y*ty, dv=(BELT_V-vt)*0.25;
+      Body.setVelocity(o, {x:v.x+tx*dv, y:v.y+ty*dv});
+    }
+    for(const b of dyn){
+      const k=DRAG[b.plugin.kind]; if(!k) continue;
+      const v=Body.getVelocity(b), s=Math.hypot(v.x,v.y);
+      if(s>0.01){ const f=1/(1+k*s/SUBSTEPS); Body.setVelocity(b, {x:v.x*f, y:v.y*f}); }
+    }
+    for(const b of dyn){
+      const v=Body.getVelocity(b), s=Math.hypot(v.x,v.y);
+      if(s>MAX_SPEED) Body.setVelocity(b, {x:v.x*MAX_SPEED/s, y:v.y*MAX_SPEED/s});
+    }
+  });
+  sim = {engine, goalBody, target, time:0, won:false, lost:false, held:0};
+}
+
+function ropeEnd(c, w){
+  const b = w==='A'?c.bodyA:c.bodyB, p = w==='A'?c.pointA:c.pointB;
+  return b ? {x:b.position.x+p.x, y:b.position.y+p.y} : {x:p.x, y:p.y};
+}
+
+function stopSim(){
+  if(sim){ Events.off(sim.engine); Engine.clear(sim.engine); }
+  sim = null;
+  for(const p of allParts()){ delete p.bodies; delete p.con; p.boing=0; }
+}
+
+function inTarget(){
+  const t=sim.target, b=sim.goalBody; if(!t||!b) return false;
+  const x=b.position.x, y=b.position.y;
+  if(t.type==='star') return Math.hypot(x-t.x, y-t.y) < SPEC.star.r + 6;
+  const S=SPEC.basket;
+  return x > t.x-S.w/2+8 && x < t.x+S.w/2-8 && y > t.y-S.h && y < t.y;
+}
+
+function stepFrame(){ // one 60Hz frame
+  if(!sim) return;
+  for(let i=0;i<SUBSTEPS;i++) Engine.update(sim.engine, STEP_MS);
+  sim.time += 1/60;
+  if(!sim.won){
+    if(inTarget()){
+      sim.held += 1/60;
+      if(sim.held > (sim.target.type==='star' ? 0.05 : 0.6)) sim.won = true;
+    } else sim.held = 0;
+    const b=sim.goalBody;
+    if(b && !sim.lost && (b.position.y > H+80 || b.position.y < -80 || b.position.x < -60 || b.position.x > W+60)) sim.lost = true;
+  }
+}
+
+// Headless test hook (used to check that each machine can be solved).
+window.TM = {
+  LEVELS, SPEC,
+  load(i){ loadLevel(i); },
+  place(type,x,y,aDeg,dir){ const p={type,x,y,a:(aDeg||0)*DEG,dir:dir||1,uid:'p'+(nextId++)}; if(!placementOK(p)) return false; placed.push(p); counts[type]--; return true; },
+  run(maxSec){ startSim(); let n=0; while(n<maxSec*60 && !sim.won){ stepFrame(); n++; } const r={won:sim.won, t:+sim.time.toFixed(2), gx:sim.goalBody&&Math.round(sim.goalBody.position.x), gy:sim.goalBody&&Math.round(sim.goalBody.position.y)}; stopSim(); return r; },
+  trace(sec){ startSim(); const tr=[]; for(let n=0;n<sec*60;n++){ stepFrame(); if(n%6===0) tr.push([Math.round(sim.goalBody.position.x),Math.round(sim.goalBody.position.y)]); } stopSim(); return tr; },
+  rope(ax,ay,bx,by){ const r=newRope(ax,ay); r.ends[1].x=bx; r.ends[1].y=by; settleEnd(r.ends[0]); settleEnd(r.ends[1]); if(!ropeOK(r)) return false; placed.push(r); counts.rope--; return r.ends.map(e=>e.att?findPart(e.att.uid).type:'peg'); },
+  parts(){ return allParts().map(p=>({type:p.type,x:p.x,y:p.y,uid:p.uid})); },
+  clear(){ placed=[]; counts={...LEVELS[levelIdx].tray}; },
+};
+
+// ---------- Drawing ----------
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+let scale = 1, dpr = 1;
+let board = null;
+
+function makeBoard(){
+  const c = document.createElement('canvas'); c.width = W*dpr*scale; c.height = H*dpr*scale;
+  const g = c.getContext('2d'); g.scale(dpr*scale, dpr*scale);
+  const grad = g.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0,'#a47e58'); grad.addColorStop(1,'#8c6844');
+  g.fillStyle = grad; g.fillRect(0,0,W,H);
+  // hardboard grain
+  for(let i=0;i<220;i++){ g.fillStyle = `rgba(60,38,20,${Math.random()*0.06})`; g.fillRect(0, Math.random()*H, W, Math.random()*2); }
+  // peg holes on a 20-unit grid
+  for(let y=10;y<FLOOR;y+=20) for(let x=10;x<W;x+=20){
+    g.fillStyle='rgba(40,25,14,.55)'; g.beginPath(); g.arc(x,y,2.4,0,7); g.fill();
+    g.fillStyle='rgba(255,230,190,.12)'; g.beginPath(); g.arc(x+0.6,y+0.9,2.4,0,Math.PI); g.fill();
+  }
+  // floor
+  g.fillStyle='#3b2a1f'; g.fillRect(0,FLOOR,W,H-FLOOR);
+  g.fillStyle='#55402f'; g.fillRect(0,FLOOR,W,3);
+  // ruler ticks along the floor
+  g.fillStyle='rgba(244,231,207,.35)';
+  for(let x=0;x<=W;x+=10){ g.fillRect(x, FLOOR+3, 1, x%50===0?6:3); }
+  return c;
+}
+
+function resize(){
+  const st = document.getElementById('stage').getBoundingClientRect();
+  scale = Math.max(0.3, Math.min(st.width/W, st.height/H));
+  dpr = Math.min(3, window.devicePixelRatio||1);
+  cv.style.width = Math.floor(W*scale)+'px'; cv.style.height = Math.floor(H*scale)+'px';
+  cv.width = Math.floor(W*scale*dpr); cv.height = Math.floor(H*scale*dpr);
+  board = makeBoard();
+}
+
+function rr(g,x,y,w,h,r){ g.beginPath(); g.roundRect ? g.roundRect(x,y,w,h,r) : g.rect(x,y,w,h); }
+function bolt(g,x,y){ g.fillStyle='#d9dde0'; g.beginPath(); g.arc(x,y,2.6,0,7); g.fill(); g.strokeStyle='#5d666d'; g.lineWidth=1; g.beginPath(); g.moveTo(x-1.8,y); g.lineTo(x+1.8,y); g.stroke(); }
+
+function pose(p){
+  if(p.bodies && p.bodies[0] && !p.bodies[0].isStatic){ const b=p.bodies[0]; return {x:b.position.x, y:b.position.y, a:b.angle}; }
+  return {x:p.x, y:p.y, a:p.a||0};
+}
+
+function drawRope(g, r, ghost){
+  let a, b, L=0;
+  if(r.con){ a=ropeEnd(r.con,'A'); b=ropeEnd(r.con,'B'); L=r.con.length; }
+  else { a=endWorld(r.ends[0]); b=endWorld(r.ends[1]); }
+  const d=Math.hypot(b.x-a.x, b.y-a.y);
+  const path=()=>{ g.beginPath(); g.moveTo(a.x,a.y);
+    if(L && d<L-1){ const sag=Math.sqrt(L*L-d*d)*0.55; g.quadraticCurveTo((a.x+b.x)/2, (a.y+b.y)/2+sag, b.x, b.y); }
+    else g.lineTo(b.x,b.y); };
+  g.save(); g.lineCap='round';
+  path(); g.strokeStyle = ghost==='bad' ? COL.signal : '#5c4320'; g.lineWidth=4.5; g.stroke();
+  path(); g.strokeStyle='#dcc38c'; g.lineWidth=2.4; g.setLineDash([3.5,2.5]); g.stroke(); g.setLineDash([]);
+  r.ends.forEach((e,i)=>{ const pt = i===0?a:b;
+    if(e.att){ g.fillStyle=COL.teal; g.strokeStyle='#f4e7cf'; g.lineWidth=1.5; g.beginPath(); g.arc(pt.x,pt.y,4.2,0,7); g.fill(); g.stroke(); }
+    else { g.fillStyle='#d4ad35'; g.strokeStyle='#6b5410'; g.lineWidth=1.5; g.beginPath(); g.arc(pt.x,pt.y,4.8,0,7); g.fill(); g.stroke();
+      g.fillStyle='#6b5410'; g.beginPath(); g.arc(pt.x,pt.y,1.5,0,7); g.fill(); }
+  });
+  g.restore();
+}
+
+function drawPart(g, p, t, ghost){
+  if(p.type==='rope'){ drawRope(g, p, ghost); return; }
+  const S = SPEC[p.type], q = pose(p);
+  g.save(); g.translate(q.x,q.y); g.rotate(q.a);
+  const fixed = p.fixed;
+  switch(p.type){
+    case 'plank': case 'longplank': {
+      rr(g,-S.w/2,-S.h/2,S.w,S.h,3); g.fillStyle = fixed? '#7b858c' : '#d8a35a'; g.fill();
+      g.strokeStyle = fixed? '#3d454b':'#6e4a1e'; g.lineWidth=1.5; g.stroke();
+      if(!fixed){ g.strokeStyle='rgba(110,74,30,.45)'; g.lineWidth=1; for(let i=-S.w/2+14;i<S.w/2;i+=22){ g.beginPath(); g.moveTo(i,-3); g.quadraticCurveTo(i+6,0,i+12,-2); g.stroke(); } }
+      else { bolt(g,-S.w/2+8,0); bolt(g,S.w/2-8,0); }
+      break; }
+    case 'wall': {
+      rr(g,-p.w/2,-p.h/2,p.w,p.h,3); g.fillStyle='#7b858c'; g.fill(); g.strokeStyle='#3d454b'; g.lineWidth=1.5; g.stroke();
+      g.save(); g.clip(); g.strokeStyle='rgba(40,48,54,.35)'; g.lineWidth=2;
+      for(let i=-p.w-p.h;i<p.w+p.h;i+=10){ g.beginPath(); g.moveTo(i-p.h/2, p.h/2); g.lineTo(i+p.h/2, -p.h/2); g.stroke(); }
+      g.restore();
+      if(p.w>p.h){ bolt(g,-p.w/2+8,0); bolt(g,p.w/2-8,0); } else { bolt(g,0,-p.h/2+8); bolt(g,0,p.h/2-8); }
+      break; }
+    case 'spring': {
+      const squash = p.boing ? 1 - 0.35*p.boing : 1;
+      g.fillStyle='#3a3f44'; rr(g,-S.w/2,S.h/2-5,S.w,5,2); g.fill();
+      g.strokeStyle='#c9d0d5'; g.lineWidth=2; g.beginPath();
+      const top=-S.h/2+4, bot=S.h/2-5, span=(bot-top)*squash;
+      for(let i=0;i<=8;i++){ const x=-S.w/2+6+i*(S.w-12)/8; const y= bot - (i%2? span : 0); i? g.lineTo(x,y):g.moveTo(x,y); }
+      g.stroke();
+      rr(g,-S.w/2,bot-span-4,S.w,5,2); g.fillStyle=COL.signal; g.fill();
+      break; }
+    case 'fan': {
+      rr(g,-S.w/2,-S.h/2,S.w,S.h,6); g.fillStyle=COL.teal; g.fill(); g.strokeStyle='#145049'; g.lineWidth=2; g.stroke();
+      g.fillStyle='#1b3b37'; g.beginPath(); g.arc(2,0,13,0,7); g.fill();
+      const spin = (t||0)*(sim?18:0);
+      g.save(); g.translate(2,0); g.scale(0.45,1); g.rotate(spin);
+      g.fillStyle='#e9eef0'; for(let k=0;k<3;k++){ g.rotate(2.094); g.beginPath(); g.ellipse(0,-6,3.5,7,0,0,7); g.fill(); }
+      g.restore();
+      g.fillStyle=COL.mustard; g.beginPath(); g.moveTo(S.w/2+3,-6); g.lineTo(S.w/2+11,0); g.lineTo(S.w/2+3,6); g.closePath(); g.fill();
+      break; }
+    case 'belt': {
+      rr(g,-S.w/2,-S.h/2,S.w,S.h,S.h/2); g.fillStyle='#2b2d30'; g.fill();
+      g.strokeStyle='#111'; g.lineWidth=1.5; g.stroke();
+      const off = ((t||0)*(sim?40:0)*p.dir) % 12;
+      g.save(); rr(g,-S.w/2,-S.h/2,S.w,S.h,S.h/2); g.clip();
+      g.strokeStyle=COL.mustard; g.lineWidth=2;
+      for(let x=-S.w/2-12;x<S.w/2+12;x+=12){ const xx=x+off; g.beginPath(); g.moveTo(xx-3*p.dir,-S.h/2+2); g.lineTo(xx+2*p.dir,-S.h/2+5); g.stroke(); }
+      g.restore();
+      for(const cx of [-S.w/2+S.h/2, S.w/2-S.h/2]){ g.fillStyle='#8d969c'; g.beginPath(); g.arc(cx,0,5,0,7); g.fill(); g.fillStyle='#2b2d30'; g.beginPath(); g.arc(cx,0,2,0,7); g.fill(); }
+      g.fillStyle=COL.mustard; g.beginPath(); g.moveTo(5*p.dir,3); g.lineTo(-4*p.dir,-1); g.lineTo(-4*p.dir,7); g.closePath(); g.fill();
+      break; }
+    case 'ball': {
+      const gr=g.createRadialGradient(-4,-4,1,0,0,S.r); gr.addColorStop(0,'#ff8a6e'); gr.addColorStop(1,'#b5281a');
+      g.fillStyle=gr; g.beginPath(); g.arc(0,0,S.r,0,7); g.fill();
+      g.strokeStyle='rgba(255,255,255,.55)'; g.lineWidth=1.5; g.beginPath(); g.arc(0,0,S.r-3,-0.4,1.4); g.stroke();
+      break; }
+    case 'iron': {
+      const gr=g.createRadialGradient(-5,-5,1,0,0,S.r); gr.addColorStop(0,'#9aa3aa'); gr.addColorStop(1,'#2a2f33');
+      g.fillStyle=gr; g.beginPath(); g.arc(0,0,S.r,0,7); g.fill();
+      g.fillStyle='#1a1d20'; for(const [x,y] of [[-4,-3],[3,-5],[1,2]]){ g.beginPath(); g.arc(x,y,1.6,0,7); g.fill(); }
+      break; }
+    case 'balloon': {
+      g.rotate(-q.a);
+      g.strokeStyle='rgba(244,231,207,.8)'; g.lineWidth=1; g.beginPath(); g.moveTo(0,S.r+4); g.quadraticCurveTo(5,S.r+12,0,S.r+22); g.stroke();
+      const gr=g.createRadialGradient(-6,-7,2,0,0,S.r+3); gr.addColorStop(0,'#fff0a8'); gr.addColorStop(1,'#d79b10');
+      g.fillStyle=gr; g.beginPath(); g.ellipse(0,0,S.r,S.r+3,0,0,7); g.fill();
+      g.fillStyle='#b07c08'; g.beginPath(); g.moveTo(-3,S.r+5); g.lineTo(3,S.r+5); g.lineTo(0,S.r+1); g.closePath(); g.fill();
+      break; }
+    case 'seesaw': {
+      // post drawn unrotated in world space
+      g.rotate(-q.a);
+      const postH = FLOOR - p.y;
+      g.fillStyle = fixed?'#5c656b':'#7a5a3a'; g.beginPath(); g.moveTo(0,0); g.lineTo(-16,postH); g.lineTo(16,postH); g.closePath(); g.fill();
+      g.rotate(q.a);
+      rr(g,-S.w/2,-S.h/2,S.w,S.h,3); g.fillStyle='#d8a35a'; g.fill(); g.strokeStyle='#6e4a1e'; g.lineWidth=1.5; g.stroke();
+      g.fillStyle='#d9dde0'; g.beginPath(); g.arc(0,0,3.5,0,7); g.fill();
+      break; }
+    case 'basket': {
+      const w=S.w,h=S.h;
+      g.fillStyle='rgba(30,20,12,.35)'; g.fillRect(-w/2+8,-h,w-16,h-8);
+      g.fillStyle=COL.teal; rr(g,-w/2,-h,8,h,2); g.fill(); rr(g,w/2-8,-h,8,h,2); g.fill(); rr(g,-w/2,-8,w,8,2); g.fill();
+      g.strokeStyle='rgba(20,80,73,.7)'; g.lineWidth=1.5; for(let x=-w/2+16;x<w/2-8;x+=10){ g.beginPath(); g.moveTo(x,-h+4); g.lineTo(x,-8); g.stroke(); }
+      g.fillStyle=COL.mustard; g.font='700 11px "Barlow Semi Condensed", sans-serif'; g.textAlign='center'; g.fillText('GOAL', 0, -h-6);
+      break; }
+    case 'star': {
+      const pulse = 1 + 0.06*Math.sin((t||0)*4);
+      g.scale(pulse,pulse);
+      g.strokeStyle='rgba(233,182,46,.4)'; g.setLineDash([4,4]); g.lineWidth=2; g.beginPath(); g.arc(0,0,S.r+6,0,7); g.stroke(); g.setLineDash([]);
+      g.fillStyle=COL.mustard; g.beginPath();
+      for(let i=0;i<10;i++){ const r=i%2?8:18, an=-Math.PI/2+i*Math.PI/5; g.lineTo(Math.cos(an)*r, Math.sin(an)*r); }
+      g.closePath(); g.fill(); g.strokeStyle='#8a6406'; g.lineWidth=1.5; g.stroke();
+      break; }
+  }
+  if(ghost){ g.globalCompositeOperation='source-atop'; g.fillStyle= ghost==='bad' ? 'rgba(217,65,43,.55)' : 'rgba(255,255,255,.15)'; g.fillRect(-200,-200,400,400); }
+  g.restore();
+}
+
+function drawWind(g, t){
+  for(const f of allParts()){ if(f.type!=='fan') continue;
+    g.save(); g.translate(f.x,f.y); g.rotate(f.a);
+    g.strokeStyle='rgba(244,231,207,.28)'; g.lineWidth=1.5; g.setLineDash([6,10]);
+    for(const yy of [-12,0,12]){ g.lineDashOffset = sim ? -t*90 : 0; g.beginPath(); g.moveTo(26,yy); g.lineTo(sim?FAN_RANGE:70,yy); g.stroke(); }
+    g.restore();
+  }
+}
+
+function drawSelection(g, p){
+  if(p.type==='rope'){ g.save(); g.strokeStyle=COL.orange; g.lineWidth=2; g.setLineDash([4,3]);
+    for(const e of p.ends){ const w=endWorld(e); g.beginPath(); g.arc(w.x,w.y,10,0,7); g.stroke(); } g.restore(); return; }
+  const S=SPEC[p.type]; g.save(); g.translate(p.x,p.y); g.rotate(p.a||0);
+  g.strokeStyle=COL.orange; g.lineWidth=2; g.setLineDash([5,4]);
+  if(S.r){ g.beginPath(); g.arc(0,0,S.r+6,0,7); g.stroke(); }
+  else { rr(g,-S.w/2-6,-S.h/2-6,S.w+12,S.h+12,6); g.stroke(); }
+  g.restore();
+}
+
+function drawTiePoints(g, t, hot){
+  const pulse = 0.5+0.5*Math.sin(t*6);
+  for(const p of tiePoints()){
+    const isHot = hot && hot.att.uid===p.att.uid && hot.att.lx===p.att.lx && hot.att.ly===p.att.ly;
+    g.save();
+    g.strokeStyle = isHot ? COL.mustard : 'rgba(47,163,154,.95)'; g.lineWidth = isHot ? 3 : 2;
+    g.beginPath(); g.arc(p.x, p.y, isHot ? 12 : 8+2*pulse, 0, 7); g.stroke();
+    if(isHot){ g.fillStyle='rgba(233,182,46,.35)'; g.fill(); }
+    g.restore();
+  }
+}
+
+let drag = null; // {part, isNew, ox, oy, ok, startX, startY, moved, orig}
+
+function draw(t){
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.drawImage(board,0,0);
+  ctx.setTransform(dpr*scale,0,0,dpr*scale,0,0);
+  for(const p of allParts()) if(p.boing) p.boing = Math.max(0, p.boing-0.08);
+  drawWind(ctx, t);
+  const rank = p => p.type==='rope' ? 2 : p.type==='basket' ? 1 : 0;
+  const order = allParts().slice().sort((a,b)=>rank(a)-rank(b));
+  for(const p of order){ if(drag && drag.part===p) continue; drawPart(ctx,p,t); }
+  if(selected && !drag && mode==='build') drawSelection(ctx, selected);
+  if(drag && drag.part.type==='rope' && (drag.onBoard || drag.isEnd)) drawTiePoints(ctx, t, drag.snapTo);
+  if(drag && (drag.onBoard || drag.isEnd)) drawPart(ctx, drag.part, t, drag.ok ? 'ok' : 'bad');
+}
+
+// ---------- UI ----------
+const $ = id => document.getElementById(id);
+function setStatus(txt){ const s=$('status'); s.textContent=txt||''; s.hidden=!txt; }
+
+function iconFor(type){
+  const c=document.createElement('canvas'); c.width=112; c.height=68;
+  const g=c.getContext('2d'); const S=SPEC[type];
+  if(type==='rope'){ g.translate(56,34); g.scale(1.3,1.3); drawRope(g, {type:'rope', ends:[{x:-26,y:-10},{x:26,y:10}]}); return c; }
+  const size = S.r ? S.r*2 : Math.max(S.w, S.h);
+  const k = Math.min(1.5, (type==='fan'?40:96)/size, 100/size);
+  g.translate(56,34); g.scale(k*1.0,k*1.0);
+  const fake = {type, x:0, y:0, a: type==='plank'||type==='longplank' ? -12*DEG : 0, dir:1};
+  if(type==='seesaw'){ fake.y=-8; }
+  drawPart(g, fake, 0);
+  return c;
+}
+
+function refreshTray(){
+  const tray=$('tray'); tray.innerHTML='';
+  for(const type of Object.keys(LEVELS[levelIdx].tray)){
+    const b=document.createElement('div'); b.className='part'+(counts[type]>0?'':' empty');
+    b.dataset.type=type; b.setAttribute('role','button'); b.setAttribute('aria-label', SPEC[type].label+', '+counts[type]+' left');
+    b.appendChild(iconFor(type));
+    const s=document.createElement('span'); s.textContent=SPEC[type].label; b.appendChild(s);
+    const n=document.createElement('i'); n.textContent=counts[type]; b.appendChild(n);
+    b.addEventListener('pointerdown', e=>trayDown(e,type));
+    tray.appendChild(b);
+  }
+}
+
+function refreshUI(){
+  const L=LEVELS[levelIdx];
+  $('lvlname').textContent = (levelIdx+1)+'. '+L.name;
+  $('goal').innerHTML = L.goalText;
+  refreshTray(); refreshSelbar();
+  $('runbtn').textContent = mode==='run' ? 'Stop & reset' : 'Start machine';
+  $('runbtn').classList.toggle('stop', mode==='run');
+  setStatus(mode==='build' && placed.length===0 ? 'Drag parts from the tray onto the board' : '');
+}
+
+function refreshSelbar(){
+  const bar=$('selbar');
+  if(!selected || mode!=='build'){ bar.hidden=true; return; }
+  const S=SPEC[selected.type];
+  bar.hidden=false;
+  $('rotl').hidden = $('rotr').hidden = !S.rot;
+  $('flip').hidden = !S.flip;
+}
+
+function toWorld(e){
+  const r=cv.getBoundingClientRect();
+  return {x:(e.clientX-r.left)/scale, y:(e.clientY-r.top)/scale, inside: e.clientX>=r.left && e.clientX<=r.right && e.clientY>=r.top && e.clientY<=r.bottom};
+}
+
+function hitPart(pt){
+  for(let i=placed.length-1;i>=0;i--){
+    const p=placed[i], S=SPEC[p.type];
+    const dx=pt.x-p.x, dy=pt.y-p.y, c=Math.cos(-p.a), s=Math.sin(-p.a);
+    const lx=dx*c-dy*s, ly=dx*s+dy*c;
+    if(S.r){ if(Math.hypot(dx,dy)<S.r+12) return p; }
+    else if(Math.abs(lx)<S.w/2+8 && Math.abs(ly)<S.h/2+14) return p;
+  }
+  return null;
+}
+
+const SNAP = 5, LIFT = 46;
+function snap(v){ return Math.round(v/SNAP)*SNAP; }
+
+function hitRopeEnd(pt){
+  for(let i=placed.length-1;i>=0;i--){ const r=placed[i]; if(r.type!=='rope') continue;
+    for(let k=1;k>=0;k--){ const w=endWorld(r.ends[k]); if(Math.hypot(pt.x-w.x, pt.y-w.y) < 16) return {rope:r, end:k}; } }
+  return null;
+}
+
+function trayDown(e,type){
+  if(mode!=='build' || counts[type]<=0) return;
+  e.preventDefault();
+  const p = type==='rope' ? newRope(0,0) : {type, x:0, y:0, a:0, dir:1, uid:'p'+(nextId++)};
+  drag={part:p, isNew:true, ox:0, oy:e.pointerType==='mouse'?0:LIFT/scale, moved:true, onBoard:false, ok:false, id:e.pointerId};
+  selected=null; refreshSelbar(); dragMove(e);
+}
+
+cv.addEventListener('pointerdown', e=>{
+  if(mode!=='build') return;
+  e.preventDefault();
+  const pt=toWorld(e), re=hitRopeEnd(pt);
+  if(re){ const en=re.rope.ends[re.end];
+    const w=endWorld(en);
+    drag={part:re.rope, isEnd:true, end:re.end, ox:pt.x-w.x, oy:pt.y-w.y, startX:e.clientX, startY:e.clientY, moved:false, onBoard:true, ok:true, orig:{...en, att:en.att&&{...en.att}}, id:e.pointerId};
+    return; }
+  const p=hitPart(pt);
+  if(!p){ selected=null; refreshSelbar(); return; }
+  drag={part:p, isNew:false, ox:pt.x-p.x, oy:pt.y-p.y, startX:e.clientX, startY:e.clientY, moved:false, onBoard:true, ok:true, orig:{x:p.x,y:p.y}, id:e.pointerId};
+  placed.splice(placed.indexOf(p),1); placed.push(p); // bring to front
+});
+
+function dragMove(e){
+  if(!drag || e.pointerId!==drag.id) return;
+  if(!drag.moved && Math.hypot(e.clientX-drag.startX, e.clientY-drag.startY) < 7) return;
+  drag.moved=true;
+  const pt=toWorld(e);
+  drag.onBoard = pt.inside;
+  if(drag.isEnd){ const en=drag.part.ends[drag.end], raw={x:pt.x-drag.ox, y:pt.y-drag.oy}, tie=nearestTie(raw);
+    // never tie both ends of one rope to the same thing
+    const other=drag.part.ends[1-drag.end].att, same = tie && other && other.uid===tie.att.uid;
+    drag.snapTo = same ? null : tie;
+    en.att=null; if(drag.snapTo){ en.x=tie.x; en.y=tie.y; } else { en.x=snap(raw.x); en.y=snap(raw.y); }
+    drag.ok = drag.onBoard && ropeOK(drag.part);
+    setStatus(drag.snapTo ? 'Let go to tie it to the '+drag.snapTo.label : 'Let go to pin it to the board'); return; }
+  if(drag.part.type==='rope'){ const r=drag.part, raw={x:pt.x-drag.ox, y:pt.y-drag.oy}, tie=nearestTie(raw);
+    drag.snapTo = tie; const x = tie? tie.x : snap(raw.x), y = tie? tie.y : snap(raw.y);
+    r.x=x; r.y=y; r.ends[0].x=x; r.ends[0].y=y; r.ends[1].x=x; r.ends[1].y=y-80; if(y-80<10) r.ends[1].y=y+80; drag.ok = ropeOK(r);
+    setStatus(tie ? 'Let go to tie it to the '+tie.label : 'Drop the rope, then drag its ends'); return; }
+  drag.part.x = snap(pt.x-drag.ox); drag.part.y = snap(pt.y-drag.oy);
+  if(drag.onBoard){
+    if(!drag.isNew){ const i=placed.indexOf(drag.part); placed.splice(i,1); drag.ok = placementOK(drag.part); placed.push(drag.part); }
+    else drag.ok = placementOK(drag.part);
+  }
+}
+window.addEventListener('pointermove', dragMove);
+
+function dragEnd(e){
+  if(!drag || e.pointerId!==drag.id) return;
+  const d=drag; drag=null;
+  if(d.isEnd){
+    const r=d.part, en=r.ends[d.end];
+    if(!d.moved){ selected = (selected===r) ? null : r; }
+    else if(!d.onBoard){ removePart(r); }
+    else if(!d.ok){ Object.assign(en, d.orig); selected=r; flash('That rope end has nowhere to go'); }
+    else { en.att = d.snapTo ? {...d.snapTo.att} : null; selected=r; flash(d.snapTo ? 'Tied to the '+d.snapTo.label : 'Pinned to the board'); }
+    if(!d.moved) flash('Drag an end to tie it, or drag it off a part to untie');
+    refreshTray(); refreshSelbar(); return;
+  }
+  if(d.isNew && d.part.type==='rope'){
+    if(d.onBoard && d.ok){ const r=d.part; r.ends[0].att = d.snapTo ? {...d.snapTo.att} : null; placed.push(r); counts.rope--; selected=r;
+      flash((d.snapTo ? 'Tied to the '+d.snapTo.label+'. ' : '')+'Now drag the other end onto a glowing tie point', 3000); }
+    else setStatus('');
+    refreshTray(); refreshSelbar(); return;
+  }
+  if(d.isNew){
+    if(d.onBoard && d.ok){ placed.push(d.part); counts[d.part.type]--; selected=d.part; }
+  } else if(!d.moved){
+    selected = (selected===d.part) ? null : d.part;
+  } else if(!d.onBoard){
+    removePart(d.part);
+  } else if(!d.ok){
+    d.part.x=d.orig.x; d.part.y=d.orig.y; selected=d.part; setStatus('That spot is taken');
+    setTimeout(()=>{ if(mode==='build') setStatus(''); }, 1200);
+  } else selected=d.part;
+  refreshTray(); refreshSelbar();
+  if(placed.length) setStatus($('status').textContent==='Drag parts from the tray onto the board' ? '' : $('status').textContent);
+}
+window.addEventListener('pointerup', dragEnd);
+window.addEventListener('pointercancel', e=>{
+  if(!drag) return;
+  if(drag.isEnd) Object.assign(drag.part.ends[drag.end], drag.orig);
+  else if(!drag.isNew){ drag.part.x=drag.orig.x; drag.part.y=drag.orig.y; }
+  drag=null;
+});
+
+let flashTimer=0;
+function flash(msg, ms){ setStatus(msg); clearTimeout(flashTimer); flashTimer=setTimeout(()=>{ if(mode==='build') setStatus(''); }, ms||1600); }
+
+function removePart(p){
+  // ropes tied to this part stay where they are, pinned to the board
+  for(const r of allParts()){ if(r.type!=='rope') continue; for(const e of r.ends){ if(e.att && e.att.uid===p.uid){ const w=endWorld(e); e.x=w.x; e.y=w.y; e.att=null; } } }
+  const i=placed.indexOf(p); if(i>=0){ placed.splice(i,1); counts[p.type]++; }
+  if(selected===p) selected=null;
+  refreshTray(); refreshSelbar();
+}
+
+function tryTransform(fn){
+  if(!selected) return;
+  const p=selected, old={a:p.a, dir:p.dir};
+  fn(p);
+  if(!placementOK(p)){ p.a=old.a; p.dir=old.dir; setStatus('No room to turn it there'); setTimeout(()=>{ if(mode==='build') setStatus(''); },1200); }
+}
+$('rotl').onclick = ()=>tryTransform(p=>{ p.a -= 15*DEG; });
+$('rotr').onclick = ()=>tryTransform(p=>{ p.a += 15*DEG; });
+$('flip').onclick = ()=>tryTransform(p=>{ if(p.type==='fan') p.a += Math.PI; else p.dir *= -1; });
+$('del').onclick = ()=>{ if(selected) removePart(selected); };
+
+$('runbtn').onclick = ()=>{
+  if(mode==='build'){ mode='run'; selected=null; startSim(); setStatus(''); }
+  else { mode='build'; stopSim(); }
+  refreshUI();
+};
+$('hintbtn').onclick = ()=>{ $('goal').innerHTML = LEVELS[levelIdx].goalText + ' <span style="color:var(--mustard)">Hint: '+LEVELS[levelIdx].hint+'</span>'; };
+
+function openMenu(){
+  const box=$('levels'); box.innerHTML='';
+  LEVELS.forEach((L,i)=>{
+    const b=document.createElement('button'); if(solved[i]) b.className='done';
+    b.innerHTML='<small>'+(solved[i]?'Solved':'Machine '+(i+1))+'</small><span>'+L.name+'</span>';
+    b.onclick=()=>{ mode='build'; loadLevel(i); $('menu').hidden=true; };
+    box.appendChild(b);
+  });
+  $('menu').hidden=false;
+}
+$('menubtn').onclick = openMenu;
+$('menuclose').onclick = ()=>{ $('menu').hidden=true; };
+$('winstay').onclick = ()=>{ $('win').hidden=true; mode='build'; stopSim(); refreshUI(); };
+$('winnext').onclick = ()=>{
+  $('win').hidden=true; mode='build';
+  if(levelIdx < LEVELS.length-1) loadLevel(levelIdx+1); else openMenu();
+};
+
+// ---------- Loop ----------
+let last=0, acc=0, winShown=false;
+function frame(ts){
+  const t=ts/1000;
+  if(mode==='run' && sim){
+    acc += Math.min(0.1, t-last);
+    while(acc >= 1/60){ stepFrame(); acc -= 1/60; }
+    if(sim.won && !winShown){
+      winShown=true; solved[levelIdx]=true; saveSolved();
+      const lastLvl = levelIdx===LEVELS.length-1;
+      $('wintitle').textContent = 'It works!';
+      $('wintext').textContent = lastLvl ? 'That was the last machine. Every contraption is solved.' : 'The '+LEVELS[levelIdx].name+' machine did its job.';
+      $('winnext').textContent = lastLvl ? 'All machines' : 'Next machine';
+      setTimeout(()=>{ if(mode==='run') $('win').hidden=false; }, 500);
+    }
+    if(sim.lost && !sim.won) setStatus('Missed. Tap Stop & reset to tweak it.');
+  } else { acc=0; winShown=false; }
+  last=t;
+  draw(t);
+  requestAnimationFrame(frame);
+}
+
+function start(data){
+  let i=0;
+  for(let k=0;k<LEVELS.length;k++){ if(!solved[k]){ i=k; break; } }
+  if(data && typeof data.level==='number'){ i=data.level; placed=JSON.parse(JSON.stringify(data.placed||[])); loadLevel(i,true); }
+  else loadLevel(i);
+  resize();
+  new ResizeObserver(()=>resize()).observe($('stage'));
+  requestAnimationFrame(frame);
+}
+try{ window.claude?.hot?.snapshot?.(()=>({level:levelIdx, placed:JSON.parse(JSON.stringify(placed.map(({bodies,con,...rest})=>rest)))})); }catch(e){}
+if(window.claude?.hot?.ready) window.claude.hot.ready(start); else start(window.claude?.hot?.data ?? {});
+})();
+</script>
+
+
+</body>
+</html>

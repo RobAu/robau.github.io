@@ -5,13 +5,15 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>RobAu pages</title>
 <style>
-:root{--bg:#f6f3ea;--fg:#1d1b16;--muted:#6b665a;--accent:#9a6b1f}
-@media (prefers-color-scheme:dark){:root{--bg:#0f1817;--fg:#efe8d4;--muted:#a3b3aa;--accent:#e3b04b}}
-body{margin:0;padding:48px 16px;background:var(--bg);color:var(--fg);font:17px/1.5 Georgia,'Times New Roman',serif}
-main{max-width:560px;margin:0 auto}
-h1{font-weight:500;font-size:28px;margin:0 0 24px}
+:root{--bg:#f6f3ea;--fg:#1d1b16;--muted:#6b665a;--accent:#9a6b1f;--line:rgba(29,27,22,.14)}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1817;--fg:#efe8d4;--muted:#a3b3aa;--accent:#e3b04b;--line:rgba(239,232,212,.14)}}
+body{margin:0;padding:48px 16px 64px;background:var(--bg);color:var(--fg);font:17px/1.5 Georgia,'Times New Roman',serif}
+main{max-width:600px;margin:0 auto}
+h1{font-weight:500;font-size:30px;margin:0 0 6px}
+.lede{margin:0 0 32px;color:var(--muted)}
+h2{font-weight:500;font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:36px 0 6px}
 ul{list-style:none;padding:0;margin:0}
-li{padding:12px 0;border-top:1px solid color-mix(in srgb,var(--fg) 15%,transparent)}
+li{padding:12px 0;border-top:1px solid var(--line)}
 a{color:var(--accent);font-size:20px;text-decoration:none}
 a:hover{text-decoration:underline}
 p{margin:2px 0 0;color:var(--muted);font-size:15px}
@@ -20,8 +22,34 @@ p{margin:2px 0 0;color:var(--muted);font-size:15px}
 <body>
 <main>
 <h1>Pages</h1>
+<p class="lede">Small browser games and toys. Everything runs in the page, nothing is installed.</p>
+
+<h2>Games</h2>
 <ul>
-<li><a href="tinyhold/">Tinyhold</a><p>A hamlet that builds itself. Watch a valley settle, grow and squabble; follow a villager or click a building to see what it does.</p></li>
+<li><a href="tinyhold/">Tinyhold</a><p>A hamlet that builds itself. Watch a valley settle and grow; follow a villager or click a building.</p></li>
+<li><a href="creatures/">Creatures</a><p>Evolution sandbox: creatures with real genomes eat, breed, hunt and split into species while you shape the land.</p></li>
+<li><a href="trapdoor/">Trapdoor</a><p>Thirteen fake apps, each hiding a dark pattern. Do the task without getting tricked, then learn the trick.</p></li>
+<li><a href="sleight-of-mind/">Sleight of Mind</a><p>A mentalist predicts your choices. Pick freely, then see which nudge was used on you and the science behind it.</p></li>
+<li><a href="mothlight-hollow/">Mothlight Hollow</a><p>Idle game on a floating night island: glims build, moths nibble, stardust and dreams pile up.</p></li>
+<li><a href="snapback/">Snapback</a><p>Stretch a rubber band between two pins to sweep up stars across 26 cork-board levels.</p></li>
+<li><a href="contraptionary/">Contraptionary</a><p>Build chain-reaction machines from planks, fans, springs and ropes across 12 physics puzzles.</p></li>
+<li><a href="hotel-nocturne/">Hotel Nocturne</a><p>Comic-gothic text adventure: survive one night in a hotel run by a cat. Nineteen endings.</p></li>
+<li><a href="little-guildhall/">Little Guildhall</a><p>Gather goods, build workshops and court patrons for prestige in a 24-turn medieval guild game.</p></li>
+<li><a href="undergrowth/">Undergrowth</a><p>Deck-building bug battler: place insects and spells on a tray, survive eight waves of invaders.</p></li>
+<li><a href="reviver/">Reviver</a><p>Hamster platformer: jump, squash bugs, collect seeds, beat bosses and buy upgrades between runs.</p></li>
+<li><a href="ant-m-up/">Ant m up</a><p>Lead a growing ant trail through mazes; gather enough ants to bridge gaps and push rocks.</p></li>
+<li><a href="spellguard/">Spellguard</a><p>Draw hiragana to cast elemental spells. Eight lessons teach 16 characters with score and streaks.</p></li>
+<li><a href="echo-stars/">Echo Stars</a><p>Listen to a tune and tap the stones to echo it. Ear training with stars, songs and unlocks.</p></li>
+<li><a href="fiesta-de-palabras/">Fiesta de Palabras</a><p>Spanish word games for kids: pictures, listening, spelling tiles and memory across levelled word packs.</p></li>
+</ul>
+
+<h2>Toys</h2>
+<ul>
+<li><a href="dream-music/">Dream Music</a><p>Touch a liquid canvas to wake voices. Higher sings higher, more fingers add more voices.</p></li>
+<li><a href="smoke-remembering/">Smoke, Remembering</a><p>A short poem written in smoke that flows from word to word. Touch to stir it.</p></li>
+<li><a href="grass-roots/">Grass Roots</a><p>Living meadow cross-section: plant flowers and trees, watch roots, worms and weather through a day.</p></li>
+<li><a href="hum-lane/">Hum Lane</a><p>Hum into the microphone and steer your pitch line into the green lane to match notes.</p></li>
+<li><a href="tidepool/">Tidepool</a><p>Calm water you can ripple with a touch, with an optional breathing guide.</p></li>
 </ul>
 </main>
 </body>

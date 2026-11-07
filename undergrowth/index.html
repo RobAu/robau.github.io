@@ -1,0 +1,698 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<title>Undergrowth</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=IM+Fell+English:ital@1&family=Courier+Prime:wght@400;700&family=Alegreya+Sans:wght@400;500;700&display=swap">
+<style>
+/* Layout: a dark specimen tray (the battlefield) beside a stack of pinned paper labels (your hand), field log below. */
+:root{
+  --loam:#15180f;      /* page ground */
+  --tray:#20251a;      /* tray surfaces */
+  --tray-edge:#36402a; /* tray lines */
+  --paper:#ece8d6;     /* specimen labels */
+  --ink:#1e2216;       /* text on paper */
+  --fg:#e6e4d2;        /* text on loam */
+  --muted:#a3a58e;
+  --resin:#e2a63b;     /* food, attack, accent */
+  --sap:#93c160;       /* friendly, healing */
+  --cochineal:#d7503f; /* invaders, damage */
+  --f-display:"IM Fell English SC","Iowan Old Style",Georgia,serif;
+  --f-latin:"IM Fell English",Georgia,serif;
+  --f-body:"Alegreya Sans","Segoe UI",system-ui,sans-serif;
+  --f-label:"Courier Prime","Courier New",ui-monospace,monospace;
+  color-scheme:dark;
+}
+html,body{height:100%}
+html{background:var(--loam)}
+[hidden]{display:none!important}
+body{background:var(--loam);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.45;
+  background-image:radial-gradient(circle at 20% 10%,#1f2416 0,transparent 45%),radial-gradient(circle at 85% 80%,#1c2013 0,transparent 40%)}
+.wrap{max-width:1080px;margin:0 auto;padding-inline:16px;padding-block:14px 40px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,.card:focus-visible,.cell:focus-visible{outline:2px solid var(--resin);outline-offset:2px}
+
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 20px;margin-bottom:12px}
+h1{font-family:var(--f-display);font-weight:400;font-size:2.1rem;line-height:1;margin:0;letter-spacing:.02em}
+h1 small{font-family:var(--f-latin);font-style:italic;font-size:.95rem;color:var(--muted);letter-spacing:0;margin-left:8px}
+.stats{display:flex;flex-wrap:wrap;gap:6px 14px;font-family:var(--f-label);font-size:.85rem;font-variant-numeric:tabular-nums}
+.stat b{font-weight:700}
+.stat .k{color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-size:.72rem;margin-right:4px}
+.stat.hp b{color:var(--sap)} .stat.food b{color:var(--resin)}
+.linkbtn{background:none;border:1px solid var(--tray-edge);border-radius:3px;padding:1px 8px;font-family:var(--f-label);font-size:.78rem;color:var(--fg)}
+.linkbtn:hover{border-color:var(--muted)}
+
+.game{display:grid;grid-template-columns:minmax(0,430px) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:760px){.game{grid-template-columns:minmax(0,1fr)}}
+
+/* battlefield */
+.field{background:var(--tray);border:1px solid var(--tray-edge);border-radius:6px;padding:12px;position:relative}
+.side-label{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--f-label);font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:2px 2px 6px}
+.side-label .wave{font-family:var(--f-latin);font-style:italic;text-transform:none;letter-spacing:0;font-size:.9rem;color:var(--cochineal)}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.frontline{display:flex;align-items:center;gap:8px;margin:10px 0;font-family:var(--f-label);font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.frontline::before,.frontline::after{content:"";flex:1;border-top:1px dashed var(--tray-edge)}
+.cell{aspect-ratio:1;max-width:100%;border:1px dashed var(--tray-edge);border-radius:4px;position:relative;background:rgba(0,0,0,.14);display:flex;align-items:center;justify-content:center;padding:0}
+.cell .rowtag{position:absolute;left:4px;top:3px;font-family:var(--f-label);font-size:.58rem;color:var(--tray-edge);letter-spacing:.06em;text-transform:uppercase;pointer-events:none}
+.mine .cell.open{cursor:pointer}
+.mine .cell.target{border-color:var(--resin);border-style:solid;background:rgba(226,166,59,.08)}
+.cell.sel{border-color:var(--sap);border-style:solid;box-shadow:0 0 0 1px var(--sap) inset}
+.unit{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.unit svg{width:76%;height:76%;overflow:visible}
+.enemy .unit svg{transform:rotate(180deg)}
+.badge{position:absolute;bottom:3px;font-family:var(--f-label);font-weight:700;font-size:.78rem;line-height:1;padding:3px 5px;border-radius:3px;font-variant-numeric:tabular-nums;color:var(--ink)}
+.badge.atk{left:3px;background:var(--resin)}
+.badge.hp{right:3px;background:var(--sap)}
+.enemy .badge.hp{background:var(--cochineal);color:#fff6ee}
+.badge.hp.hurt{background:#e9b08f}
+.tags{position:absolute;top:3px;right:3px;display:flex;gap:2px}
+.tag{font-family:var(--f-label);font-size:.56rem;background:var(--paper);color:var(--ink);border-radius:2px;padding:1px 3px;letter-spacing:.04em}
+.tag.web{background:#cfd3e6}
+.unit.dead{opacity:0;transition:opacity .35s}
+.lunge-up{animation:lungeUp .28s ease-out}
+.lunge-down{animation:lungeDown .28s ease-out}
+.shake{animation:shake .3s}
+.heal-glow{animation:healGlow .5s}
+@keyframes lungeUp{50%{transform:translateY(-16%)}}
+@keyframes lungeDown{50%{transform:translateY(16%)}}
+@keyframes shake{20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
+@keyframes healGlow{50%{filter:drop-shadow(0 0 8px var(--sap))}}
+.float{position:absolute;left:50%;top:30%;transform:translateX(-50%);font-family:var(--f-label);font-weight:700;font-size:1.05rem;pointer-events:none;animation:floatUp .9s ease-out forwards;text-shadow:0 1px 0 #000,0 0 4px #000;white-space:nowrap;z-index:3}
+.float.dmg{color:#ff8a76}.float.heal{color:var(--sap)}.float.buff{color:var(--resin)}.float.info{color:#cfd3e6;font-size:.78rem}
+@keyframes floatUp{to{transform:translate(-50%,-150%);opacity:0}}
+@media (prefers-reduced-motion:reduce){.lunge-up,.lunge-down,.shake,.heal-glow{animation:none}.float{animation-duration:1.2s}}
+
+/* side panel */
+.panel{display:flex;flex-direction:column;gap:14px;min-width:0}
+.panel h2{font-family:var(--f-display);font-weight:400;font-size:1.25rem;margin:0}
+.handhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.hint{color:var(--muted);font-size:.88rem}
+.hand{display:flex;flex-wrap:wrap;gap:10px}
+.card{width:128px;background:var(--paper);color:var(--ink);border-radius:3px;padding:8px 8px 9px;text-align:left;border:none;position:relative;display:flex;flex-direction:column;gap:3px;box-shadow:0 2px 0 rgba(0,0,0,.35);transition:transform .12s}
+.card::before{content:"";position:absolute;top:-4px;left:50%;width:7px;height:7px;margin-left:-3.5px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#f4f1e4,#8e8f80);box-shadow:0 1px 1px rgba(0,0,0,.5)}
+@media (hover:hover){.card:hover{transform:translateY(-2px)}}
+button,.cell{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.game,.dock{-webkit-user-select:none;user-select:none}
+.dock{display:flex;flex-direction:column;gap:14px;min-width:0}
+.card.sel{outline:2px solid var(--resin);outline-offset:2px;transform:translateY(-4px)}
+.card.poor{opacity:.5}
+.card .cost{position:absolute;top:6px;right:6px;width:22px;height:22px;border-radius:50%;background:var(--resin);font-family:var(--f-label);font-weight:700;font-size:.85rem;display:flex;align-items:center;justify-content:center}
+.card .nm{font-family:var(--f-display);font-size:1.02rem;line-height:1.05;padding-right:24px}
+.card .lt{font-family:var(--f-latin);font-style:italic;font-size:.74rem;color:#5d6150;line-height:1.1}
+.card .art{height:54px;display:flex;justify-content:center;margin:2px 0}
+.card .art svg{height:100%;width:auto;overflow:visible}
+.card .sts{font-family:var(--f-label);font-size:.74rem;display:flex;gap:8px;font-variant-numeric:tabular-nums}
+.card .tx{font-size:.78rem;line-height:1.25}
+.card .kind{font-family:var(--f-label);font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;color:#6d705e}
+.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{background:var(--resin);color:var(--ink);border:none;border-radius:3px;padding:9px 18px;font-family:var(--f-display);font-size:1.1rem;letter-spacing:.03em}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--tray-edge);font-family:var(--f-label);font-size:.8rem;padding:7px 12px}
+.btn.ghost[aria-pressed="true"]{border-color:var(--resin);color:var(--resin)}
+.info{background:var(--tray);border:1px solid var(--tray-edge);border-radius:4px;padding:10px 12px;font-size:.9rem;min-height:66px}
+.info .nm{font-family:var(--f-display);font-size:1.05rem}
+.info .lt{font-family:var(--f-latin);font-style:italic;color:var(--muted);margin-left:6px}
+.info .sts{font-family:var(--f-label);font-size:.8rem;color:var(--muted);margin:2px 0 4px}
+.log{font-family:var(--f-label);font-size:.76rem;line-height:1.5;max-height:190px;overflow-y:auto;border-top:1px solid var(--tray-edge);padding-top:8px;color:var(--muted)}
+.log div:first-child{color:var(--fg)}
+.log .p{color:var(--sap)} .log .e{color:#e88a7c}
+details.how{font-size:.9rem;color:var(--muted)}
+details.how summary{cursor:pointer;font-family:var(--f-label);font-size:.78rem;text-transform:uppercase;letter-spacing:.1em}
+details.how ul{margin:6px 0 0;padding-left:18px;max-width:62ch}
+
+/* phone: board on top sized to fit, hand docked to the bottom of the screen */
+@media (max-width:760px){
+  .wrap{padding-block:8px calc(var(--dockH,260px) + 16px)}
+  header{margin-bottom:6px;gap:4px 10px;flex-wrap:nowrap;align-items:center}
+  h1{font-size:1.2rem;flex:none} h1 small{display:none}
+  .stats{font-size:.74rem;gap:2px 8px;justify-content:flex-end}
+  .stat .k{font-size:.62rem;letter-spacing:.04em;margin-right:2px}
+  .stat.dd{display:none}
+  .linkbtn{font-size:.7rem;padding:1px 5px}
+  .game{gap:14px}
+  .field{box-sizing:border-box;width:100%;max-width:var(--fieldW,100%);margin:0 auto;padding:8px}
+  .grid{gap:5px}
+  .frontline{margin:4px 0;font-size:.6rem}
+  .side-label{margin:0 2px 3px;font-size:.62rem}
+  .side-label .wave{font-size:.8rem}
+  .field > .side-label:last-child{display:none}
+  .cell .rowtag{display:none}
+  .badge{font-size:.7rem;padding:2px 4px}
+  .tag{font-size:.5rem}
+  .dock{position:fixed;left:0;right:0;bottom:0;z-index:5;gap:6px;background:var(--tray);border-top:1px solid var(--tray-edge);
+    box-shadow:0 -8px 20px rgba(0,0,0,.45);padding:8px 16px calc(8px + env(safe-area-inset-bottom,0px))}
+  .dock .handhead{order:1} .dock .info{order:2} .dock .hand{order:3} .dock .actions{order:4}
+  .dock .handhead h2{display:none}
+  .dock .handhead{display:none}
+  .dock .info{min-height:0;height:2.75em;overflow-y:auto;padding:4px 8px;font-size:.8rem;line-height:1.3}
+  .dock .info div{display:inline;margin-right:6px}
+  .dock .info .nm{font-size:.92rem}
+  .dock .hand{flex-wrap:nowrap;overflow-x:auto;padding:6px 2px 4px;gap:8px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}
+  .dock .card{flex:0 0 94px;width:94px;padding:6px 6px 7px;gap:1px;scroll-snap-align:start}
+  .dock .card .lt,.dock .card .tx,.dock .card .kind{display:none}
+  .dock .card .nm{font-size:.8rem;padding-right:18px;min-height:2.1em}
+  .dock .card .cost{width:19px;height:19px;font-size:.75rem;top:5px;right:5px}
+  .dock .card .art{height:30px}
+  .dock .card .sts{font-size:.66rem;gap:4px}
+  .dock .card .sts .spd{display:none}
+  .dock .card.sel{transform:translateY(-3px)}
+  .dock .actions{flex-wrap:nowrap}
+  .dock .btn{flex:1;padding:8px 12px}
+  .dock .btn.ghost{flex:0 0 auto;padding:9px 10px}
+  .overlay{z-index:10}
+  .sheet{padding:16px}
+  .sheet .card{width:calc(50% - 6px)}
+}
+
+/* overlays */
+.overlay{position:fixed;inset:0;background:rgba(10,12,7,.82);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10;overflow-y:auto}
+.sheet{background:var(--tray);border:1px solid var(--tray-edge);border-radius:6px;padding:20px;max-width:640px;width:100%;max-height:100%;overflow-y:auto}
+.sheet h2{font-family:var(--f-display);font-weight:400;font-size:1.7rem;margin:0 0 4px;text-wrap:balance}
+.sheet p{margin:0 0 14px;color:var(--muted)}
+.sheet .hand{justify-content:center;margin-bottom:16px}
+.sheet .actions{justify-content:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Undergrowth <small>a colony at war</small></h1>
+    <div class="stats" id="stats"></div>
+  </header>
+  <div class="game">
+    <section class="field" aria-label="Battlefield">
+      <div class="side-label"><span>Invaders</span><span class="wave" id="waveName"></span></div>
+      <div class="grid enemy" id="enemyGrid"></div>
+      <div class="frontline">front line</div>
+      <div class="grid mine" id="myGrid"></div>
+      <div class="side-label" style="margin-top:6px;margin-bottom:0"><span>Your colony</span><span id="foodLeft"></span></div>
+    </section>
+    <section class="panel">
+      <div class="dock" id="dock">
+        <div class="handhead"><h2 id="handTitle">Your hand</h2><span class="hint" id="hint"></span></div>
+        <div class="hand" id="hand"></div>
+        <div class="actions" id="actions"></div>
+        <div class="info" id="info"></div>
+      </div>
+      <details class="how">
+        <summary>How to play</summary>
+        <ul>
+          <li>Each battle you draw 6 cards and get food to spend. Play bugs onto your 3&times;2 tray and spells onto your bugs, then press Fight.</li>
+          <li>Bugs act in order of speed. Melee bugs only strike when nothing of yours stands in front of them in their column. They hit the nearest enemy, same column first.</li>
+          <li>Ranged bugs strike from anywhere. Flyers strike from anywhere and go for the back row.</li>
+          <li>Win to add a new card to your deck. Lose and your colony takes damage, then you try the wave again with a fresh hand.</li>
+          <li>Survive 8 waves, including the giant hornet, to win the season.</li>
+          <li>Tap a bug on your tray to move it, or to recall it to your hand before the fight.</li>
+        </ul>
+      </details>
+      <div class="log" id="log" aria-live="polite"></div>
+    </section>
+  </div>
+</div>
+<div class="overlay" id="overlay" hidden></div>
+
+<script>
+/* ---------- insect art ---------- */
+let svgN=0;
+function bug(a){
+  const id='b'+(svgN++), ink=a.ink||'#1a1a12', c=a.color, sw=1.3;
+  const H=Object.assign({y:-19,r:6},a.head), T=Object.assign({y:-7,rx:6,ry:7},a.thorax), A=Object.assign({y:13,rx:11,ry:15},a.abd);
+  let s=`<svg viewBox="-50 -50 100 100" aria-hidden="true"><defs><clipPath id="${id}"><ellipse cx="0" cy="${A.y}" rx="${A.rx}" ry="${A.ry}"/></clipPath></defs>`;
+  const L=(x1,y1,kx,ky,fx,fy,w)=>`<path d="M${x1} ${y1} L${kx} ${ky} L${fx} ${fy}" fill="none" stroke="${ink}" stroke-width="${w||1.6}" stroke-linecap="round" stroke-linejoin="round"/>`;
+  if(a.chain){ // centipede
+    const n=a.chain; let body='',legs='';
+    for(let i=0;i<n;i++){const y=-26+i*(52/(n-1)); legs+=L(-3,y,-13,y-2,-18,y+3,1.3)+L(3,y,13,y-2,18,y+3,1.3);
+      body+=`<ellipse cx="0" cy="${y}" rx="${i==0?5.5:6.5}" ry="4.6" fill="${i==0?a.headColor||c:c}" stroke="${ink}" stroke-width="${sw}"/>`;}
+    s+=legs+`<path d="M-2 -29 Q-8 -40 -14 -44 M2 -29 Q8 -40 14 -44" stroke="${ink}" stroke-width="1.3" fill="none"/>`+body+`<path d="M-3 28 L-7 36 M3 28 L7 36" stroke="${ink}" stroke-width="1.6"/>`;
+    return s+'</svg>';
+  }
+  // legs
+  const ly=[T.y-3,T.y+1,T.y+5], legs8=a.spider;
+  const ends=legs8?[[13,-11,22,-26],[16,-4,27,-12],[16,3,27,8],[13,9,22,24]]:[[12,-8,18,-21],[15,0,24,2],[13,7,20,22]];
+  const yy=legs8?[T.y-4,T.y-1,T.y+2,T.y+5]:ly;
+  ends.forEach((e,i)=>{ if(a.raptor&&i==0) return; const lw=a.legW||1.6;
+    s+=L(-3,yy[i],-e[0],yy[i]+e[1],-e[2],yy[i]+e[3],lw)+L(3,yy[i],e[0],yy[i]+e[1],e[2],yy[i]+e[3],lw); });
+  if(a.raptor){ s+=`<path d="M-3 ${T.y-5} L-10 ${T.y-14} L-5 ${T.y-27}" fill="none" stroke="${a.dark||ink}" stroke-width="3.2" stroke-linecap="round"/><path d="M3 ${T.y-5} L10 ${T.y-14} L5 ${T.y-27}" fill="none" stroke="${a.dark||ink}" stroke-width="3.2" stroke-linecap="round"/>`; }
+  if(a.glow) s+=`<circle cx="0" cy="${A.y+A.ry-5}" r="14" fill="${a.glow}" opacity=".22"/><circle cx="0" cy="${A.y+A.ry-5}" r="8" fill="${a.glow}" opacity=".35"/>`;
+  if(a.pincers) s+=`<path d="M-3 ${A.y+A.ry-2} Q-9 ${A.y+A.ry+8} -2 ${A.y+A.ry+13} M3 ${A.y+A.ry-2} Q9 ${A.y+A.ry+8} 2 ${A.y+A.ry+13}" fill="none" stroke="${a.dark||ink}" stroke-width="2.4" stroke-linecap="round"/>`;
+  if(a.sting) s+=`<path d="M-2 ${A.y+A.ry-1} L0 ${A.y+A.ry+6} L2 ${A.y+A.ry-1}Z" fill="${ink}"/>`;
+  // abdomen
+  s+=`<ellipse cx="0" cy="${A.y}" rx="${A.rx}" ry="${A.ry}" fill="${c}" stroke="${ink}" stroke-width="${sw}"/>`;
+  s+=`<g clip-path="url(#${id})">`;
+  if(a.stripes){ for(let y=A.y-A.ry+4;y<A.y+A.ry;y+=a.stripeGap||6) s+=`<rect x="-20" y="${y}" width="40" height="${a.stripeW||3}" fill="${a.stripes}"/>`; }
+  if(a.seg){ for(let y=A.y-A.ry+3;y<A.y+A.ry;y+=a.seg) s+=`<path d="M-20 ${y} Q0 ${y+2.5} 20 ${y}" stroke="${ink}" stroke-width="1" fill="none" opacity=".7"/>`; }
+  if(a.spots) (a.spotAt||[[-5,6],[5,6],[-6,16],[6,16],[0,22],[-4,-4],[4,-4]]).forEach(p=>s+=`<circle cx="${p[0]}" cy="${A.y-A.ry+p[1]+6}" r="${a.spotR||2.6}" fill="${a.spots}"/>`);
+  if(a.cross) s+=`<path d="M0 ${A.y-9} V${A.y+8} M-6 ${A.y-3} H6" stroke="${a.cross}" stroke-width="2.2" stroke-dasharray="1.6 1.4"/>`;
+  s+=`<ellipse cx="-4" cy="${A.y-A.ry*.45}" rx="${A.rx*.25}" ry="${A.ry*.25}" fill="#fff" opacity=".18"/></g>`;
+  if(a.elytra) s+=`<path d="M0 ${A.y-A.ry+1} V${A.y+A.ry-1}" stroke="${ink}" stroke-width="1"/>`;
+  if(a.wings){ const wy=A.y-4, wr=a.wingLen||15;
+    s+=`<ellipse cx="-7" cy="${wy}" rx="5.5" ry="${wr}" transform="rotate(14 -7 ${wy})" fill="${a.wings}" opacity=".55" stroke="${ink}" stroke-width=".7"/><ellipse cx="7" cy="${wy}" rx="5.5" ry="${wr}" transform="rotate(-14 7 ${wy})" fill="${a.wings}" opacity=".55" stroke="${ink}" stroke-width=".7"/>`;
+    if(a.wings2) s+=`<ellipse cx="-14" cy="${wy-6}" rx="4.5" ry="${wr+2}" transform="rotate(62 -14 ${wy-6})" fill="${a.wings}" opacity=".45" stroke="${ink}" stroke-width=".6"/><ellipse cx="14" cy="${wy-6}" rx="4.5" ry="${wr+2}" transform="rotate(-62 14 ${wy-6})" fill="${a.wings}" opacity=".45" stroke="${ink}" stroke-width=".6"/>`; }
+  // thorax, head
+  if(!a.noThorax) s+=`<ellipse cx="0" cy="${T.y}" rx="${T.rx}" ry="${T.ry}" fill="${a.tColor||a.dark||c}" stroke="${ink}" stroke-width="${sw}"/>`;
+  if(a.tSpots) s+=`<circle cx="-2.5" cy="${T.y}" r="1.6" fill="${a.tSpots}"/><circle cx="2.5" cy="${T.y}" r="1.6" fill="${a.tSpots}"/>`;
+  if(a.mand){ const m=a.mand, hy=H.y-H.r+1;
+    s+=`<path d="M-2.5 ${hy} Q${-4-m*.35} ${hy-m*.6} ${-1} ${hy-m}" fill="none" stroke="${a.mandColor||ink}" stroke-width="${a.mandW||1.8}" stroke-linecap="round"/><path d="M2.5 ${hy} Q${4+m*.35} ${hy-m*.6} 1 ${hy-m}" fill="none" stroke="${a.mandColor||ink}" stroke-width="${a.mandW||1.8}" stroke-linecap="round"/>`; }
+  if(a.ant){ const hy=H.y-H.r+1, l=a.ant, bend=a.antBend??1;
+    s+=`<path d="M-2 ${hy} Q${-5-l*.2*bend} ${hy-l*.55} ${-7-l*.45} ${hy-l}" fill="none" stroke="${ink}" stroke-width="1.2"/><path d="M2 ${hy} Q${5+l*.2*bend} ${hy-l*.55} ${7+l*.45} ${hy-l}" fill="none" stroke="${ink}" stroke-width="1.2"/>`; }
+  if(!a.noHead) s+=`<circle cx="0" cy="${H.y}" r="${H.r}" fill="${a.hColor||a.dark||c}" stroke="${ink}" stroke-width="${sw}"/>`;
+  if(a.eyes) s+=`<circle cx="-${H.r*.62}" cy="${H.y-1}" r="${a.eyeR||H.r*.42}" fill="${a.eyes}"/><circle cx="${H.r*.62}" cy="${H.y-1}" r="${a.eyeR||H.r*.42}" fill="${a.eyes}"/>`;
+  return s+'</svg>';
+}
+
+/* ---------- cards ---------- */
+const CARDS={
+  worker:{name:'Worker Ant',latin:'Formica rufa',type:'bug',cost:1,atk:1,hp:3,spd:3,kin:'ant',swarm:1,rar:0,
+    text:'Swarm: +1 attack for each ant next to it.',
+    art:{color:'#7a2e1c',dark:'#4a1d12',head:{y:-20,r:5.5},thorax:{y:-9,rx:4.2,ry:5.5},abd:{y:10,rx:8,ry:11},ant:15,mand:5}},
+  soldier:{name:'Soldier Ant',latin:'Pheidole pallidula',type:'bug',cost:2,atk:2,hp:5,spd:3,kin:'ant',swarm:1,guard:1,rar:1,
+    text:'Swarm. Guard 1: takes 1 less damage from each hit.',
+    art:{color:'#8c4a22',dark:'#5a2c14',head:{y:-20,r:8},thorax:{y:-7,rx:4.5,ry:5.5},abd:{y:11,rx:8.5,ry:11},ant:14,mand:8,mandW:2.6}},
+  ladybird:{name:'Ladybird',latin:'Coccinella septempunctata',type:'bug',cost:1,atk:0,hp:3,spd:2,tend:2,rar:0,
+    text:'Tend: each turn, heals the most wounded bug next to it by 2.',
+    art:{color:'#c8261d',dark:'#16140f',head:{y:-15,r:5},thorax:{y:-9,rx:8,ry:5},abd:{y:7,rx:15,ry:15},elytra:1,spots:'#16140f',spotR:3,spotAt:[[-7,2],[7,2],[-9,12],[9,12],[0,-2],[-5,20],[5,20]],ant:5,eyes:'#f3eed8',eyeR:1.6,legW:1.4}},
+  pillbug:{name:'Pill Bug',latin:'Armadillidium vulgare',type:'bug',cost:1,atk:1,hp:5,spd:1,curl:1,rar:0,
+    text:'Curl: ignores the first hit it takes. (Not an insect at all, but the colony allows it.)',
+    art:{color:'#6b6e72',dark:'#4c4f53',noThorax:1,head:{y:-22,r:6},abd:{y:2,rx:15,ry:22},seg:5,ant:9,legW:1.2}},
+  firefly:{name:'Firefly',latin:'Photinus pyralis',type:'bug',cost:2,atk:2,hp:2,spd:4,ranged:1,rar:0,
+    text:'Ranged: strikes from any row.',
+    art:{color:'#3a3428',dark:'#c9842f',tColor:'#e3b15a',head:{y:-21,r:4.5},thorax:{y:-12,rx:7,ry:6},abd:{y:9,rx:9,ry:16},elytra:1,glow:'#f4ec6a',ant:12,tSpots:'#d63d2a'}},
+  spider:{name:'Garden Spider',latin:'Araneus diadematus',type:'bug',cost:2,atk:1,hp:4,spd:2,ranged:1,web:1,rar:1,
+    text:'Ranged. Web: its target loses its next turn.',
+    art:{color:'#9a6a37',dark:'#5e3d1e',spider:1,noHead:1,thorax:{y:-12,rx:7,ry:8},abd:{y:10,rx:13,ry:15},cross:'#f1e6c8',mand:4,legW:1.5}},
+  bee:{name:'Honey Bee',latin:'Apis mellifera',type:'bug',cost:2,atk:2,hp:3,spd:4,alarm:2,rar:1,
+    text:'Alarm: when it dies, bugs next to it gain +2 attack.',
+    art:{color:'#d8a228',dark:'#3a2a12',head:{y:-20,r:5.5},thorax:{y:-9,rx:7,ry:6.5},tColor:'#8a6a2a',abd:{y:10,rx:9,ry:13},stripes:'#2b2010',stripeGap:6,wings:'#dfeaf2',sting:1,ant:9,eyes:'#2b2010'}},
+  bombardier:{name:'Bombardier Beetle',latin:'Brachinus crepitans',type:'bug',cost:3,atk:2,hp:4,spd:2,ranged:1,splash:1,rar:2,
+    text:'Ranged. Splash: also deals 1 damage to bugs next to its target.',
+    art:{color:'#26405e',dark:'#c86a24',head:{y:-21,r:5},thorax:{y:-12,rx:6,ry:5.5},abd:{y:8,rx:11,ry:16},elytra:1,ant:12,mand:3,glow:'#ffb35a'}},
+  mantis:{name:'Praying Mantis',latin:'Mantis religiosa',type:'bug',cost:3,atk:3,hp:4,spd:5,ambush:1,rar:2,
+    text:'Ambush: its first strike deals double damage.',
+    art:{color:'#6fa33a',dark:'#4c7a24',head:{y:-30,r:5},thorax:{y:-14,rx:3.5,ry:12},abd:{y:14,rx:7.5,ry:17},wings:'#b9d98c',wingLen:13,ant:8,eyes:'#d8e67a',raptor:1}},
+  stag:{name:'Stag Beetle',latin:'Lucanus cervus',type:'bug',cost:3,atk:3,hp:8,spd:1,guard:1,rar:2,
+    text:'Guard 1. Slow but very hard to crack.',
+    art:{color:'#6a3a24',dark:'#4a2818',head:{y:-15,r:7},thorax:{y:-6,rx:10,ry:6},abd:{y:14,rx:13,ry:15},elytra:1,mand:18,mandW:3.4,mandColor:'#6a3a22',ant:5}},
+  wasp:{name:'Paper Wasp',latin:'Polistes dominula',type:'bug',cost:3,atk:3,hp:3,spd:4,flying:1,rar:2,
+    text:'Flying: strikes from any row and goes for the back row.',
+    art:{color:'#e5c22a',dark:'#2a2410',head:{y:-21,r:5},thorax:{y:-10,rx:6,ry:6.5},abd:{y:11,rx:7.5,ry:14},stripes:'#1f1a0b',stripeGap:5.5,stripeW:2.6,wings:'#c9b98a',wings2:1,sting:1,ant:12}},
+  nectar:{name:'Nectar',latin:'liquor florum',type:'spell',cost:1,target:'unit',rar:0,text:'A bug gains +3 health.',
+    art:{color:'#e9b23c',noHead:1,noThorax:1,abd:{y:4,rx:14,ry:16}}},
+  molt:{name:'Molt',latin:'ecdysis',type:'spell',cost:1,target:'unit',rar:0,text:'A bug gains +2 attack.',
+    art:{color:'#c9c2a2',noHead:1,noThorax:1,abd:{y:4,rx:11,ry:18},seg:4}},
+  pheromone:{name:'Pheromone Trail',latin:'via chemica',type:'spell',cost:2,target:'all',rar:1,text:'All your ants on the tray gain +1 attack and +1 health.',
+    art:{color:'#9b6fb0',noHead:1,noThorax:1,abd:{y:4,rx:6,ry:6},glow:'#c79be0'}},
+  forage:{name:'Forage',latin:'quaerere cibum',type:'spell',cost:0,target:'all',rar:0,text:'Draw 2 cards.',
+    art:{color:'#7f9a47',noHead:1,noThorax:1,abd:{y:4,rx:15,ry:10},seg:6}},
+};
+const ENEMIES={
+  aphid:{name:'Aphid',latin:'Aphis fabae',atk:1,hp:2,spd:2,text:'Weak alone. Rarely alone.',
+    art:{color:'#9cc451',dark:'#7aa338',head:{y:-15,r:4},thorax:{y:-8,rx:5,ry:4},abd:{y:8,rx:11,ry:13},ant:10,eyes:'#a02a1e',eyeR:1.4,legW:1.2}},
+  roach:{name:'Cockroach',latin:'Blatta orientalis',atk:2,hp:4,spd:3,guard:1,text:'Guard 1.',
+    art:{color:'#8a5232',dark:'#6a3c22',head:{y:-22,r:4.5},thorax:{y:-14,rx:10,ry:6},abd:{y:7,rx:11,ry:17},wings:'#a8703f',wingLen:16,ant:24,antBend:2}},
+  locust:{name:'Locust',latin:'Schistocerca gregaria',atk:1,hp:3,spd:3,kin:'locust',swarm:1,text:'Swarm: +1 attack for each locust next to it.',
+    art:{color:'#b59a4a',dark:'#8a7432',head:{y:-24,r:5},thorax:{y:-13,rx:5,ry:7},abd:{y:10,rx:6.5,ry:17},wings:'#c8b778',wingLen:17,ant:9,eyes:'#4a3a18'}},
+  centipede:{name:'Centipede',latin:'Lithobius forficatus',atk:3,hp:3,spd:5,text:'Very fast.',
+    art:{chain:9,color:'#a8582a',headColor:'#7a3a18'}},
+  assassin:{name:'Assassin Bug',latin:'Reduvius personatus',atk:2,hp:3,spd:3,ranged:1,text:'Ranged.',
+    art:{color:'#2a1c1a',dark:'#7a1e18',head:{y:-26,r:4},thorax:{y:-14,rx:6,ry:7},abd:{y:10,rx:9,ry:15},stripes:'#9c2a1e',stripeGap:7,stripeW:2,ant:14,mand:6}},
+  hornet:{name:'Hornet',latin:'Vespa crabro',atk:3,hp:4,spd:4,flying:1,text:'Flying: goes for your back row.',
+    art:{color:'#d9a21c',dark:'#6b2a14',head:{y:-22,r:6},hColor:'#c9781e',thorax:{y:-10,rx:7,ry:7},abd:{y:12,rx:9,ry:15},stripes:'#3a1a0c',stripeGap:6,wings:'#d4b98a',wings2:1,sting:1,ant:11}},
+  earwig:{name:'Earwig',latin:'Forficula auricularia',atk:2,hp:6,spd:2,text:'Tough, with pincers.',
+    art:{color:'#6a3a1e',dark:'#4a2612',head:{y:-22,r:5},thorax:{y:-13,rx:5.5,ry:5},abd:{y:8,rx:7,ry:15},seg:4,pincers:1,ant:11}},
+  queen:{name:'Giant Hornet Queen',latin:'Vespa mandarinia',atk:4,hp:12,spd:3,flying:1,splash:1,text:'Flying. Splash. The end of the season.',
+    art:{color:'#e2a124',dark:'#3a1c0a',hColor:'#e88a1a',head:{y:-22,r:8},thorax:{y:-8,rx:9,ry:8},abd:{y:15,rx:12,ry:17},stripes:'#2a140a',stripeGap:7,stripeW:3.4,wings:'#cfb487',wings2:1,wingLen:18,sting:1,ant:12,eyes:'#3a1c0a',mand:5}},
+};
+const WAVES=[
+  {name:'Aphid bloom',u:[['aphid',0,0],['aphid',0,2],['aphid',1,1]]},
+  {name:'Kitchen scouts',u:[['aphid',0,0],['roach',0,1],['aphid',0,2]]},
+  {name:'The swarm arrives',u:[['locust',0,0],['locust',0,1],['locust',0,2],['aphid',1,1]]},
+  {name:'Under the floorboards',u:[['roach',0,0],['centipede',0,1],['aphid',0,2],['assassin',1,1]]},
+  {name:'Paper and venom',u:[['locust',0,0],['roach',0,1],['locust',0,2],['hornet',1,1]]},
+  {name:'Night crawlers',u:[['centipede',0,0],['earwig',0,1],['aphid',0,2],['assassin',1,1]]},
+  {name:'The plague year',u:[['roach',0,0],['locust',0,1],['roach',0,2],['hornet',1,1],['locust',1,2]]},
+  {name:'The giant hornet',u:[['roach',0,0],['roach',0,2],['queen',1,1]]},
+];
+const FOOD=[4,5,5,6,7,7,8,8];
+const START_DECK=['worker','worker','worker','soldier','ladybird','pillbug','firefly','spider','nectar','molt'];
+const HAND_SIZE=6, MAX_HP=25;
+
+/* ---------- state ---------- */
+let G, uidN=1, cidN=1, busy=false, speed=1, skipping=false;
+let sel=null; // {kind:'card',cid} | {kind:'unit',uid}
+const $=id=>document.getElementById(id);
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+const card=key=>({cid:cidN++,key});
+
+function newRun(){
+  G={hp:MAX_HP,wave:0,deck:START_DECK.map(card),draw:[],discard:[],hand:[],food:0,board:[],spent:[],phase:'deploy',log:[],losses:0};
+  G.draw=shuffle(G.deck.slice());
+  startWave();
+}
+function drawCards(n){
+  for(let i=0;i<n;i++){
+    if(!G.draw.length){ if(!G.discard.length) break; G.draw=shuffle(G.discard); G.discard=[]; log('You shuffle your discard pile into your draw pile.'); }
+    G.hand.push(G.draw.pop());
+  }
+}
+function startWave(){
+  G.phase='deploy'; G.board=[]; G.spent=[]; G.food=FOOD[G.wave];
+  drawCards(HAND_SIZE); sel=null;
+  G.enemies=WAVES[G.wave].u.map(([k,r,c])=>makeUnit('e',k,r,c));
+  log(`Wave ${G.wave+1}: ${WAVES[G.wave].name}.`);
+  render();
+}
+function makeUnit(side,key,row,col,cid){
+  const t=side==='e'?ENEMIES[key]:CARDS[key];
+  return {uid:uidN++,side,key,cid,row,col,name:t.name,atk:t.atk,hp:t.hp,maxHp:t.hp,spd:t.spd,
+    kin:t.kin||null,swarm:t.swarm||0,guard:t.guard||0,curl:t.curl||0,ranged:t.ranged||0,flying:t.flying||0,
+    web:t.web||0,alarm:t.alarm||0,splash:t.splash||0,tend:t.tend||0,ambush:t.ambush||0,alive:true,stun:false};
+}
+const tmpl=u=>u.side==='e'?ENEMIES[u.key]:CARDS[u.key];
+
+/* ---------- deploy actions ---------- */
+function clickCard(cid){
+  if(G.phase!=='deploy'||busy) return;
+  const c=G.hand.find(h=>h.cid===cid); if(!c) return; const t=CARDS[c.key];
+  if(t.cost>G.food){ showInfoCard(c.key,`Needs ${t.cost} food; you have ${G.food}.`); return; }
+  if(t.type==='spell'&&t.target==='all'){ playGlobal(c); return; }
+  sel = (sel&&sel.kind==='card'&&sel.cid===cid)?null:{kind:'card',cid};
+  if(sel) showInfoCard(c.key); render();
+}
+function playGlobal(c){
+  const t=CARDS[c.key];
+  if(c.key==='pheromone'){
+    const ants=G.board.filter(u=>u.kin==='ant');
+    if(!ants.length){ showInfoCard(c.key,'Put an ant on the tray first.'); return; }
+    ants.forEach(u=>{u.atk++;u.hp++;u.maxHp++});
+    log(`Pheromone Trail: ${ants.length} ant${ants.length>1?'s':''} gain +1/+1.`,'p');
+  }
+  if(c.key==='forage'){ log('You forage and draw 2 cards.','p'); }
+  G.food-=t.cost; G.hand=G.hand.filter(h=>h!==c); G.spent.push(c);
+  if(c.key==='forage') drawCards(2);
+  sel=null; render();
+}
+function clickCell(row,col){
+  if(G.phase!=='deploy'||busy) return;
+  const here=G.board.find(u=>u.row===row&&u.col===col);
+  if(sel&&sel.kind==='card'){
+    const c=G.hand.find(h=>h.cid===sel.cid), t=CARDS[c.key];
+    if(t.type==='bug'){
+      if(here){ showInfo(here); return; }
+      const u=makeUnit('p',c.key,row,col,c.cid); u.card=c; u.buffs=[];
+      G.board.push(u); G.food-=t.cost; G.hand=G.hand.filter(h=>h!==c);
+      log(`${t.name} takes position.`,'p'); sel=null; showInfo(u); render(); return;
+    }
+    if(t.type==='spell'&&t.target==='unit'){
+      if(!here){ showInfoCard(c.key,'Tap one of your bugs to use it on.'); return; }
+      if(c.key==='nectar'){here.hp+=3;here.maxHp+=3;}
+      if(c.key==='molt'){here.atk+=2;}
+      here.buffs.push(c); G.food-=t.cost; G.hand=G.hand.filter(h=>h!==c);
+      log(`${t.name} on ${here.name}.`,'p'); sel=null; showInfo(here); render(); return;
+    }
+  }
+  if(sel&&sel.kind==='unit'){
+    const u=G.board.find(b=>b.uid===sel.uid);
+    if(u===here){ sel=null; render(); return; }
+    if(here){ here.row=u.row; here.col=u.col; }
+    u.row=row; u.col=col; sel=null; render(); return;
+  }
+  if(here){ sel={kind:'unit',uid:here.uid}; showInfo(here); render(); }
+}
+function recall(uid){
+  const u=G.board.find(b=>b.uid===uid); if(!u) return;
+  G.board=G.board.filter(b=>b!==u); G.food+=CARDS[u.key].cost; G.hand.push(u.card);
+  u.buffs.forEach(b=>G.spent.push(b));
+  log(`${u.name} returns to your hand${u.buffs.length?' (its spells are lost)':''}.`); sel=null; showInfoCard(u.key); render();
+}
+
+/* ---------- battle engine ---------- */
+const units=()=>G.board.concat(G.enemies);
+const side=s=>(s==='p'?G.board:G.enemies).filter(u=>u.alive);
+const at=(s,r,c)=>side(s).find(u=>u.row===r&&u.col===c);
+const neighbors=u=>side(u.side).filter(o=>o!==u&&((o.row===u.row&&Math.abs(o.col-u.col)===1)||(o.col===u.col&&o.row!==u.row)));
+const power=u=>u.atk+(u.swarm?neighbors(u).filter(o=>o.kin&&o.kin===u.kin).length*u.swarm:0);
+const foe=s=>s==='p'?'e':'p';
+function canStrike(u){ return u.ranged||u.flying||u.row===0||!at(u.side,0,u.col); }
+function pickTarget(u){
+  const es=side(foe(u.side)); if(!es.length) return null;
+  const cols=[...new Set(es.map(e=>e.col))].sort((a,b)=>Math.abs(a-u.col)-Math.abs(b-u.col)||a-b);
+  const inCol=es.filter(e=>e.col===cols[0]).sort((a,b)=>a.row-b.row);
+  return u.flying?inCol[inCol.length-1]:inCol[0];
+}
+const wait=ms=>skipping?Promise.resolve():new Promise(r=>setTimeout(r,ms/speed));
+function fx(u,cls){ if(skipping) return; const el=document.querySelector(`[data-uid="${u.uid}"]`); if(!el) return; el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); }
+function float(u,text,cls){ if(skipping) return; const el=document.querySelector(`[data-uid="${u.uid}"]`); if(!el) return;
+  const f=document.createElement('div'); f.className='float '+cls; f.textContent=text; el.parentElement.appendChild(f); setTimeout(()=>f.remove(),1300); }
+function hit(att,tgt,dmg,splash){
+  if(!tgt.alive) return;
+  if(tgt.curl){ tgt.curl=0; renderBoard(); float(tgt,'curled','info'); log(`${tgt.name} curls up and shrugs off the hit.`,sideCls(tgt)); return; }
+  dmg=Math.max(1,dmg-tgt.guard); tgt.hp-=dmg;
+  renderBoard(); fx(tgt,'shake'); float(tgt,'-'+dmg,'dmg');
+  if(!splash) log(`${att.name} hits ${tgt.side==='e'?'enemy ':'your '}${tgt.name} for ${dmg}.`,sideCls(att));
+  if(tgt.hp<=0) die(tgt);
+}
+const sideCls=u=>u.side==='p'?'p':'e';
+function die(u){
+  u.alive=false; u.hp=0; log(`${u.side==='e'?'Enemy':'Your'} ${u.name} falls.`,u.side==='p'?'e':'p');
+  if(u.alarm){ neighbors(u).forEach(o=>{o.atk+=u.alarm; float(o,'+'+u.alarm+' atk','buff')}); log(`Alarm pheromone! Bugs next to ${u.name} gain +${u.alarm} attack.`,sideCls(u)); }
+}
+async function act(u){
+  if(u.stun){ u.stun=false; renderBoard(); float(u,'webbed','info'); log(`${u.name} struggles free of the web.`,sideCls(u)); await wait(380); return; }
+  if(u.tend){
+    const w=neighbors(u).filter(o=>o.hp<o.maxHp).sort((a,b)=>(a.hp/a.maxHp)-(b.hp/b.maxHp))[0];
+    if(w){ const h=Math.min(u.tend,w.maxHp-w.hp); w.hp+=h; renderBoard(); fx(w,'heal-glow'); float(w,'+'+h,'heal'); log(`${u.name} tends ${w.name} (+${h}).`,sideCls(u)); await wait(450); }
+    if(u.atk<=0) return;
+  }
+  if(!canStrike(u)) return;
+  const t=pickTarget(u); if(!t) return;
+  let dmg=power(u); if(u.ambush){ dmg*=2; u.ambush=0; }
+  fx(u,u.side==='p'?'lunge-up':'lunge-down'); await wait(160);
+  const adj=u.splash?neighbors(t):[];
+  hit(u,t,dmg);
+  if(u.web&&t.alive){ t.stun=true; renderBoard(); }
+  adj.forEach(o=>hit(u,o,u.splash,true));
+  if(adj.length) log(`The blast splashes ${adj.length} bug${adj.length>1?'s':''} nearby.`,sideCls(u));
+  await wait(520);
+}
+async function fight(){
+  if(G.phase!=='deploy'||busy||!G.board.length) return;
+  busy=true; skipping=false; sel=null; G.phase='battle';
+  G.discard.push(...G.hand); G.hand=[];
+  log('— The battle begins —');
+  render();
+  await wait(400);
+  let round=0, result=null;
+  while(!result){
+    round++;
+    const order=units().filter(u=>u.alive).sort((a,b)=>b.spd-a.spd||((a.side===b.side)?0:(a.side===(round%2?'p':'e')?-1:1))||a.row-b.row||a.col-b.col);
+    for(const u of order){
+      if(!u.alive) continue;
+      await act(u);
+      if(!side('e').length){result='win';break}
+      if(!side('p').length){result='loss';break}
+    }
+    if(!result&&round>=30) result='draw';
+  }
+  skipping=false; renderBoard(); await wait(500);
+  endBattle(result);
+}
+function endBattle(result){
+  G.board.forEach(u=>{G.discard.push(u.card,...u.buffs)}); G.discard.push(...G.spent); G.spent=[];
+  busy=false;
+  if(result==='win'){
+    log(`Wave ${G.wave+1} cleared.`,'p');
+    if(G.wave===WAVES.length-1){ G.phase='won'; saveBest(); render(); return; }
+    G.phase='reward'; G.offer=makeOffer(); render(); return;
+  }
+  const survivors=side('e'), dmg=result==='draw'?2:survivors.reduce((s,u)=>s+(u.key==='queen'?4:1),0)+1;
+  G.hp-=dmg; G.losses++; G.lastDmg=dmg;
+  log(`${result==='draw'?'Stalemate.':'Your line breaks.'} The colony loses ${dmg} health.`,'e');
+  if(G.hp<=0){ G.hp=0; G.phase='over'; saveBest(); render(); return; }
+  G.phase='lost'; render();
+}
+function makeOffer(){
+  const pool=Object.keys(CARDS), w=G.wave, out=[];
+  while(out.length<3){
+    const r=Math.random(), rar=r<0.12+w*0.06?2:r<0.5+w*0.03?1:0;
+    const opts=pool.filter(k=>CARDS[k].rar===rar&&!out.includes(k));
+    if(opts.length) out.push(opts[Math.random()*opts.length|0]);
+  }
+  return out;
+}
+function takeReward(key){
+  if(key){ const c=card(key); G.deck.push(c); G.discard.push(c); log(`${CARDS[key].name} joins your deck.`,'p'); }
+  nextWave();
+}
+function prune(cid){
+  const c=G.deck.find(d=>d.cid===cid); G.deck=G.deck.filter(d=>d!==c);
+  G.draw=G.draw.filter(d=>d.cid!==cid); G.discard=G.discard.filter(d=>d.cid!==cid);
+  log(`${CARDS[c.key].name} leaves your deck.`); nextWave();
+}
+function nextWave(){ G.wave++; collectAll(); startWave(); }
+function retry(){ collectAll(); startWave(); }
+function collectAll(){ /* every wave starts from a reshuffled full deck */ G.draw=shuffle(G.deck.slice()); G.discard=[]; G.hand=[]; }
+function saveBest(){ try{ const b=+localStorage.getItem('ug-best')||0, s=G.phase==='won'?9:G.wave+1; if(s>b) localStorage.setItem('ug-best',s);}catch(e){} }
+function best(){ try{return +localStorage.getItem('ug-best')||0}catch(e){return 0} }
+
+/* ---------- rendering ---------- */
+function log(msg,cls){ G.log.unshift([msg,cls||'']); G.log.length=Math.min(G.log.length,60); if(!skipping) renderLog(); }
+function renderLog(){ $('log').innerHTML=G.log.map(([m,c])=>`<div class="${c}">${m}</div>`).join(''); }
+const artCache={};
+const art=(key,isE)=>{ const k=(isE?'e:':'p:')+key; return artCache[k]||(artCache[k]=bug((isE?ENEMIES:CARDS)[key].art)); };
+function unitHTML(u){
+  if(!u) return '';
+  const tags=[]; if(u.guard) tags.push(`<span class="tag">G${u.guard}</span>`); if(u.curl) tags.push('<span class="tag">CURL</span>');
+  if(u.stun) tags.push('<span class="tag web">WEB</span>'); if(u.ambush) tags.push('<span class="tag">AMB</span>');
+  if(u.flying) tags.push('<span class="tag">FLY</span>'); else if(u.ranged) tags.push('<span class="tag">RNG</span>');
+  return `<div class="unit${u.alive?'':' dead'}" data-uid="${u.uid}">${art(u.key,u.side==='e')}
+    <span class="badge atk" title="Attack">${power(u)}</span><span class="badge hp${u.hp<u.maxHp?' hurt':''}" title="Health">${u.hp}</span><div class="tags">${tags.join('')}</div></div>`;
+}
+function renderBoard(){
+  if(skipping) return;
+  const eg=$('enemyGrid'), mg=$('myGrid'); let eh='', mh='';
+  for(const r of [1,0]) for(let c=0;c<3;c++){ const u=G.enemies.find(x=>x.row===r&&x.col===c&&(x.alive||G.phase==='battle'));
+    eh+=`<div class="cell" data-side="e" data-r="${r}" data-c="${c}" ${u?`tabindex="0" aria-label="Enemy ${u.name}"`:''}><span class="rowtag">${r?'back':'front'}</span>${u&&u.alive?unitHTML(u):''}</div>`; }
+  const selCard=sel&&sel.kind==='card'?CARDS[G.hand.find(h=>h.cid===sel.cid)?.key]:null;
+  for(const r of [0,1]) for(let c=0;c<3;c++){ const u=G.board.find(x=>x.row===r&&x.col===c);
+    let cls='cell'; if(G.phase==='deploy') cls+=' open';
+    if(selCard&&((selCard.type==='bug'&&!u)||(selCard.type==='spell'&&u))) cls+=' target';
+    if(sel&&sel.kind==='unit'&&u&&u.uid===sel.uid) cls+=' sel';
+    if(sel&&sel.kind==='unit'&&!(u&&u.uid===sel.uid)) cls+=' target';
+    mh+=`<button class="${cls}" data-side="p" data-r="${r}" data-c="${c}" aria-label="${u?u.name:'Empty'} ${r?'back':'front'} row, column ${c+1}"><span class="rowtag">${r?'back':'front'}</span>${u&&u.alive?unitHTML(u):''}</button>`; }
+  eg.innerHTML=eh; mg.innerHTML=mh;
+}
+function cardHTML(key,cid,extra){
+  const t=CARDS[key], poor=G.phase==='deploy'&&cid&&t.cost>G.food;
+  return `<button class="card${extra||''}${poor?' poor':''}" ${cid?`data-cid="${cid}"`:`data-key="${key}"`}>
+    <span class="cost" title="Food cost">${t.cost}</span><span class="nm">${t.name}</span><span class="lt">${t.latin}</span>
+    <span class="art">${art(key)}</span>
+    ${t.type==='bug'?`<span class="sts"><span>ATK ${t.atk}</span><span>HP ${t.hp}</span><span class="spd">SPD ${t.spd}</span></span>`:`<span class="kind">Spell</span>`}
+    <span class="tx">${t.text}</span></button>`;
+}
+function renderStats(){
+  $('stats').innerHTML=`<span class="stat hp"><span class="k">Colony</span><b>${G.hp}</b>/${MAX_HP}</span>
+    <span class="stat"><span class="k">Wave</span><b>${Math.min(G.wave+1,8)}</b>/8</span>
+    <span class="stat food"><span class="k">Food</span><b>${G.food}</b>/${FOOD[Math.min(G.wave,7)]}</span>
+    <span class="stat dd"><span class="k">Draw</span><b>${G.draw.length}</b> <span class="k">Discard</span><b>${G.discard.length}</b></span>
+    <button class="linkbtn" id="deckBtn">Deck (${G.deck.length})</button>`;
+  $('deckBtn').onclick=showDeck;
+}
+function render(){
+  renderStats(); renderBoard(); renderLog();
+  $('waveName').textContent=WAVES[Math.min(G.wave,7)].name;
+  $('foodLeft').textContent=G.phase==='deploy'?`${G.food} food left`:'';
+  const hand=$('hand'), selCid=sel&&sel.kind==='card'?sel.cid:null;
+  hand.innerHTML=G.phase==='deploy'?(G.hand.length?G.hand.map(c=>cardHTML(c.key,c.cid,c.cid===selCid?' sel':'')).join(''):'<span class="hint">Your hand is empty.</span>'):'<span class="hint">Cards are in play. Watch the fight.</span>';
+  $('handTitle').textContent=G.phase==='battle'?'Battle':'Your hand';
+  let hint='';
+  if(G.phase==='deploy'){
+    if(sel&&sel.kind==='card') hint=CARDS[G.hand.find(h=>h.cid===sel.cid).key].type==='bug'?'Tap an empty square on your tray.':'Tap one of your bugs.';
+    else if(sel&&sel.kind==='unit') hint='Tap another square to move or swap.';
+    else hint=G.board.length?'Add more, rearrange, or fight.':'Pick a card to play.';
+  }
+  $('hint').textContent=hint;
+  const a=$('actions');
+  if(G.phase==='deploy') a.innerHTML=`<button class="btn" id="fightBtn" ${G.board.length?'':'disabled'}>Fight</button>`+
+    (sel&&sel.kind==='unit'?`<button class="btn ghost" id="recallBtn">Recall to hand</button>`:'')+`<button class="btn ghost" id="spdBtn" aria-pressed="${speed>1}">Speed ${speed}&times;</button>`;
+  else if(G.phase==='battle') a.innerHTML=`<button class="btn ghost" id="spdBtn" aria-pressed="${speed>1}">Speed ${speed}&times;</button><button class="btn ghost" id="skipBtn">Skip to result</button>`;
+  else a.innerHTML='';
+  if($('fightBtn')) $('fightBtn').onclick=fight;
+  if($('recallBtn')) $('recallBtn').onclick=()=>recall(sel.uid);
+  if($('spdBtn')) $('spdBtn').onclick=()=>{speed=speed===1?2:speed===2?4:1; $('spdBtn').innerHTML=`Speed ${speed}&times;`; $('spdBtn').setAttribute('aria-pressed',speed>1)};
+  if($('skipBtn')) $('skipBtn').onclick=()=>{skipping=true};
+  renderOverlay(); fitBoard();
+}
+function showInfo(u){
+  const t=tmpl(u);
+  $('info').innerHTML=`<div><span class="nm">${u.name}</span><span class="lt">${t.latin}</span></div>
+    <div class="sts">ATK ${power(u)} · HP ${u.hp}/${u.maxHp} · SPD ${u.spd}${u.side==='e'?' · invader':''}</div><div>${t.text}</div>`;
+}
+function showInfoCard(key,warn){
+  const t=CARDS[key];
+  $('info').innerHTML=`<div><span class="nm">${t.name}</span><span class="lt">${t.latin}</span></div>
+    <div class="sts">${t.type==='bug'?`ATK ${t.atk} · HP ${t.hp} · SPD ${t.spd} · `:'Spell · '}${t.cost} food</div><div>${warn?`<b style="color:var(--resin)">${warn}</b> `:''}${t.text}</div>`;
+}
+function renderOverlay(){
+  const o=$('overlay'); let h='';
+  if(G.phase==='reward'){
+    h=`<div class="sheet"><h2>Wave ${G.wave+1} cleared</h2><p>Choose a new card for your deck. Or prune your deck instead: a smaller deck draws its best cards more often.</p>
+      <div class="hand">${G.offer.map(k=>cardHTML(k)).join('')}</div>
+      <div class="actions"><button class="btn ghost" id="pruneBtn">Remove a card instead</button><button class="btn ghost" id="skipRw">Take nothing</button></div></div>`;
+  } else if(G.phase==='prune'){
+    h=`<div class="sheet"><h2>Prune your deck</h2><p>Tap a card to remove it for good.</p>
+      <div class="hand">${G.deck.map(c=>cardHTML(c.key,c.cid)).join('')}</div><div class="actions"><button class="btn ghost" id="backRw">Back to rewards</button></div></div>`;
+  } else if(G.phase==='lost'){
+    h=`<div class="sheet"><h2>The line breaks</h2><p>The invaders reach the brood chambers. Your colony loses ${G.lastDmg} health and has ${G.hp} left. Regroup and face ${WAVES[G.wave].name.toLowerCase()} again with a fresh hand.</p>
+      <div class="actions"><button class="btn" id="retryBtn">Regroup</button></div></div>`;
+  } else if(G.phase==='over'){
+    h=`<div class="sheet"><h2>The colony has fallen</h2><p>You held out until wave ${G.wave+1} of 8, ${WAVES[G.wave].name.toLowerCase()}.${best()?` Your best season reached wave ${Math.min(best(),8)}${best()>8?' and won':''}.`:''}</p>
+      <div class="actions"><button class="btn" id="newBtn">Start a new season</button></div></div>`;
+  } else if(G.phase==='won'){
+    h=`<div class="sheet"><h2>The season is yours</h2><p>The giant hornet queen is down and the nest stands. You lost ${G.losses} battle${G.losses===1?'':'s'} along the way and finished with ${G.hp} colony health and ${G.deck.length} cards.</p>
+      <div class="actions"><button class="btn" id="newBtn">Start a new season</button></div></div>`;
+  } else if(G.phase==='deck'){
+    h=`<div class="sheet"><h2>Your deck</h2><p>${G.deck.length} cards. Every wave starts from the whole deck, freshly shuffled.</p>
+      <div class="hand">${G.deck.slice().sort((a,b)=>CARDS[a.key].cost-CARDS[b.key].cost||a.key.localeCompare(b.key)).map(c=>cardHTML(c.key)).join('')}</div>
+      <div class="actions"><button class="btn ghost" id="closeDeck">Close</button></div></div>`;
+  }
+  o.hidden=!h; o.innerHTML=h;
+  o.querySelectorAll('.card').forEach(b=>b.onclick=()=>{
+    if(G.phase==='reward') takeReward(b.dataset.key);
+    else if(G.phase==='prune') prune(+b.dataset.cid);
+  });
+  const on=(id,f)=>{const e=$(id); if(e) e.onclick=f};
+  on('pruneBtn',()=>{G.phase='prune';renderOverlay()}); on('backRw',()=>{G.phase='reward';renderOverlay()});
+  on('skipRw',()=>takeReward(null)); on('retryBtn',retry); on('newBtn',()=>{newRun()});
+  on('closeDeck',()=>{G.phase=G.prevPhase;sel=null;render()});
+}
+function showDeck(){ if(busy||!['deploy'].includes(G.phase)) return; G.prevPhase=G.phase; G.phase='deck'; renderOverlay(); }
+
+/* ---------- events ---------- */
+document.addEventListener('click',e=>{
+  const c=e.target.closest('#hand .card'); if(c){ clickCard(+c.dataset.cid); return; }
+  const cell=e.target.closest('.cell');
+  if(cell){
+    const r=+cell.dataset.r, col=+cell.dataset.c;
+    if(cell.dataset.side==='p') clickCell(r,col);
+    else { const u=G.enemies.find(x=>x.row===r&&x.col===col&&x.alive); if(u) showInfo(u); }
+  }
+});
+document.addEventListener('mouseover',e=>{
+  if(sel) return; const cell=e.target.closest('.cell'); if(!cell) return;
+  const r=+cell.dataset.r, col=+cell.dataset.c, list=cell.dataset.side==='e'?G.enemies:G.board;
+  const u=list.find(x=>x.row===r&&x.col===col&&x.alive); if(u) showInfo(u);
+});
+
+/* phone layout: keep the whole tray visible above the docked hand */
+const phoneMQ=window.matchMedia('(max-width:760px)');
+function fitBoard(){
+  const root=document.documentElement, dock=$('dock'), field=document.querySelector('.field');
+  if(!phoneMQ.matches){ root.style.removeProperty('--fieldW'); return; }
+  root.style.setProperty('--dockH',dock.offsetHeight+'px');
+  const cell=document.querySelector('#myGrid .cell'); if(!cell) return;
+  const cellH=cell.offsetHeight, nonCell=field.offsetHeight-4*cellH, top=field.getBoundingClientRect().top+window.scrollY;
+  const avail=window.innerHeight-dock.offsetHeight-top-10;
+  const c=Math.max(52,Math.min(130,Math.floor((avail-nonCell)/4)));
+  const padX=field.offsetWidth-field.clientWidth+parseFloat(getComputedStyle(field).paddingLeft)*2;
+  root.style.setProperty('--fieldW',(3*c+10+padX)+'px');
+}
+try{ new ResizeObserver(fitBoard).observe($('dock')); }catch(e){}
+window.addEventListener('resize',fitBoard);
+phoneMQ.addEventListener?.('change',fitBoard);
+
+function start(data){
+  if(data&&data.G&&data.G.phase!=='battle'){ G=data.G; uidN=data.uidN; cidN=data.cidN; render(); }
+  else newRun();
+  if(!G.log.length||G.wave===0&&G.phase==='deploy') $('info').innerHTML='<div class="nm">Welcome to the undergrowth</div><div>Pick a card from your hand, then tap a square on your tray. Hover or tap any bug to read it. Invaders are shown above the front line.</div>';
+}
+window.claude?.hot?.snapshot?.(()=>G&&G.phase!=='battle'?{G,uidN,cidN}:null);
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+</script>
+
+
+</body>
+</html>

@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<meta name="theme-color" content="#14182b">
+<title>Hum Lane</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Layout: one phone screen. Status on top, the singing lane fills the middle, controls sit under the thumb. */
+:root{
+  --bg:#f3f1fa; --surface:#ffffff; --ink:#1f2140; --muted:#6b6d8c; --lane:#e6e3f3; --lane-strong:#d3cfea;
+  --voice:#7a5cff; --zone:#2fb59a; --zone-soft:rgba(47,181,154,.16); --warm:#ff9a6b; --on-voice:#ffffff;
+  --display:"Bricolage Grotesque",ui-rounded,"Segoe UI",system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14182b; --surface:#1d2238; --ink:#ecebfb; --muted:#9a9cc0; --lane:#20263f; --lane-strong:#2c3352;
+  --voice:#a993ff; --zone:#4fd8b8; --zone-soft:rgba(79,216,184,.14); --warm:#ffad85; --on-voice:#1a1335; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14182b; --surface:#1d2238; --ink:#ecebfb; --muted:#9a9cc0; --lane:#20263f; --lane-strong:#2c3352;
+  --voice:#a993ff; --zone:#4fd8b8; --zone-soft:rgba(79,216,184,.14); --warm:#ffad85; --on-voice:#1a1335; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.45 var(--body);
+  padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px);
+  -webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+.app{height:100%;display:flex;flex-direction:column;gap:12px;padding-block:12px;padding-inline:16px;max-width:720px;margin:0 auto}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+h1{font:700 1.35rem/1 var(--display);letter-spacing:-.01em;margin:0}
+.mode{display:flex;gap:4px;background:var(--lane);border-radius:999px;padding:3px}
+.mode button{border:0;background:transparent;color:var(--muted);font:700 .8rem var(--body);padding:6px 12px;border-radius:999px;cursor:pointer}
+.mode button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.readout{display:grid;grid-template-columns:1fr auto;align-items:end;gap:8px;min-height:64px}
+.say{font:500 1.5rem/1.15 var(--display);text-wrap:balance;margin:0}
+.sub{color:var(--muted);font-size:.9rem;margin:2px 0 0}
+.note{font:700 2.4rem/1 var(--display);font-variant-numeric:tabular-nums;text-align:right;min-width:3ch}
+.note small{display:block;font:400 .75rem var(--body);color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-top:4px}
+.stage{position:relative;flex:1;min-height:240px;border-radius:20px;background:var(--surface);overflow:hidden}
+canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center;background:var(--surface)}
+.overlay p{max-width:30ch;margin:0;color:var(--muted)}
+.overlay h2{font:700 1.6rem/1.1 var(--display);margin:0;text-wrap:balance}
+.big{border:0;background:var(--voice);color:var(--on-voice);font:700 1.1rem var(--body);padding:16px 30px;border-radius:999px;cursor:pointer;box-shadow:0 6px 20px -6px var(--voice)}
+.link{border:0;background:none;color:var(--muted);font:400 .9rem var(--body);text-decoration:underline;cursor:pointer;padding:6px}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.group{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.label{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-right:2px}
+.chip{border:1.5px solid var(--lane-strong);background:transparent;color:var(--ink);font:700 .85rem var(--body);padding:8px 12px;border-radius:12px;cursor:pointer}
+.chip[aria-pressed="true"]{border-color:var(--voice);background:var(--voice);color:var(--on-voice)}
+.play{border:0;background:var(--zone);color:#06231c;font:700 .95rem var(--body);padding:12px 18px;border-radius:14px;cursor:pointer}
+.play:disabled{opacity:.4}
+button:focus-visible{outline:3px solid var(--warm);outline-offset:2px}
+.hold{height:8px;border-radius:99px;background:var(--lane);overflow:hidden}
+.hold i{display:block;height:100%;width:0;background:var(--zone);border-radius:99px;transition:width .08s linear}
+.tally{color:var(--muted);font-size:.85rem;font-variant-numeric:tabular-nums}
+@media (prefers-reduced-motion:reduce){.hold i{transition:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Hum Lane</h1>
+    <div class="mode" role="group" aria-label="Mode">
+      <button id="mode-match" aria-pressed="true">Match a note</button>
+      <button id="mode-free" aria-pressed="false">Free sing</button>
+    </div>
+  </header>
+
+  <div class="readout" aria-live="polite">
+    <div>
+      <p class="say" id="say">Tap start, then hum along</p>
+      <p class="sub" id="sub">Your voice shows up as a line. Steer it into the green lane.</p>
+    </div>
+    <div class="note" id="note">&ndash;<small id="note-sub">you</small></div>
+  </div>
+
+  <div class="hold" aria-hidden="true"><i id="hold"></i></div>
+
+  <div class="stage">
+    <canvas id="cv"></canvas>
+    <div class="overlay" id="overlay">
+      <h2>Sing into the lane</h2>
+      <p>Hum or sing any comfy &ldquo;ooh&rdquo;. Close counts here, so wobbles are fine.</p>
+      <button class="big" id="start">Start listening</button>
+      <button class="link" id="demo">Watch a demo first</button>
+      <p id="err" hidden></p>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="group" role="group" aria-label="Voice">
+      <span class="label">Voice</span>
+      <button class="chip" id="v-low" data-range="low" aria-pressed="false">Deep</button>
+      <button class="chip" id="v-mid" data-range="mid" aria-pressed="true">Middle</button>
+      <button class="chip" id="v-high" data-range="high" aria-pressed="false">High</button>
+    </div>
+    <div class="group">
+      <span class="tally" id="tally"></span>
+      <button class="play" id="play" disabled>&#9654; Hear note</button>
+    </div>
+  </div>
+  <div class="group" role="group" aria-label="How picky">
+    <span class="label">How close</span>
+    <button class="chip" id="z-wide" data-zone="70" aria-pressed="true">Roomy</button>
+    <button class="chip" id="z-mid" data-zone="45" aria-pressed="false">Snug</button>
+    <button class="chip" id="z-tight" data-zone="25" aria-pressed="false">Precise</button>
+  </div>
+</div>
+
+<script>
+(() => {
+"use strict";
+const $ = id => document.getElementById(id);
+const NAMES = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+const noteName = m => NAMES[((Math.round(m) % 12) + 12) % 12] + (Math.floor(Math.round(m) / 12) - 1);
+const midiToHz = m => 440 * Math.pow(2, (m - 69) / 12);
+const hzToMidi = f => 69 + 12 * Math.log2(f / 440);
+
+// Comfortable ranges (MIDI). Targets come from a major pentatonic so every note sounds friendly.
+const RANGES = { low: [43, 57], mid: [48, 62], high: [57, 71] };
+const PENTA = [0, 2, 4, 7, 9];
+const store = {
+  get(k, d){ try { const v = localStorage.getItem("humlane." + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v){ try { localStorage.setItem("humlane." + k, JSON.stringify(v)); } catch {} }
+};
+
+const S = {
+  mode: "match",
+  range: store.get("range", "mid"),
+  zone: store.get("zone", 70),          // cents either side that count as "in"
+  target: 55,
+  holdNeeded: 1.1,                      // seconds in the zone to land a note
+  hold: 0,
+  landed: 0,
+  running: false,
+  demo: false,
+  muteUntil: 0,                         // ignore the mic while our own tone plays
+  trail: [],                            // {t, m} smoothed midi, null for silence
+  view: 55,                             // vertical center (midi), eases toward target / voice
+  current: null,
+  celebrate: 0
+};
+
+const ENCOURAGE = [
+  "That one landed.", "Lovely, you found it.", "Right there. Nice.", "Smooth.",
+  "Your ear is waking up.", "That was a clean one.", "See? You can do this.", "Good and steady."
+];
+const NUDGE = { low: "A touch higher", high: "A touch lower", near: "So close, hold it" };
+
+/* ---------- Pitch detection: McLeod pitch method on a 2x downsampled buffer ---------- */
+function detectPitch(buf, sr){
+  const N = buf.length >> 1, x = new Float32Array(N);
+  let rms = 0;
+  for (let i = 0; i < N; i++){ const v = (buf[2*i] + buf[2*i+1]) * .5; x[i] = v; rms += v*v; }
+  rms = Math.sqrt(rms / N);
+  if (rms < 0.012) return null;
+  const fs = sr / 2, minTau = Math.floor(fs / 1000), maxTau = Math.min(N - 2, Math.ceil(fs / 65));
+  const nsdf = new Float32Array(maxTau + 1);
+  for (let tau = minTau; tau <= maxTau; tau++){
+    let ac = 0, m = 0;
+    for (let i = 0, n = N - tau; i < n; i++){ const a = x[i], b = x[i+tau]; ac += a*b; m += a*a + b*b; }
+    nsdf[tau] = m > 0 ? 2 * ac / m : 0;
+  }
+  // Collect the peak of each positive lobe, then take the first one near the global best.
+  const peaks = []; let best = 0, tau = minTau;
+  while (tau < maxTau && nsdf[tau] > 0) tau++;
+  while (tau < maxTau){
+    while (tau < maxTau && nsdf[tau] <= 0) tau++;
+    let pk = tau;
+    while (tau < maxTau && nsdf[tau] > 0){ if (nsdf[tau] > nsdf[pk]) pk = tau; tau++; }
+    if (pk < maxTau && nsdf[pk] > 0){ peaks.push(pk); if (nsdf[pk] > best) best = nsdf[pk]; }
+  }
+  if (!peaks.length || best < 0.6) return null;
+  const pick = peaks.find(p => nsdf[p] >= 0.88 * best);
+  const a = nsdf[pick-1] || 0, b = nsdf[pick], c = nsdf[pick+1] || 0;
+  const shift = (a - 2*b + c) !== 0 ? .5 * (a - c) / (a - 2*b + c) : 0;
+  const hz = fs / (pick + shift);
+  return { hz, clarity: b, rms };
+}
+
+/* ---------- Smoothing: median of recent frames, octave-jump guard, then easing ---------- */
+const recent = []; let smooth = null, silentFrames = 0, jumpFrames = 0;
+function feed(raw){
+  if (raw == null){
+    if (++silentFrames > 6){ smooth = null; recent.length = 0; }
+    return smooth;
+  }
+  silentFrames = 0;
+  if (smooth != null && Math.abs(raw - smooth) > 7){
+    // A sudden leap is usually an octave error. Only believe it if it sticks.
+    if (++jumpFrames < 5) return smooth;
+    recent.length = 0; smooth = raw;
+  }
+  jumpFrames = 0;
+  recent.push(raw); if (recent.length > 5) recent.shift();
+  const med = [...recent].sort((p, q) => p - q)[recent.length >> 1];
+  smooth = smooth == null ? med : smooth + (med - smooth) * 0.3;
+  return smooth;
+}
+
+/* ---------- Audio ---------- */
+let ctx = null, analyser = null, buf = null;
+function ensureCtx(){
+  if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+  if (ctx.state === "suspended") ctx.resume();
+  return ctx;
+}
+function playTone(m, dur = 1.1){
+  const c = ensureCtx(), t = c.currentTime, f = midiToHz(m);
+  const g = c.createGain(); g.connect(c.destination);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.22, t + .05);
+  g.gain.setValueAtTime(.22, t + dur - .3); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+  [[1, "triangle", 1], [2, "sine", .25]].forEach(([mul, type, lvl]) => {
+    const o = c.createOscillator(), og = c.createGain();
+    o.type = type; o.frequency.value = f * mul; og.gain.value = lvl;
+    o.connect(og).connect(g); o.start(t); o.stop(t + dur + .05);
+  });
+  S.muteUntil = performance.now() + dur * 1000 + 180;
+}
+function chime(){
+  const c = ensureCtx(), t = c.currentTime;
+  [0, 4, 7].forEach((st, i) => {
+    const o = c.createOscillator(), g = c.createGain();
+    o.type = "sine"; o.frequency.value = midiToHz(S.target + 12 + st);
+    g.gain.setValueAtTime(0, t + i*.07); g.gain.linearRampToValueAtTime(.08, t + i*.07 + .02);
+    g.gain.exponentialRampToValueAtTime(.001, t + i*.07 + .6);
+    o.connect(g).connect(c.destination); o.start(t + i*.07); o.stop(t + i*.07 + .65);
+  });
+  S.muteUntil = performance.now() + 750;
+}
+
+async function startMic(){
+  $("err").hidden = true;
+  try {
+    ensureCtx();
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: {
+      echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+    const src = ctx.createMediaStreamSource(stream);
+    analyser = ctx.createAnalyser(); analyser.fftSize = 2048;
+    buf = new Float32Array(analyser.fftSize);
+    src.connect(analyser);
+    S.demo = false; begin();
+  } catch (e){
+    const err = $("err"); err.hidden = false;
+    err.textContent = !navigator.mediaDevices
+      ? "This page needs to be opened over https to use the microphone."
+      : "The microphone wasn't allowed. You can turn it on in your browser's site settings, or watch the demo.";
+  }
+}
+function begin(){
+  S.running = true; $("overlay").hidden = true; $("play").disabled = S.mode !== "match";
+  try { navigator.wakeLock?.request("screen").catch(() => {}); } catch {}
+  if (S.mode === "match") newTarget(true);
+  else say("Sing anything", "Watch your line move. Try sliding up and down.");
+}
+
+/* ---------- Demo voice: a wobbly singer who drifts toward the target ---------- */
+let demoM = 50, demoVel = 0;
+function demoPitch(now){
+  const phase = (now / 1000) % 5;
+  if (phase > 4.3) return null;                         // breathe
+  const goal = S.mode === "match" ? S.target : 55 + 5 * Math.sin(now / 1400);
+  demoVel += (goal - demoM) * 0.004 + (Math.random() - .5) * 0.05;
+  demoVel *= 0.9; demoM += demoVel;
+  return demoM + 0.25 * Math.sin(now / 90);             // vibrato
+}
+
+/* ---------- Game logic ---------- */
+function say(a, b){ $("say").textContent = a; $("sub").textContent = b || ""; }
+function newTarget(first){
+  const [lo, hi] = RANGES[S.range], opts = [];
+  for (let m = lo; m <= hi; m++) if (PENTA.includes(((m % 12) + 12) % 12)) opts.push(m);
+  // Prefer small, singable steps from the last note.
+  const near = opts.filter(m => m !== S.target && Math.abs(m - S.target) <= 5);
+  const pool = !first && near.length ? near : opts;
+  S.target = pool[Math.floor(Math.random() * pool.length)];
+  S.hold = 0;
+  say(first ? "Listen, then sing it back" : ENCOURAGE[Math.floor(Math.random() * ENCOURAGE.length)],
+      first ? "Hold your line in the green lane until the bar fills." : "Here comes the next one.");
+  setTimeout(() => playTone(S.target), first ? 250 : 700);
+}
+function tally(){ $("tally").textContent = S.landed ? `${S.landed} landed` : ""; }
+
+let lastT = performance.now(), lastSayKey = "", sayCooldown = 0;
+function tick(now){
+  const dt = Math.min(.1, (now - lastT) / 1000); lastT = now;
+  let m = null;
+  if (S.running){
+    if (S.demo) m = feed(demoPitch(now));
+    else if (analyser){
+      analyser.getFloatTimeDomainData(buf);
+      const p = now < S.muteUntil ? null : detectPitch(buf, ctx.sampleRate);
+      m = feed(p ? hzToMidi(p.hz) : null);
+    }
+  }
+  S.current = m;
+  S.trail.push({ t: now, m });
+  while (S.trail.length && now - S.trail[0].t > 6000) S.trail.shift();
+
+  // Readout
+  if (m != null){ $("note").firstChild.nodeValue = noteName(m); }
+  else $("note").firstChild.nodeValue = "–";
+
+  if (S.running && S.mode === "match"){
+    const cents = m == null ? null : (m - S.target) * 100;
+    const inZone = cents != null && Math.abs(cents) <= S.zone;
+    if (inZone) S.hold += dt;
+    else S.hold = Math.max(0, S.hold - dt * 0.35);        // drifting out only drains slowly
+    $("hold").style.width = Math.min(100, 100 * S.hold / S.holdNeeded) + "%";
+    sayCooldown -= dt;
+    if (cents != null && sayCooldown <= 0 && now > S.muteUntil){
+      const key = inZone ? "near" : cents < 0 ? "low" : "high";
+      if (key !== lastSayKey && S.hold < S.holdNeeded){
+        $("sub").textContent = inZone ? NUDGE.near : NUDGE[key] + (Math.abs(cents) > 250 ? ", quite a way" : "");
+        lastSayKey = key; sayCooldown = .6;
+      }
+    }
+    if (S.hold >= S.holdNeeded){
+      S.landed++; tally(); store.set("landed", S.landed);
+      S.celebrate = 1; chime(); lastSayKey = "";
+      newTarget(false);
+    }
+  }
+  S.celebrate = Math.max(0, S.celebrate - dt * 1.4);
+
+  // Ease the view toward what matters
+  const focus = S.mode === "match" ? S.target : (m != null ? m : S.view);
+  S.view += (focus - S.view) * Math.min(1, dt * 2.5);
+  draw(now);
+  requestAnimationFrame(tick);
+}
+
+/* ---------- Drawing ---------- */
+const cv = $("cv"), g = cv.getContext("2d");
+let W = 0, H = 0, DPR = 1, css = {};
+function readCss(){
+  const s = getComputedStyle(document.documentElement);
+  ["--surface","--ink","--muted","--lane","--lane-strong","--voice","--zone","--zone-soft","--warm"]
+    .forEach(k => css[k] = s.getPropertyValue(k).trim());
+}
+function resize(){
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  const r = cv.getBoundingClientRect(); W = r.width; H = r.height;
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+  g.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+const SPAN = 14; // semitones visible
+function yOf(m){ return H/2 - (m - S.view) * (H / SPAN); }
+
+function draw(now){
+  g.clearRect(0, 0, W, H);
+  const step = H / SPAN, nowX = W * 0.72;
+  // Note lanes
+  g.font = "12px " + getComputedStyle(document.body).fontFamily;
+  g.textBaseline = "middle";
+  for (let m = Math.floor(S.view - SPAN/2) - 1; m <= Math.ceil(S.view + SPAN/2) + 1; m++){
+    const y = yOf(m), pc = ((m % 12) + 12) % 12, natural = [0,2,4,5,7,9,11].includes(pc);
+    if (natural){ g.fillStyle = css["--lane"]; g.fillRect(0, y - step/2, W, step); }
+    g.strokeStyle = css["--lane-strong"]; g.globalAlpha = pc === 0 ? .9 : .35; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(0, y + step/2); g.lineTo(W, y + step/2); g.stroke(); g.globalAlpha = 1;
+    if (natural){ g.fillStyle = css["--muted"]; g.fillText(noteName(m), 8, y); }
+  }
+  // Target lane, drawn as a wide soft band with the exact note as a line
+  if (S.mode === "match" && S.running){
+    const y = yOf(S.target), half = (S.zone / 100) * step;
+    const hit = S.current != null && Math.abs(S.current - S.target) * 100 <= S.zone;
+    g.fillStyle = css["--zone-soft"]; g.fillRect(40, y - half, W - 40, half * 2);
+    g.globalAlpha = hit ? 1 : .55; g.strokeStyle = css["--zone"]; g.lineWidth = 2;
+    g.setLineDash([6, 6]); g.beginPath(); g.moveTo(40, y); g.lineTo(W, y); g.stroke(); g.setLineDash([]);
+    g.globalAlpha = 1;
+    g.fillStyle = css["--zone"]; g.font = "700 13px " + getComputedStyle(document.body).fontFamily;
+    g.textAlign = "right"; g.fillText(noteName(S.target), W - 10, y - half - 10); g.textAlign = "left";
+    if (S.celebrate > 0){
+      g.globalAlpha = S.celebrate * .5; g.fillStyle = css["--zone"];
+      g.fillRect(40, y - half * (1 + 2*(1-S.celebrate)), W - 40, half * 2 * (1 + 2*(1-S.celebrate)));
+      g.globalAlpha = 1;
+    }
+  }
+  // "Now" marker
+  g.strokeStyle = css["--lane-strong"]; g.lineWidth = 1;
+  g.beginPath(); g.moveTo(nowX, 0); g.lineTo(nowX, H); g.stroke();
+  // Voice trail
+  const pxPerMs = nowX / 5000;
+  g.lineCap = "round"; g.lineJoin = "round";
+  let prev = null;
+  for (const p of S.trail){
+    if (p.m == null){ prev = null; continue; }
+    const x = nowX - (now - p.t) * pxPerMs, y = yOf(p.m);
+    if (prev){
+      const close = S.mode === "match" && Math.abs(p.m - S.target) * 100 <= S.zone;
+      g.strokeStyle = close ? css["--zone"] : css["--voice"];
+      g.globalAlpha = Math.max(.15, 1 - (now - p.t) / 5000);
+      g.lineWidth = 5; g.beginPath(); g.moveTo(prev.x, prev.y); g.lineTo(x, y); g.stroke();
+    }
+    prev = { x, y };
+  }
+  g.globalAlpha = 1;
+  // Current dot
+  if (S.current != null){
+    const y = Math.max(8, Math.min(H - 8, yOf(S.current)));
+    const close = S.mode === "match" && Math.abs(S.current - S.target) * 100 <= S.zone;
+    g.fillStyle = close ? css["--zone"] : css["--voice"];
+    g.globalAlpha = .25; g.beginPath(); g.arc(nowX, y, 16, 0, 7); g.fill(); g.globalAlpha = 1;
+    g.beginPath(); g.arc(nowX, y, 8, 0, 7); g.fill();
+    // Off-screen hint
+    if (yOf(S.current) < 0 || yOf(S.current) > H){
+      g.fillStyle = css["--muted"]; g.textAlign = "center";
+      g.fillText(yOf(S.current) < 0 ? "▲ way up" : "▼ way down", nowX, yOf(S.current) < 0 ? 22 : H - 22);
+      g.textAlign = "left";
+    }
+  }
+}
+
+/* ---------- Controls ---------- */
+function pressGroup(ids, on){ ids.forEach(id => $(id).setAttribute("aria-pressed", String(id === on))); }
+$("start").onclick = startMic;
+$("demo").onclick = () => { ensureCtx(); S.demo = true; begin(); };
+$("play").onclick = () => { playTone(S.target); S.hold = Math.min(S.hold, S.holdNeeded * .9); };
+$("mode-match").onclick = () => { S.mode = "match"; pressGroup(["mode-match","mode-free"], "mode-match");
+  $("play").disabled = !S.running; if (S.running) newTarget(true); };
+$("mode-free").onclick = () => { S.mode = "free"; pressGroup(["mode-match","mode-free"], "mode-free");
+  $("play").disabled = true; $("hold").style.width = "0"; if (S.running) say("Sing anything", "Watch your line move. Try sliding up and down."); };
+["v-low","v-mid","v-high"].forEach(id => $(id).onclick = () => {
+  S.range = $(id).dataset.range; store.set("range", S.range); pressGroup(["v-low","v-mid","v-high"], id);
+  const [lo, hi] = RANGES[S.range]; S.target = Math.round((lo + hi) / 2);
+  if (S.running && S.mode === "match") newTarget(true);
+});
+["z-wide","z-mid","z-tight"].forEach(id => $(id).onclick = () => {
+  S.zone = +$(id).dataset.zone; store.set("zone", S.zone); pressGroup(["z-wide","z-mid","z-tight"], id);
+});
+
+// Restore preferences
+pressGroup(["v-low","v-mid","v-high"], { low: "v-low", mid: "v-mid", high: "v-high" }[S.range] || "v-mid");
+pressGroup(["z-wide","z-mid","z-tight"], { 70: "z-wide", 45: "z-mid", 25: "z-tight" }[S.zone] || "z-wide");
+S.landed = store.get("landed", 0); tally();
+S.target = Math.round((RANGES[S.range][0] + RANGES[S.range][1]) / 2); S.view = S.target;
+
+readCss(); resize();
+window.addEventListener("resize", resize);
+matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", readCss);
+new MutationObserver(readCss).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+// Exposed for testing only.
+window.__hum = { detectPitch, S };
+requestAnimationFrame(tick);
+})();
+</script>
+
+
+</body>
+</html>

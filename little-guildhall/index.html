@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<title>Little Guildhall</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=IM+Fell+English:ital@0;1&family=Figtree:wght@400;600;800&display=swap">
+<style>
+/* Layout: a walnut game table seen from above. Parchment tiles for patrons and workshops, painted scenes on every card, a ledger panel for your stores, a fixed action bar. Single deliberate look in both themes. */
+:root{
+  --table:#2b1d13; --on-table:#f3e6cc; --on-table-muted:#c8b18c;
+  --parch:#f5ebd5; --parch-2:#eadbbb; --ink:#2b2118; --ink-muted:#7a6650; --rule:#cdb68c;
+  --gold:#d9a842; --gold-deep:#9c6f17; --gold-ink:#2a1a06;
+  --timber:#4f8a43; --clay:#b9542c; --ore:#46709f; --wool:#c3951f;
+  --ok:#5fbf63; --warn:#b8401c;
+  --display:"IM Fell English SC","IM Fell English",Georgia,serif;
+  --serif:"IM Fell English",Georgia,serif;
+  --body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+[hidden]{display:none!important}
+body{background:var(--table);color:var(--on-table);font-family:var(--body);font-size:14px;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;font-variant-numeric:tabular-nums;background-attachment:fixed;background-size:cover}
+.app{max-width:480px;margin:0 auto;padding:10px 12px calc(86px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px;box-sizing:border-box}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+svg.i{width:1em;height:1em;display:inline-block;vertical-align:middle;overflow:visible}
+
+header{display:flex;align-items:center;gap:10px}
+.crest{width:38px;height:44px;flex:none;filter:drop-shadow(0 2px 2px rgba(0,0,0,.5))}
+h1{font-family:var(--display);font-weight:400;font-size:24px;line-height:1;margin:0;flex:1;min-width:0;text-shadow:0 2px 0 rgba(0,0,0,.4)}
+h1 small{display:block;font-family:var(--serif);font-style:italic;font-size:13px;color:var(--on-table-muted);margin-top:3px}
+.stats{display:flex;gap:12px;font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--on-table-muted)}
+.stats b{display:block;color:var(--on-table);font-size:20px;font-family:var(--display);font-weight:400;text-align:right;letter-spacing:0;text-transform:none}
+.stats .score b{color:var(--gold)}
+.label{font-size:10.5px;text-transform:uppercase;letter-spacing:.12em;color:var(--on-table-muted);font-weight:600}
+.turnbar{height:5px;background:rgba(0,0,0,.35);border-radius:3px;overflow:hidden;box-shadow:inset 0 1px 2px rgba(0,0,0,.5)}
+.turnbar i{display:block;height:100%;background:linear-gradient(90deg,var(--gold-deep),var(--gold));transition:width .3s}
+
+.patrons{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.patron{background:var(--parch);color:var(--ink);border-radius:8px;padding:5px;display:flex;align-items:center;gap:5px;min-width:0;box-shadow:0 2px 0 rgba(0,0,0,.35),inset 0 0 0 1px var(--rule);position:relative}
+.patron .face{width:36px;height:36px;flex:none;border-radius:50%;box-shadow:0 0 0 2px var(--gold),0 0 0 3px var(--gold-deep);overflow:hidden}
+.patron .face svg{width:100%;height:100%;display:block}
+.patron .req{display:flex;flex-direction:column;gap:1px;font-weight:800;font-size:12px;min-width:0}
+.patron .req span{display:flex;align-items:center;gap:3px}
+.patron .req span.met{color:var(--timber)}
+.patron .req svg{width:15px;height:15px}
+.patron .pv{position:absolute;top:-6px;right:-5px;width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f3d27a,var(--gold) 45%,var(--gold-deep));color:var(--gold-ink);font-family:var(--display);font-size:13px;display:grid;place-items:center;box-shadow:0 1px 2px rgba(0,0,0,.5)}
+.patron.done{filter:grayscale(.85);opacity:.55}
+.patron.done .pv{background:#8e2a22;color:#f5d9b0}
+
+.market{display:flex;flex-direction:column;gap:7px}
+.row{display:grid;grid-template-columns:16px repeat(4,1fr);gap:6px;align-items:stretch}
+.tier{font-family:var(--display);color:var(--on-table-muted);font-size:14px;display:grid;place-items:center}
+.card{position:relative;background:var(--parch);color:var(--ink);border-radius:8px;display:flex;flex-direction:column;overflow:hidden;text-align:left;box-shadow:0 3px 0 rgba(0,0,0,.4),0 0 0 1px rgba(0,0,0,.3);transition:transform .12s,box-shadow .12s;min-width:0}
+.card.t2{box-shadow:0 3px 0 rgba(0,0,0,.4),0 0 0 2px #b9b4a6}
+.card.t3{box-shadow:0 3px 0 rgba(0,0,0,.4),0 0 0 2px var(--gold)}
+.art{position:relative;aspect-ratio:100/64;max-width:100%}
+.art>svg{width:100%;height:100%;display:block}
+.art .name{position:absolute;left:0;right:0;bottom:0;padding:2px 4px 1px;font-family:var(--display);font-size:11.5px;line-height:1.15;color:#fbf1dc;background:linear-gradient(transparent,rgba(25,15,8,.78) 40%);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.coin{position:absolute;left:3px;top:3px;width:21px;height:21px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f7dc8c,var(--gold) 45%,var(--gold-deep));color:var(--gold-ink);font-family:var(--display);font-size:14px;display:grid;place-items:center;box-shadow:0 1px 2px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.35)}
+.medal{position:absolute;right:3px;top:3px;width:22px;height:22px;border-radius:50%;background:var(--parch);box-shadow:0 0 0 2px var(--c),0 1px 3px rgba(0,0,0,.5);display:grid;place-items:center}
+.medal svg{width:17px;height:17px}
+.cost{display:flex;flex-wrap:wrap;gap:1px 6px;padding:4px 5px 5px;align-content:flex-start;min-height:34px;background:linear-gradient(var(--parch),var(--parch-2))}
+.pip{display:inline-flex;align-items:center;gap:2px;font-size:12.5px;font-weight:800}
+.pip svg{width:15px;height:15px}
+.pip s{opacity:.45;font-weight:600;font-size:10px}
+.pip.short{color:var(--warn)}
+.card.can::after{content:"";position:absolute;inset:0;border-radius:8px;box-shadow:inset 0 0 0 3px var(--ok);pointer-events:none}
+.card.sel{transform:translateY(-4px) scale(1.03);z-index:1}
+.card.sel::after{content:"";position:absolute;inset:0;border-radius:8px;box-shadow:inset 0 0 0 3px var(--gold),0 0 18px rgba(217,168,66,.6);pointer-events:none}
+.card.fresh{animation:deal .5s cubic-bezier(.2,.8,.3,1.2)}
+@keyframes deal{from{transform:translateY(-14px) rotate(-4deg);opacity:0}to{transform:none;opacity:1}}
+
+.ledger{background:var(--parch);color:var(--ink);border-radius:12px;padding:9px 10px 10px;display:flex;flex-direction:column;gap:8px;box-shadow:0 3px 0 rgba(0,0,0,.4),inset 0 0 0 1px var(--rule),inset 0 0 30px rgba(150,110,50,.18)}
+.ledger .top{display:flex;justify-content:space-between;align-items:baseline}
+.ledger .label{color:var(--ink-muted)}
+.ledger .top .t{font-family:var(--display);font-size:16px;color:var(--ink)}
+.res{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.col{display:flex;flex-direction:column;align-items:center;gap:3px}
+.chip{position:relative;width:60px;height:60px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 40% 35%,#fffaf0,#efe1c2 70%);box-shadow:0 0 0 5px var(--c),0 0 0 6px rgba(0,0,0,.35),0 4px 6px rgba(0,0,0,.35),inset 0 -3px 6px rgba(120,90,40,.25);transition:transform .1s;margin:6px 0 2px}
+.chip:active{transform:scale(.93)}
+.chip>svg{width:40px;height:40px}
+.chip .count{position:absolute;right:-9px;bottom:-7px;min-width:24px;height:24px;border-radius:12px;background:var(--ink);color:var(--parch);font-weight:800;font-size:14px;display:grid;place-items:center;padding:0 5px;box-sizing:border-box;box-shadow:0 1px 2px rgba(0,0,0,.4)}
+.chip .badge{position:absolute;left:-9px;top:-8px;min-width:24px;height:24px;border-radius:12px;background:radial-gradient(circle at 35% 30%,#f7dc8c,var(--gold) 50%,var(--gold-deep));color:var(--gold-ink);font-size:13px;font-weight:800;display:grid;place-items:center;padding:0 4px;box-sizing:border-box;box-shadow:0 1px 3px rgba(0,0,0,.5);animation:bump .25s}
+@keyframes bump{from{transform:scale(.4)}to{transform:none}}
+.col .nm{font-family:var(--display);font-size:13px;margin-top:4px}
+.col .ws{display:inline-flex;align-items:center;gap:3px;font-size:12px;color:var(--ink-muted)}
+.col .ws b{color:var(--ink);font-size:14px}
+.col .ws svg{width:15px;height:15px}
+.links{font-size:12px;color:var(--on-table-muted);text-align:center}
+.links button{text-decoration:underline;text-underline-offset:3px}
+
+.bar{position:fixed;left:0;right:0;bottom:0;background:linear-gradient(#3a271a,#24170e);border-top:2px solid var(--gold-deep);padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));box-shadow:0 -6px 16px rgba(0,0,0,.4)}
+.bar .in{max-width:456px;margin:0 auto;display:flex;gap:8px;align-items:center}
+.bar .msg{flex:1;min-width:0;font-size:13px;line-height:1.35}
+.bar .msg .sub{color:var(--on-table-muted)}
+.bar .msg svg{width:14px;height:14px}
+.btn{background:linear-gradient(#e9bd5a,var(--gold) 50%,var(--gold-deep));color:var(--gold-ink);font-weight:800;border-radius:10px;padding:12px 16px;font-size:15px;white-space:nowrap;box-shadow:0 2px 0 #5e420c,inset 0 1px 0 rgba(255,255,255,.5)}
+.btn[disabled]{filter:grayscale(.8);opacity:.4;cursor:default}
+.btn.ghost{background:none;color:var(--on-table-muted);border:1px solid #5c4430;box-shadow:none;padding:11px 12px}
+.sheet .btn.ghost{color:var(--ink-muted);border-color:var(--rule)}
+
+.toast{position:fixed;left:50%;bottom:calc(88px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;background:var(--parch);color:var(--ink);padding:8px 14px;border-radius:20px;font-weight:600;font-size:13px;transition:.25s;pointer-events:none;z-index:5;max-width:86vw;text-align:center;box-shadow:0 0 0 2px var(--gold),0 6px 16px rgba(0,0,0,.5)}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+
+.sheet{position:fixed;inset:0;background:rgba(12,7,3,.7);display:grid;place-items:center;padding:16px;z-index:10}
+.sheet .box{background:var(--parch);color:var(--ink);border-radius:14px;padding:22px 20px;max-width:360px;width:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:12px;box-shadow:0 0 0 3px var(--gold),0 0 0 4px var(--gold-deep),0 20px 40px rgba(0,0,0,.6),inset 0 0 40px rgba(150,110,50,.22);max-height:90vh;overflow:auto}
+.sheet h2{font-family:var(--display);font-weight:400;font-size:28px;margin:0;line-height:1.05;text-wrap:balance}
+.sheet p{margin:0;line-height:1.5;color:var(--ink-muted)}
+.sheet ul{margin:0;padding-left:18px;line-height:1.55}
+.sheet .label{color:var(--ink-muted)}
+.sheet .hero{width:100%;aspect-ratio:100/48;border-radius:8px;overflow:hidden;box-shadow:inset 0 0 0 1px var(--rule)}
+.sheet .hero svg{width:100%;height:100%;display:block}
+.big{font-family:var(--display);font-size:60px;line-height:1;color:var(--gold-deep)}
+.sheet .btns{display:flex;gap:8px;justify-content:flex-end}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<!-- Painted art: goods, workshop scenes, patrons. Everything inline so the game works offline. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<defs>
+  <linearGradient id="sky1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bcd9e6"/><stop offset="1" stop-color="#f6e8c8"/></linearGradient>
+  <linearGradient id="sky2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6fb0dc"/><stop offset="1" stop-color="#d9eef2"/></linearGradient>
+  <linearGradient id="sky3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7b4a7a"/><stop offset=".45" stop-color="#e5875a"/><stop offset="1" stop-color="#f8d99a"/></linearGradient>
+  <radialGradient id="sun" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff6c8"/><stop offset=".5" stop-color="#ffd877" stop-opacity=".9"/><stop offset="1" stop-color="#ffb04a" stop-opacity="0"/></radialGradient>
+  <linearGradient id="brick" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d9714a"/><stop offset="1" stop-color="#9b3f1f"/></linearGradient>
+  <linearGradient id="crys" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e8f2ff"/><stop offset=".5" stop-color="#7fa7d6"/><stop offset="1" stop-color="#2e4f7c"/></linearGradient>
+  <radialGradient id="yarn" cx=".38" cy=".35" r=".7"><stop offset="0" stop-color="#fff3c9"/><stop offset=".6" stop-color="#ecc75e"/><stop offset="1" stop-color="#b98a1c"/></radialGradient>
+  <radialGradient id="glow" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffe08a"/><stop offset=".4" stop-color="#ff9a3c" stop-opacity=".8"/><stop offset="1" stop-color="#ff6a1a" stop-opacity="0"/></radialGradient>
+  <pattern id="bricks" width="6" height="4" patternUnits="userSpaceOnUse"><rect width="6" height="4" fill="#b8552e"/><path d="M0 .2H6M0 2.2H6M1.5 .2V2.2M4.5 2.2V4.2" stroke="#7d3218" stroke-width=".45"/></pattern>
+  <pattern id="stone" width="7" height="5" patternUnits="userSpaceOnUse"><rect width="7" height="5" fill="#a79f90"/><path d="M0 .2H7M0 2.7H7M2 .2V2.7M5.5 2.7V5.2" stroke="#6d665a" stroke-width=".5"/></pattern>
+  <pattern id="thatch" width="3" height="3" patternUnits="userSpaceOnUse"><rect width="3" height="3" fill="#d8b25a"/><path d="M0 3L1.5 0M1.5 3L3 0" stroke="#a9832e" stroke-width=".5"/></pattern>
+
+  <!-- Goods -->
+  <symbol id="g-timber" viewBox="0 0 40 40">
+    <g stroke="#5a3519" stroke-width="2.6">
+      <circle cx="12.5" cy="27" r="8.5" fill="#e3b475"/><circle cx="27.5" cy="27" r="8.5" fill="#e3b475"/><circle cx="20" cy="13.5" r="8.5" fill="#e3b475"/>
+    </g>
+    <g fill="none" stroke="#b07a3c" stroke-width="1"><circle cx="12.5" cy="27" r="5"/><circle cx="27.5" cy="27" r="5"/><circle cx="20" cy="13.5" r="5"/><circle cx="12.5" cy="27" r="2"/><circle cx="27.5" cy="27" r="2"/><circle cx="20" cy="13.5" r="2"/></g>
+    <path d="M14 9a8 8 0 0 1 7-3" stroke="#fff4dc" stroke-width="1.2" fill="none" opacity=".7"/>
+  </symbol>
+  <symbol id="g-clay" viewBox="0 0 40 40">
+    <g stroke="#5e2410" stroke-width="1.3">
+      <rect x="4" y="24" width="15.5" height="9" rx="1.2" fill="url(#brick)"/><rect x="20.5" y="24" width="15.5" height="9" rx="1.2" fill="url(#brick)"/>
+      <rect x="12" y="14" width="15.5" height="9" rx="1.2" fill="url(#brick)"/><rect x="16" y="5" width="11" height="8" rx="1.2" fill="url(#brick)" transform="rotate(-8 21 9)"/>
+    </g>
+    <path d="M5.5 25.3h12.5M22 25.3h12.5M13.5 15.3h12.5" stroke="#f4a982" stroke-width="1" opacity=".8"/>
+  </symbol>
+  <symbol id="g-ore" viewBox="0 0 40 40">
+    <path d="M5 29 9 15 19 8 31 12 36 24 29 33 13 34Z" fill="#59606b" stroke="#2c3037" stroke-width="1.6" stroke-linejoin="round"/>
+    <path d="M9 15 19 8 18 20Z" fill="#6f7782"/><path d="M31 12 36 24 26 22Z" fill="#474d57"/>
+    <path d="M12 27 16 13 21 26Z" fill="url(#crys)" stroke="#1f3554" stroke-width=".8"/>
+    <path d="M20 28 26 14 30 29Z" fill="url(#crys)" stroke="#1f3554" stroke-width=".8"/>
+    <path d="M24 30 27.5 22 31 31Z" fill="url(#crys)" stroke="#1f3554" stroke-width=".8"/>
+    <path d="M16 13 17 24M26 14 26.5 26" stroke="#fff" stroke-width=".9" opacity=".75"/>
+  </symbol>
+  <symbol id="g-wool" viewBox="0 0 40 40">
+    <path d="M28 31c4 3 6 5 9 4" fill="none" stroke="#b98a1c" stroke-width="1.8" stroke-linecap="round"/>
+    <circle cx="19" cy="20" r="13.5" fill="url(#yarn)" stroke="#8a6512" stroke-width="1.6"/>
+    <g fill="none" stroke="#a87b16" stroke-width="1.2" stroke-linecap="round">
+      <path d="M8 15c6-3 15-3 22 2"/><path d="M7 21c7-3 17-2 24 3"/><path d="M10 28c6-2 13-2 18 1"/>
+      <path d="M14 7c-3 7-3 17 1 25"/><path d="M22 7c3 6 4 15 1 25"/>
+    </g>
+  </symbol>
+  <symbol id="house" viewBox="0 0 16 16"><path d="M2 8 8 2.5 14 8V14H2Z" fill="currentColor" stroke="rgba(0,0,0,.45)" stroke-width="1"/><path d="M6.5 14V10h3v4" fill="#f5ebd5"/></symbol>
+
+  <!-- Workshop scenes, viewBox 100 x 64 -->
+  <symbol id="sc-timber" viewBox="0 0 100 64">
+    <path d="M0 40Q22 28 48 38T100 33V64H0Z" fill="#86b36d"/>
+    <g fill="#355f3f"><path d="M3 44 9 22 15 44Z"/><path d="M11 42 16 26 21 42Z"/><path d="M78 40 85 16 92 40Z"/><path d="M88 42 93 26 98 42Z"/></g>
+    <g fill="#284a31"><path d="M9 30 6 37 12 37Z"/><path d="M85 25 81 33 89 33Z"/></g>
+    <path d="M0 47Q30 42 56 48T100 45V64H0Z" fill="#6f9e58"/>
+    <path d="M52 53Q74 49 100 52V58Q76 56 54 59Z" fill="#6aa9cf"/><path d="M60 54Q72 52 84 54" stroke="#d6eef8" stroke-width=".8" fill="none"/>
+    <rect x="34" y="31" width="30" height="20" fill="#f1e2c2"/>
+    <g stroke="#5b3920" stroke-width="1.4" fill="none"><rect x="34" y="31" width="30" height="20"/><path d="M44 31V51M54 31V51M34 41H64M34 31 44 41M54 41 64 31"/></g>
+    <path d="M30 32 49 17 68 32Z" fill="#8c3c26" stroke="#5a2414" stroke-width="1"/><path d="M33 31 49 19.5" stroke="#b9563a" stroke-width="1"/>
+    <rect x="46.5" y="43" width="5" height="8" fill="#5b3920"/><rect x="37" y="34" width="5" height="4" fill="#f6c862" stroke="#5b3920" stroke-width=".8"/>
+    <g transform="translate(70 46)"><circle r="9" fill="none" stroke="#5b3920" stroke-width="1.8"/><circle r="2" fill="#5b3920"/><path d="M0-9V9M-9 0H9M-6.4-6.4 6.4 6.4M-6.4 6.4 6.4-6.4" stroke="#5b3920" stroke-width="1"/></g>
+    <g stroke="#5a3519" stroke-width="1" fill="#d9a866"><circle cx="18" cy="54" r="3.4"/><circle cx="25" cy="54" r="3.4"/><circle cx="21.5" cy="48.5" r="3.4"/></g>
+    <g fill="#a8763c"><circle cx="18" cy="54" r="1"/><circle cx="25" cy="54" r="1"/><circle cx="21.5" cy="48.5" r="1"/></g>
+  </symbol>
+  <symbol id="sc-clay" viewBox="0 0 100 64">
+    <path d="M0 42Q30 32 60 40T100 36V64H0Z" fill="#d9b27a"/>
+    <path d="M0 50Q40 44 100 50V64H0Z" fill="#b98852"/>
+    <g fill="#fff" opacity=".8"><circle cx="53" cy="13" r="3.5"/><circle cx="57" cy="8" r="4.5"/><circle cx="64" cy="4" r="5.5"/><circle cx="72" cy="2" r="5"/></g>
+    <path d="M38 52C33 41 36 32 45 26V17H55V26C64 32 67 41 62 52Z" fill="url(#bricks)" stroke="#6e2d17" stroke-width="1.2"/>
+    <path d="M43 17H57" stroke="#6e2d17" stroke-width="2"/>
+    <path d="M38 52C35 44 37 36 42 31" stroke="#e48d63" stroke-width="1" fill="none" opacity=".7"/>
+    <path d="M46 52V45Q50 39 54 45V52Z" fill="#2c140a"/><ellipse cx="50" cy="49" rx="4" ry="3" fill="url(#glow)"/>
+    <g stroke="#6b3a1c" stroke-width=".9"><path d="M16 53C12 50 13 44 16 42H20C23 44 24 50 20 53Z" fill="#c97a4a"/><path d="M15 41H21" stroke-width="1.6"/><path d="M24 53C22 51 22 47 25 46H29C32 47 32 51 30 53Z" fill="#a95c33"/></g>
+    <path d="M14 47H22" stroke="#f0c296" stroke-width=".9"/>
+    <g stroke="#6e2d17" stroke-width=".7" fill="url(#brick)"><rect x="72" y="49" width="7" height="3.5"/><rect x="79" y="49" width="7" height="3.5"/><rect x="86" y="49" width="7" height="3.5"/><rect x="75.5" y="45.5" width="7" height="3.5"/><rect x="82.5" y="45.5" width="7" height="3.5"/><rect x="79" y="42" width="7" height="3.5"/></g>
+  </symbol>
+  <symbol id="sc-ore" viewBox="0 0 100 64">
+    <path d="M0 46 18 20 30 34 50 9 70 37 83 24 100 42V64H0Z" fill="#7e8896"/>
+    <path d="M50 9 44 19 48 17 51 21 55 17Z M18 20 14 26 19 25 22 28Z M83 24 80 29 84 28 87 30Z" fill="#f4f7fb"/>
+    <path d="M50 9 70 37 58 34Z" fill="#69727f"/>
+    <path d="M0 50Q30 40 60 47T100 46V64H0Z" fill="#5a5148"/>
+    <path d="M18 56V45Q26 35 34 45V56Z" fill="#17181c"/>
+    <path d="M17 56V44H35V56M16 44H36" fill="none" stroke="#7a5230" stroke-width="2"/>
+    <path d="M34 55H58M34 58H58" stroke="#3a332d" stroke-width="1"/>
+    <path d="M40 46H54L52 54H42Z" fill="#4c515a" stroke="#25272c" stroke-width=".9"/>
+    <g fill="url(#crys)" stroke="#1f3554" stroke-width=".5"><circle cx="44" cy="45" r="2.4"/><circle cx="48.5" cy="44" r="2.8"/><circle cx="52.5" cy="45.5" r="2.2"/></g>
+    <circle cx="44" cy="55" r="1.7" fill="#25272c"/><circle cx="51" cy="55" r="1.7" fill="#25272c"/>
+    <rect x="64" y="36" width="24" height="18" fill="url(#stone)" stroke="#4f4940" stroke-width=".9"/>
+    <path d="M61 37 76 27 91 37Z" fill="#3e3a40"/><rect x="82" y="23" width="4" height="10" fill="url(#stone)"/>
+    <circle cx="84" cy="20" r="6" fill="url(#glow)"/>
+    <rect x="70" y="43" width="7" height="11" rx="3.5" fill="#ffb347"/><circle cx="73.5" cy="49" r="7" fill="url(#glow)"/>
+    <path d="M89 58H97M90 58C90 55 92 54 94 54H98L96 52H88Z" fill="#222" stroke="#222" stroke-width="1"/>
+  </symbol>
+  <symbol id="sc-wool" viewBox="0 0 100 64">
+    <path d="M0 36Q25 26 52 34T100 30V64H0Z" fill="#a9cc7c"/>
+    <path d="M0 46Q35 38 70 45T100 42V64H0Z" fill="#8bb85f"/>
+    <rect x="58" y="33" width="24" height="15" fill="#f2e6cc" stroke="#6d5236" stroke-width="1"/>
+    <path d="M54 35 70 20 86 35Z" fill="url(#thatch)" stroke="#8a6a26" stroke-width="1"/>
+    <rect x="67" y="40" width="5" height="8" fill="#6d4a2c"/><rect x="61" y="37" width="4.5" height="4" fill="#f6c862" stroke="#6d5236" stroke-width=".7"/><rect x="75" y="37" width="4.5" height="4" fill="#f6c862" stroke="#6d5236" stroke-width=".7"/>
+    <g stroke="#7a5b3a" stroke-width=".9"><path d="M0 50H52M4 47V54M14 47V54M24 47V54M34 47V54M44 47V54"/></g>
+    <g transform="translate(20 54)"><g stroke="#3b302a" stroke-width="1.2"><path d="M-4 3V7M3 3V7"/></g><g fill="#fbf8ee" stroke="#d6cdb8" stroke-width=".6"><circle cx="-4" cy="0" r="3.4"/><circle cx="0" cy="-1.5" r="3.6"/><circle cx="4" cy="0" r="3.4"/><circle cx="0" cy="2" r="3.4"/></g><ellipse cx="8" cy="-1" rx="2.2" ry="1.8" fill="#3b302a"/></g>
+    <g transform="translate(40 57) scale(.85)"><g stroke="#3b302a" stroke-width="1.2"><path d="M-4 3V7M3 3V7"/></g><g fill="#fbf8ee" stroke="#d6cdb8" stroke-width=".6"><circle cx="-4" cy="0" r="3.4"/><circle cx="0" cy="-1.5" r="3.6"/><circle cx="4" cy="0" r="3.4"/><circle cx="0" cy="2" r="3.4"/></g><ellipse cx="-8" cy="-1" rx="2.2" ry="1.8" fill="#3b302a"/></g>
+    <g transform="translate(90 48) scale(.6)"><g fill="#d66b8a" stroke="#7a3550" stroke-width=".8"><circle r="4"/></g><g transform="translate(-9 3)" fill="#4a77b0" stroke="#24406a" stroke-width=".8"><circle r="4"/></g></g>
+  </symbol>
+
+  <!-- Patrons -->
+  <symbol id="pt-merchant" viewBox="0 0 40 40">
+    <rect width="40" height="40" fill="#cfe0d9"/>
+    <path d="M4 42Q6 28 20 27Q34 28 36 42Z" fill="#7a2636"/>
+    <path d="M10 31Q20 36 30 31Q27 28 20 28Q13 28 10 31Z" fill="#efe3c9"/>
+    <rect x="17" y="23" width="6" height="5" fill="#e6b88f"/>
+    <circle cx="20" cy="19" r="7.5" fill="#f0c49c"/>
+    <path d="M14.5 22Q20 28 25.5 22Q25 26 20 27Q15 26 14.5 22Z" fill="#7b4f2b"/>
+    <ellipse cx="20" cy="13" rx="12" ry="2.6" fill="#2b2740"/>
+    <path d="M13 13Q13 4 20 4Q27 4 27 13Z" fill="#3c3660"/>
+    <path d="M26 7Q33 2 35 8Q30 6 27 10Z" fill="#c23b3b"/>
+    <circle cx="17.3" cy="18.5" r=".9" fill="#2e211a"/><circle cx="22.7" cy="18.5" r=".9" fill="#2e211a"/>
+  </symbol>
+  <symbol id="pt-abbess" viewBox="0 0 40 40">
+    <rect width="40" height="40" fill="#e5d8ef"/>
+    <path d="M3 42Q5 22 20 9Q35 22 37 42Z" fill="#3b2f52"/>
+    <path d="M12 26Q12 13 20 12Q28 13 28 26Q24 30 20 30Q16 30 12 26Z" fill="#f8f4ea"/>
+    <circle cx="20" cy="20" r="6.8" fill="#b9825f"/>
+    <path d="M15 33H25L20 42Z" fill="#d6a640"/><path d="M20 31V37M17.5 33.5H22.5" stroke="#8a6416" stroke-width="1.4"/>
+    <circle cx="17.6" cy="19.5" r=".9" fill="#2e211a"/><circle cx="22.4" cy="19.5" r=".9" fill="#2e211a"/>
+    <path d="M18.5 23.2Q20 24.2 21.5 23.2" stroke="#6e3f28" stroke-width=".8" fill="none"/>
+  </symbol>
+  <symbol id="pt-duchess" viewBox="0 0 40 40">
+    <rect width="40" height="40" fill="#f2dfc4"/>
+    <path d="M24 13 33 1 30 14Z" fill="#2f5f86"/><path d="M33 1Q38 14 34 34" stroke="#fff" stroke-width="2.5" fill="none" opacity=".75"/>
+    <path d="M4 42Q6 28 20 27Q34 28 36 42Z" fill="#2f6f5e"/>
+    <path d="M13 29Q20 34 27 29" stroke="#d6a640" stroke-width="1.6" fill="none"/><circle cx="20" cy="33" r="1.6" fill="#c23b3b" stroke="#d6a640" stroke-width=".6"/>
+    <rect x="17" y="23" width="6" height="5" fill="#efc7a4"/>
+    <circle cx="20" cy="18.5" r="7.3" fill="#f6d3b2"/>
+    <path d="M12.6 17Q13 9 20 10Q27 9 27.4 17Q24 13 20 13Q16 13 12.6 17Z" fill="#8a4b22"/>
+    <path d="M12 13H28" stroke="#d6a640" stroke-width="2.2"/>
+    <circle cx="17.4" cy="18.5" r=".9" fill="#2e211a"/><circle cx="22.6" cy="18.5" r=".9" fill="#2e211a"/>
+    <path d="M18.6 22.3Q20 23.2 21.4 22.3" stroke="#a5503a" stroke-width=".9" fill="none"/>
+  </symbol>
+  <symbol id="pt-captain" viewBox="0 0 40 40">
+    <rect width="40" height="40" fill="#d6e2ef"/>
+    <path d="M4 42Q6 28 20 27Q34 28 36 42Z" fill="#7c7f86"/>
+    <path d="M9 34H31M11 38H29" stroke="#b7bcc4" stroke-width="1.6"/>
+    <rect x="17" y="23" width="6" height="5" fill="#a46d4c"/>
+    <circle cx="20" cy="19" r="7.3" fill="#b77a55"/>
+    <path d="M14 22Q20 31 26 22Q25 28 20 29Q15 28 14 22Z" fill="#3a2a22"/>
+    <path d="M11.5 16Q12 6 20 6Q28 6 28.5 16L26 14Q20 11 14 14Z" fill="#9aa1ab" stroke="#5c626c" stroke-width=".8"/>
+    <path d="M20 6V2" stroke="#c23b3b" stroke-width="2.4" stroke-linecap="round"/>
+    <circle cx="17.4" cy="19" r=".9" fill="#1e140f"/><circle cx="22.6" cy="19" r=".9" fill="#1e140f"/>
+  </symbol>
+
+  <symbol id="crest" viewBox="0 0 38 44">
+    <path d="M3 3H35V22C35 33 27 39 19 42C11 39 3 33 3 22Z" fill="#7d2a24" stroke="#d9a842" stroke-width="2.2"/>
+    <path d="M6 6H32V22C32 31 25 36 19 38.5C13 36 6 31 6 22Z" fill="none" stroke="#a9443a" stroke-width=".8"/>
+    <g fill="#f3e6cc"><rect x="13" y="16" width="12" height="15"/><rect x="11" y="12" width="4" height="5"/><rect x="17" y="12" width="4" height="5"/><rect x="23" y="12" width="4" height="5"/></g>
+    <path d="M17 31V25Q19 22 21 25V31Z" fill="#7d2a24"/>
+    <rect x="18" y="18" width="2" height="3" fill="#7d2a24"/>
+  </symbol>
+
+  <symbol id="hero" viewBox="0 0 200 96">
+    <rect width="200" height="96" fill="url(#sky3)"/>
+    <circle cx="150" cy="48" r="26" fill="url(#sun)"/>
+    <svg x="-6" y="18" width="110" height="70" viewBox="0 0 100 64"><use href="#sc-timber"/></svg>
+    <svg x="96" y="18" width="110" height="70" viewBox="0 0 100 64"><use href="#sc-wool"/></svg>
+    <path d="M0 84Q100 74 200 84V96H0Z" fill="#6f9e58"/>
+  </symbol>
+</defs>
+</svg>
+
+<div class="app" id="app">
+  <header>
+    <svg class="crest" viewBox="0 0 38 44"><use href="#crest"/></svg>
+    <h1>Little Guildhall<small>A season of building</small></h1>
+    <div class="stats">
+      <div>Turn<b id="turn">1/24</b></div>
+      <div class="score">Prestige<b id="score">0</b></div>
+      <div>Best<b id="best">–</b></div>
+    </div>
+  </header>
+  <div class="turnbar"><i id="tb" style="width:0"></i></div>
+  <div>
+    <div class="label" style="margin-bottom:6px">Patrons visit when your workshops match</div>
+    <div class="patrons" id="patrons"></div>
+  </div>
+  <div class="market" id="market"></div>
+  <div class="ledger">
+    <div class="top"><span class="t">Your stores</span><span class="label" id="cap">0/10 goods</span></div>
+    <div class="res" id="res"></div>
+  </div>
+  <div class="links"><button id="help">How to play</button> · <button id="restart">New game</button></div>
+</div>
+
+<div class="bar"><div class="in">
+  <div class="msg" id="msg">Tap goods to gather, or tap a workshop to build it.</div>
+  <button class="btn ghost" id="clear" hidden>Clear</button>
+  <button class="btn" id="act" disabled>Gather</button>
+</div></div>
+<div class="toast" id="toast"></div>
+<div class="sheet" id="sheet" hidden><div class="box" id="sheetbox"></div></div>
+
+<script>
+const C=["timber","clay","ore","wool"];
+const NAME={timber:"Timber",clay:"Clay",ore:"Ore",wool:"Wool"};
+const SHOP={timber:["Sawmill","Cooper","Joinery","Wharf"],clay:["Kiln","Brickyard","Pottery","Tilery"],ore:["Forge","Smelter","Foundry","Mint"],wool:["Loom","Dyehouse","Fullery","Tailor"]};
+const PATRONS=[["merchant","The Merchant"],["abbess","The Abbess"],["duchess","The Duchess"],["captain","The Captain"]];
+const TURNS=24, CAP=10;
+const R=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const icon=(c,cls="i")=>`<svg class="${cls}" viewBox="0 0 40 40"><use href="#g-${c}"/></svg>`;
+const house=c=>`<svg class="i" viewBox="0 0 16 16" style="color:var(--${c})"><use href="#house"/></svg>`;
+let uid=0;
+
+function spread(total,cols){const c={};cols.forEach(k=>c[k]=1);for(let i=cols.length;i<total;i++)c[pick(cols)]++;return c}
+function makeCard(t){
+  const bonus=pick(C), others=C.filter(c=>c!==bonus); let cost,pts;
+  if(t===1){
+    if(Math.random()<.25){cost={[pick(others)]:4};pts=1}
+    else{const tot=R(3,4);cost=spread(tot,shuffle(others).slice(0,R(2,3)));pts=0}
+  }else if(t===2){
+    const r=Math.random();
+    if(r<.25){cost={[pick(others)]:5};pts=2}
+    else if(r<.4){cost={[pick(C)]:6};pts=3}
+    else{const tot=R(5,7);cost=spread(tot,shuffle(C).slice(0,R(2,3)));pts=tot>=7?2:1}
+  }else{
+    const r=Math.random();
+    if(r<.25){cost={[pick(C)]:7};pts=4}
+    else{const tot=R(9,12);cost=spread(tot,shuffle(C).slice(0,R(3,4)));pts=tot>=12?5:tot>=10?4:3}
+  }
+  return{id:++uid,t,bonus,cost,pts,name:pick(SHOP[bonus])};
+}
+function makePatrons(){
+  const pairs=[[0,1],[0,2],[0,3],[1,2],[1,3],[2,3]].map(p=>p.map(i=>C[i]));
+  const tri=C.map(c=>C.filter(x=>x!==c));
+  const pool=shuffle([...pairs.map(p=>({req:{[p[0]]:4,[p[1]]:4}})),...tri.map(p=>({req:{[p[0]]:3,[p[1]]:3,[p[2]]:3}}))]);
+  const who=shuffle(PATRONS);
+  return pool.slice(0,3).map((p,i)=>({...p,pts:3,done:false,face:who[i][0],title:who[i][1]}));
+}
+function newGame(){
+  const z=()=>({timber:0,clay:0,ore:0,wool:0});
+  return{turn:1,score:0,tok:z(),bon:z(),market:[1,2,3].map(t=>[0,0,0,0].map(()=>makeCard(t))),patrons:makePatrons(),built:0,over:false};
+}
+
+let S, sel=[], selCard=null, fresh=new Set();
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+const best=()=>+store.get("guildhall.best")||0;
+const $=id=>document.getElementById(id);
+
+function tokTotal(){return C.reduce((s,c)=>s+S.tok[c],0)}
+function need(card){const n={};for(const c in card.cost){n[c]=Math.max(0,card.cost[c]-S.bon[c])}return n}
+function short(card){const n=need(card);let s={},any=false;for(const c in n){const d=n[c]-S.tok[c];if(d>0){s[c]=d;any=true}}return any?s:null}
+
+function cardHTML(cd,ti,ci){
+  const sh=short(cd), n=need(cd);
+  const cls=["card","t"+cd.t,!sh?"can":"",selCard&&selCard[0]===ti&&selCard[1]===ci?"sel":"",fresh.has(cd.id)?"fresh":""].join(" ");
+  const sun=cd.t===3?`<circle cx="22" cy="20" r="14" fill="url(#sun)"/>`:cd.t===2?`<circle cx="20" cy="14" r="9" fill="url(#sun)" opacity=".7"/>`:"";
+  return `<button class="${cls}" data-r="${ti}" data-c="${ci}" aria-label="${cd.name}, ${NAME[cd.bonus]} workshop, ${cd.pts} prestige">
+    <div class="art"><svg viewBox="0 0 100 64" preserveAspectRatio="xMidYMid slice"><rect width="100" height="64" fill="url(#sky${cd.t})"/>${sun}<use href="#sc-${cd.bonus}"/></svg>
+      ${cd.pts?`<span class="coin">${cd.pts}</span>`:""}
+      <span class="medal" style="--c:var(--${cd.bonus})">${icon(cd.bonus)}</span>
+      <span class="name">${cd.name}</span></div>
+    <div class="cost">${Object.entries(cd.cost).map(([c,v])=>`<span class="pip${sh&&sh[c]?" short":""}">${icon(c)}${n[c]}${n[c]<v?`<s>${v}</s>`:""}</span>`).join("")}</div></button>`;
+}
+function render(){
+  $("turn").textContent=Math.min(S.turn,TURNS)+"/"+TURNS;
+  $("score").textContent=S.score;
+  $("best").textContent=best()||"–";
+  $("tb").style.width=((S.turn-1)/TURNS*100)+"%";
+  $("cap").textContent=tokTotal()+"/"+CAP+" goods";
+  $("patrons").innerHTML=S.patrons.map(p=>`<div class="patron${p.done?" done":""}" aria-label="${p.title}"><span class="face"><svg viewBox="0 0 40 40"><use href="#pt-${p.face||"merchant"}"/></svg></span><span class="req">${Object.entries(p.req).map(([c,n])=>`<span class="${S.bon[c]>=n?"met":""}">${house(c)}${Math.min(S.bon[c],n)}/${n}</span>`).join("")}</span><span class="pv">${p.done?"✓":p.pts}</span></div>`).join("");
+  $("market").innerHTML=S.market.map((row,ti)=>`<div class="row"><div class="tier">${"I".repeat(ti+1)}</div>${row.map((cd,ci)=>cardHTML(cd,ti,ci)).join("")}</div>`).join("");
+  fresh.clear();
+  $("res").innerHTML=C.map(c=>{const k=sel.filter(x=>x===c).length;return `<div class="col"><button class="chip" data-tok="${c}" style="--c:var(--${c})" aria-label="Gather ${NAME[c]}, you hold ${S.tok[c]}">${icon(c,"")}<span class="count">${S.tok[c]}</span>${k?`<span class="badge">+${k}</span>`:""}</button><span class="nm">${NAME[c]}</span><span class="ws" title="Workshops">${house(c)}<b>${S.bon[c]}</b></span></div>`}).join("");
+  renderBar();
+}
+function pipText(o){return Object.entries(o).filter(([,v])=>v>0).map(([c,v])=>`${v} ${icon(c)}`).join(" ")}
+function renderBar(){
+  const act=$("act"),msg=$("msg"),clr=$("clear");
+  clr.hidden=!(sel.length||selCard);
+  if(selCard){
+    const cd=S.market[selCard[0]][selCard[1]],sh=short(cd);
+    act.textContent="Build";act.disabled=!!sh;
+    msg.innerHTML=sh?`<b>${cd.name}</b><br><span class="sub">Missing ${pipText(sh)}</span>`:`<b>${cd.name}</b>: pay ${pipText(need(cd))||"nothing"}<br><span class="sub">+1 ${NAME[cd.bonus]} discount forever${cd.pts?`, +${cd.pts} prestige`:""}</span>`;
+  }else if(sel.length){
+    act.textContent="Gather";act.disabled=false;
+    const same=sel.length===2&&sel[0]===sel[1];
+    msg.innerHTML=`Gather ${pipText(sel.reduce((o,c)=>(o[c]=(o[c]||0)+1,o),{}))}<br><span class="sub">${same?"Two of a kind.":sel.length<3?"Up to 3 different, or tap again for 2 of one.":"Three different."}</span>`;
+  }else{
+    act.textContent="Gather";act.disabled=true;
+    msg.innerHTML=`Tap goods to gather, or a workshop to build.<br><span class="sub">Green frame: you can build it now.</span>`;
+  }
+}
+function tapTok(c){
+  selCard=null;
+  const has=sel.includes(c), room=CAP-tokTotal()-sel.length;
+  if(sel.length===1&&sel[0]===c){ if(room>0)sel.push(c); else sel=[]; }
+  else if(sel.length===2&&sel[0]===sel[1]){ sel=sel[0]===c?[]:[c]; }
+  else if(has){ sel=sel.filter(x=>x!==c); }
+  else if(sel.length<3){ if(room>0)sel.push(c); else toast("Your stores hold at most 10 goods. Build something."); }
+  else { sel=[c]; }
+  render();
+}
+function tapCard(r,c){ sel=[]; selCard=(selCard&&selCard[0]===r&&selCard[1]===c)?null:[r,c]; render(); }
+
+function endTurn(){
+  for(const p of S.patrons){ if(!p.done&&Object.entries(p.req).every(([c,n])=>S.bon[c]>=n)){p.done=true;S.score+=p.pts;toast(`${p.title||"A patron"} visits your guild: +3 prestige`)} }
+  S.turn++; sel=[]; selCard=null;
+  if(S.turn>TURNS){ S.over=true; }
+  save(); render();
+  if(S.over) showEnd();
+}
+function act(){
+  if(selCard){
+    const [r,c]=selCard, cd=S.market[r][c]; if(short(cd))return;
+    const n=need(cd); for(const k in n)S.tok[k]-=n[k];
+    S.bon[cd.bonus]++; S.score+=cd.pts; S.built++;
+    const nc=makeCard(cd.t); S.market[r][c]=nc; fresh.add(nc.id);
+    if(cd.pts)toast(`Built the ${cd.name}: +${cd.pts} prestige`);
+    endTurn();
+  }else if(sel.length){
+    sel.forEach(k=>S.tok[k]++); endTurn();
+  }
+}
+let tt;function toast(t){const el=$("toast");el.textContent=t;el.classList.add("on");clearTimeout(tt);tt=setTimeout(()=>el.classList.remove("on"),1900)}
+
+function rank(s){return s>=28?"Guildmaster":s>=20?"Master Builder":s>=13?"Journeyman":s>=7?"Apprentice":"Hopeful"}
+function sheet(html){$("sheetbox").innerHTML=html;$("sheet").hidden=false}
+function closeSheet(){$("sheet").hidden=true}
+const hero=`<div class="hero"><svg viewBox="0 0 200 96" preserveAspectRatio="xMidYMid slice"><use href="#hero"/></svg></div>`;
+function showEnd(){
+  const prev=best(), rec=S.score>prev; if(rec)store.set("guildhall.best",S.score);
+  sheet(`${hero}<div class="label">Season over · ${S.built} workshops built</div><div class="big">${S.score}</div><h2>${rank(S.score)}</h2><p>${rec?(prev?`A new best, beating ${prev}.`:"Your first recorded season."):`Your best so far is ${prev}.`}</p><div class="btns"><button class="btn" id="again">Play again</button></div>`);
+  $("again").onclick=()=>{closeSheet();start(null)};
+  render();
+}
+function showHelp(first){
+  sheet(`${hero}<h2>Little Guildhall</h2><p>Grow a guild of workshops in ${TURNS} turns. Each turn, do one thing:</p><ul><li><b>Gather</b> 3 different goods, or 2 of the same.</li><li><b>Build</b> a workshop by paying its cost.</li></ul><p>Each workshop makes its good 1 cheaper for the rest of the game. Workshops with a gold coin are worth prestige. Patrons visit when your workshop counts match theirs, for +3. You can hold 10 goods at most.</p><div class="btns"><button class="btn" id="ok">${first?"Start":"Back to the game"}</button></div>`);
+  $("ok").onclick=()=>{store.set("guildhall.seen","1");closeSheet()};
+}
+function confirmRestart(){
+  sheet(`<h2>Start a new season?</h2><p>This game will be lost.</p><div class="btns"><button class="btn ghost" id="no">Keep playing</button><button class="btn" id="yes">New game</button></div>`);
+  $("no").onclick=closeSheet; $("yes").onclick=()=>{closeSheet();start(null)};
+}
+function save(){store.set("guildhall.game",JSON.stringify(S))}
+
+// Walnut table texture, generated once.
+(function(){
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="600" height="900"><filter id="w"><feTurbulence type="fractalNoise" baseFrequency="0.006 0.09" numOctaves="4" seed="7"/><feColorMatrix values="0 0 0 0 .22  0 0 0 0 .14  0 0 0 0 .08  0 0 0 -1.1 1.05"/></filter><rect width="100%" height="100%" fill="#2e1f15"/><rect width="100%" height="100%" filter="url(#w)" opacity=".85"/><radialGradient id="v" cx=".5" cy=".4" r=".75"><stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".55"/></radialGradient><rect width="100%" height="100%" fill="url(#v)"/></svg>`;
+  document.body.style.backgroundImage=`url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+})();
+
+$("market").addEventListener("click",e=>{const b=e.target.closest(".card");if(b&&!S.over)tapCard(+b.dataset.r,+b.dataset.c)});
+$("res").addEventListener("click",e=>{const b=e.target.closest("[data-tok]");if(b&&!S.over)tapTok(b.dataset.tok)});
+$("act").onclick=act;
+$("clear").onclick=()=>{sel=[];selCard=null;render()};
+$("help").onclick=()=>showHelp(false);
+$("restart").onclick=confirmRestart;
+
+function start(data){
+  let g=data&&data.S;
+  if(!g&&data!==null){try{const s=JSON.parse(store.get("guildhall.game"));if(s&&!s.over)g=s}catch(e){}}
+  S=g||newGame(); sel=[]; selCard=null;
+  S.patrons.forEach((p,i)=>{if(!p.face){p.face=PATRONS[i][0];p.title=PATRONS[i][1]}});
+  uid=Math.max(uid,...S.market.flat().map(c=>c.id));
+  save(); render();
+  if(!store.get("guildhall.seen")&&data!==null)showHelp(true);
+}
+window.claude?.hot?.snapshot?.(()=>({S}));
+window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+</script>
+
+
+</body>
+</html>

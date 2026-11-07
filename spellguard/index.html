@@ -1,0 +1,962 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<title>Spellguard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800&display=swap">
+<style>
+/* Layout: one full-screen canvas stage (castle wall left, training dummy right) with an HTML HUD and pop-up parchment panels on top.
+   Single committed look: storybook night courtyard, thick ink outlines. */
+:root{
+  --night:#1a1340;
+  --ink:#140d2e;
+  --parchment:#fff4d6;
+  --parchment-2:#f3e2b8;
+  --gold:#ffcc3d;
+  --plum:#7b4fd6;
+  --muted:#6a5a8c;
+  --font-display:"Lilita One","Arial Rounded MT Bold","Trebuchet MS",sans-serif;
+  --font-body:"Nunito","Segoe UI",system-ui,sans-serif;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html,body{height:100%;overscroll-behavior:none}
+body{background:var(--night);color:var(--parchment);font-family:var(--font-body);overflow:hidden;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+#stage{position:relative;width:100%;height:100%;overflow:hidden;touch-action:none}
+#game{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:crosshair}
+
+.hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;
+  padding-top:10px;padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px));pointer-events:none}
+.chip{font-family:var(--font-display);font-size:15px;letter-spacing:.03em;background:rgba(20,13,46,.72);border:2px solid rgba(255,244,214,.25);
+  border-radius:999px;padding:6px 12px;color:var(--parchment);white-space:nowrap}
+.hud-right{display:flex;gap:6px;align-items:center}
+.chip b{color:var(--gold);font-weight:400;font-variant-numeric:tabular-nums}
+.icon-btn{pointer-events:auto;font-family:var(--font-display);font-size:14px;background:rgba(20,13,46,.72);color:var(--parchment);
+  border:2px solid rgba(255,244,214,.25);border-radius:999px;padding:6px 10px;cursor:pointer}
+.icon-btn:focus-visible,.btn:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+
+.prompt{position:absolute;left:50%;bottom:calc(14px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);
+  display:flex;align-items:center;gap:10px;background:var(--parchment);color:var(--ink);border:3px solid var(--ink);border-radius:999px;
+  box-shadow:0 5px 0 var(--ink);padding:8px 18px 8px 10px;pointer-events:none;max-width:calc(100% - 32px)}
+.prompt .swatch{width:40px;height:40px;border-radius:50%;border:3px solid var(--ink);flex:none;display:grid;place-items:center;font-size:22px;line-height:1;color:var(--ink)}
+.prompt .txt{display:flex;flex-direction:column;min-width:0}
+.prompt .name{font-family:var(--font-display);font-size:20px;line-height:1.05}
+.prompt .how{font-size:12.5px;font-weight:800;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.overlay{position:absolute;inset:0;display:grid;place-items:center;background:rgba(14,9,36,.62);
+  padding-block:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-bottom,0px));
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));touch-action:pan-y}
+.panel{background:var(--parchment);color:var(--ink);border:4px solid var(--ink);border-radius:24px;box-shadow:0 8px 0 var(--ink);
+  width:100%;max-width:760px;max-height:100%;overflow:auto;padding:22px;animation:pop .45s cubic-bezier(.2,1.6,.4,1) both;touch-action:pan-y}
+.panel.narrow{max-width:460px;text-align:center}
+@keyframes pop{from{transform:scale(.7) rotate(-2deg);opacity:0}to{transform:none;opacity:1}}
+.eyebrow{font-family:var(--font-display);font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:var(--plum)}
+h1,h2{font-family:var(--font-display);font-weight:400;text-wrap:balance;margin:4px 0 8px;line-height:1}
+h1{font-size:clamp(48px,13vw,84px);color:var(--gold);-webkit-text-stroke:3px var(--ink);paint-order:stroke fill;text-shadow:0 6px 0 var(--ink);letter-spacing:.02em}
+h2{font-size:clamp(28px,7vw,40px)}
+.panel p{font-size:16px;line-height:1.45;margin:6px 0 14px;font-weight:600}
+.actions{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:16px}
+.btn{font-family:var(--font-display);font-size:22px;letter-spacing:.02em;color:var(--ink);background:var(--gold);border:3px solid var(--ink);
+  border-radius:999px;box-shadow:0 5px 0 var(--ink);padding:12px 28px;cursor:pointer;transition:transform .08s}
+.btn:active{transform:translateY(3px);box-shadow:0 2px 0 var(--ink)}
+.btn.ghost{background:var(--parchment-2)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-top:10px}
+.card{cursor:pointer;background:#fff;border:3px solid var(--ink);border-radius:18px;padding:10px 10px 12px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;min-width:0}
+.card canvas{width:120px;height:120px;border-radius:14px;background:var(--night);border:3px solid var(--ink)}
+.card .el{font-family:var(--font-display);font-size:12px;letter-spacing:.1em;text-transform:uppercase;padding:2px 10px;border-radius:999px;border:2px solid var(--ink);margin-top:4px}
+.card .nm{font-family:var(--font-display);font-size:22px;line-height:1}
+.card .kana,.prompt .swatch{font-family:"Hiragino Maru Gothic ProN","Hiragino Sans","Yu Gothic","Noto Sans JP","Noto Sans CJK JP",sans-serif;font-weight:700}
+.card .sp{font-family:var(--font-display);font-size:16px;color:var(--plum)}
+.credit{font-size:12px!important;color:var(--muted);margin-bottom:0!important}
+.credit a{color:var(--plum)}
+.card .role{font-size:14px;line-height:1.3;font-weight:800}
+.card .hw{font-size:12.5px;line-height:1.3;color:var(--muted);font-weight:700}
+.card .tier{font-size:11px;color:var(--muted);font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.stars{font-size:44px;letter-spacing:6px;color:var(--gold);-webkit-text-stroke:2px var(--ink);paint-order:stroke fill;line-height:1}
+.stars .off{color:#d9cdb0}
+.stats{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;font-weight:800;font-variant-numeric:tabular-nums}
+.stats span b{font-family:var(--font-display);font-weight:400;font-size:24px;display:block}
+@media (max-width:520px){
+  .chip,.icon-btn{font-size:13px;padding:5px 9px}
+  .hud-right{gap:4px}
+  .cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .card canvas{width:96px;height:96px}
+  .card .nm{font-size:19px}
+  .panel{padding:16px}
+  .btn{font-size:20px;padding:11px 24px}
+}
+@media (prefers-reduced-motion:reduce){.panel{animation:none}}
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="game" aria-label="Spell drawing area"></canvas>
+  <div class="hud" id="hud" hidden>
+    <div class="chip" id="lessonChip">Lesson 1</div>
+    <div class="hud-right">
+      <div class="chip">Score <b id="score">0</b></div>
+      <div class="chip">Streak <b id="streak">0</b></div>
+      <button class="icon-btn" id="muteBtn" type="button" aria-label="Toggle sound">Sound</button>
+    </div>
+  </div>
+  <div class="prompt" id="prompt" hidden>
+    <div class="swatch" id="pSwatch"></div>
+    <div class="txt"><div class="name" id="pName">Write tsu</div><div class="how" id="pHow">1 stroke</div></div>
+  </div>
+  <div class="overlay" id="overlay"></div>
+</div>
+
+<script>
+"use strict";
+// ============ RECOGNIZER-START ============
+// Spells are hiragana. Each one is cast by writing a character whose sound starts the Japanese word for its element.
+// Stroke paths (in stroke order, 0..1 box) are sampled from KanjiVG by Ulrich Apel, CC BY-SA 3.0, https://kanjivg.tagaini.net
+const TAU = Math.PI * 2;
+const KANA_STROKES = {
+  'つ': [[[0.128,0.411],[0.162,0.424],[0.198,0.418],[0.232,0.404],[0.266,0.39],[0.3,0.377],[0.335,0.365],[0.37,0.353],[0.405,0.343],[0.441,0.334],[0.477,0.327],[0.513,0.322],[0.55,0.318],[0.586,0.316],[0.623,0.317],[0.659,0.32],[0.695,0.329],[0.729,0.343],[0.761,0.362],[0.787,0.387],[0.808,0.417],[0.82,0.452],[0.824,0.488],[0.821,0.525],[0.811,0.56],[0.795,0.593],[0.773,0.622],[0.747,0.648],[0.719,0.672],[0.688,0.692],[0.656,0.71],[0.623,0.726],[0.589,0.74],[0.554,0.752],[0.519,0.763],[0.484,0.772],[0.448,0.78],[0.412,0.787]]],
+  'ひ': [[[0.183,0.23],[0.217,0.245],[0.253,0.24],[0.288,0.228],[0.322,0.214],[0.356,0.198],[0.391,0.188],[0.402,0.216],[0.381,0.246],[0.358,0.275],[0.336,0.304],[0.315,0.335],[0.295,0.366],[0.276,0.398],[0.259,0.431],[0.244,0.464],[0.231,0.499],[0.221,0.534],[0.213,0.571],[0.21,0.607],[0.211,0.644],[0.217,0.68],[0.23,0.715],[0.25,0.746],[0.276,0.772],[0.307,0.793],[0.341,0.807],[0.377,0.816],[0.413,0.819],[0.45,0.815],[0.485,0.805],[0.518,0.788],[0.549,0.767],[0.576,0.742],[0.6,0.714],[0.62,0.683],[0.638,0.651],[0.654,0.618],[0.667,0.583],[0.677,0.547],[0.685,0.512],[0.692,0.475],[0.696,0.439],[0.699,0.402],[0.701,0.365],[0.701,0.328],[0.699,0.291],[0.698,0.254],[0.697,0.217],[0.709,0.204],[0.723,0.238],[0.735,0.273],[0.747,0.308],[0.761,0.342],[0.777,0.375],[0.795,0.407],[0.815,0.439],[0.837,0.469],[0.86,0.497],[0.885,0.524]]],
+  'く': [[[0.557,0.138],[0.558,0.174],[0.545,0.209],[0.523,0.239],[0.501,0.269],[0.479,0.299],[0.457,0.328],[0.434,0.357],[0.411,0.387],[0.388,0.416],[0.365,0.445],[0.349,0.478],[0.357,0.514],[0.378,0.544],[0.399,0.574],[0.42,0.605],[0.441,0.636],[0.461,0.667],[0.481,0.699],[0.5,0.73],[0.519,0.762],[0.538,0.794],[0.555,0.827],[0.571,0.86]]],
+  'そ': [[[0.352,0.202],[0.388,0.21],[0.424,0.205],[0.46,0.195],[0.495,0.185],[0.531,0.175],[0.566,0.165],[0.602,0.155],[0.638,0.159],[0.643,0.192],[0.617,0.218],[0.589,0.242],[0.56,0.265],[0.531,0.288],[0.502,0.311],[0.473,0.334],[0.443,0.356],[0.414,0.378],[0.384,0.399],[0.354,0.421],[0.323,0.442],[0.293,0.463],[0.262,0.484],[0.233,0.506],[0.244,0.524],[0.28,0.517],[0.316,0.508],[0.351,0.499],[0.387,0.49],[0.423,0.481],[0.459,0.473],[0.495,0.465],[0.531,0.457],[0.568,0.45],[0.604,0.443],[0.64,0.437],[0.677,0.431],[0.713,0.425],[0.75,0.421],[0.787,0.418],[0.786,0.427],[0.75,0.434],[0.713,0.44],[0.677,0.449],[0.642,0.461],[0.608,0.475],[0.576,0.492],[0.544,0.512],[0.514,0.534],[0.487,0.558],[0.462,0.586],[0.443,0.617],[0.43,0.651],[0.427,0.688],[0.433,0.725],[0.447,0.758],[0.47,0.787],[0.5,0.809],[0.533,0.825],[0.569,0.834],[0.606,0.839],[0.642,0.839],[0.679,0.836],[0.716,0.83]]],
+  'こ': [[[0.319,0.245],[0.353,0.26],[0.391,0.256],[0.428,0.25],[0.465,0.244],[0.503,0.24],[0.54,0.236],[0.578,0.235],[0.616,0.236],[0.651,0.246],[0.631,0.273],[0.597,0.29],[0.562,0.305],[0.526,0.318]],[[0.275,0.625],[0.284,0.661],[0.3,0.695],[0.324,0.724],[0.354,0.747],[0.388,0.763],[0.424,0.773],[0.461,0.778],[0.498,0.781],[0.536,0.78],[0.573,0.778],[0.611,0.774],[0.648,0.769],[0.685,0.761],[0.721,0.752]]],
+  'い': [[[0.197,0.272],[0.215,0.303],[0.217,0.339],[0.212,0.375],[0.208,0.411],[0.206,0.447],[0.205,0.483],[0.206,0.519],[0.211,0.555],[0.218,0.591],[0.229,0.625],[0.244,0.658],[0.264,0.689],[0.286,0.717],[0.313,0.742],[0.343,0.744],[0.351,0.709],[0.354,0.673]],[[0.669,0.335],[0.696,0.359],[0.722,0.385],[0.746,0.412],[0.768,0.442],[0.788,0.472],[0.804,0.505],[0.818,0.538],[0.828,0.573],[0.835,0.609],[0.838,0.645]]],
+  'ら': [[[0.324,0.138],[0.357,0.157],[0.393,0.169],[0.431,0.175],[0.469,0.177],[0.508,0.177],[0.499,0.193],[0.464,0.209]],[[0.329,0.328],[0.315,0.362],[0.306,0.398],[0.301,0.435],[0.299,0.472],[0.297,0.508],[0.294,0.545],[0.289,0.582],[0.282,0.618],[0.274,0.654],[0.275,0.689],[0.302,0.663],[0.33,0.639],[0.36,0.618],[0.391,0.598],[0.423,0.58],[0.457,0.566],[0.493,0.555],[0.529,0.548],[0.566,0.543],[0.602,0.542],[0.639,0.545],[0.675,0.554],[0.708,0.571],[0.735,0.595],[0.754,0.627],[0.761,0.663],[0.758,0.7],[0.747,0.735],[0.728,0.767],[0.703,0.794],[0.674,0.817],[0.642,0.835],[0.608,0.849],[0.572,0.86],[0.536,0.868],[0.5,0.873],[0.463,0.876]]],
+  'ゆ': [[[0.193,0.233],[0.208,0.266],[0.204,0.302],[0.196,0.338],[0.19,0.374],[0.184,0.41],[0.181,0.446],[0.179,0.483],[0.179,0.519],[0.181,0.556],[0.185,0.592],[0.19,0.628],[0.196,0.664],[0.204,0.692],[0.207,0.656],[0.211,0.62],[0.222,0.585],[0.237,0.552],[0.255,0.519],[0.274,0.488],[0.295,0.458],[0.318,0.43],[0.343,0.404],[0.37,0.379],[0.399,0.357],[0.43,0.337],[0.462,0.319],[0.495,0.305],[0.53,0.294],[0.566,0.286],[0.602,0.282],[0.639,0.281],[0.675,0.285],[0.71,0.294],[0.743,0.31],[0.772,0.332],[0.795,0.36],[0.812,0.393],[0.822,0.428],[0.825,0.465],[0.823,0.501],[0.817,0.537],[0.805,0.571],[0.787,0.603],[0.763,0.631],[0.734,0.654],[0.702,0.671],[0.668,0.683],[0.632,0.689],[0.595,0.69],[0.559,0.686],[0.523,0.677],[0.489,0.663],[0.458,0.644],[0.431,0.62]],[[0.536,0.154],[0.561,0.18],[0.568,0.216],[0.571,0.253],[0.574,0.289],[0.576,0.326],[0.578,0.363],[0.58,0.399],[0.582,0.436],[0.583,0.473],[0.583,0.51],[0.583,0.546],[0.58,0.583],[0.576,0.619],[0.57,0.656],[0.561,0.691],[0.549,0.726],[0.534,0.759],[0.515,0.791],[0.493,0.82],[0.469,0.849]]],
+  'み': [[[0.298,0.239],[0.331,0.252],[0.368,0.249],[0.404,0.241],[0.439,0.231],[0.474,0.22],[0.51,0.221],[0.515,0.255],[0.504,0.29],[0.491,0.324],[0.478,0.359],[0.464,0.393],[0.45,0.427],[0.436,0.461],[0.422,0.495],[0.408,0.529],[0.394,0.562],[0.378,0.596],[0.361,0.628],[0.343,0.66],[0.322,0.691],[0.3,0.719],[0.274,0.745],[0.244,0.767],[0.21,0.781],[0.174,0.781],[0.145,0.759],[0.133,0.725],[0.136,0.688],[0.151,0.655],[0.176,0.628],[0.208,0.61],[0.242,0.598],[0.278,0.59],[0.315,0.587],[0.352,0.585],[0.388,0.587],[0.425,0.59],[0.461,0.596],[0.498,0.602],[0.534,0.609],[0.57,0.617],[0.605,0.626],[0.64,0.636],[0.675,0.648],[0.71,0.66],[0.744,0.674],[0.777,0.69],[0.81,0.706],[0.843,0.722]],[[0.728,0.502],[0.732,0.538],[0.724,0.574],[0.714,0.609],[0.702,0.643],[0.687,0.677],[0.671,0.71],[0.653,0.741],[0.632,0.771],[0.609,0.799],[0.584,0.825],[0.556,0.849],[0.525,0.869]]],
+  'す': [[[0.142,0.341],[0.175,0.353],[0.211,0.352],[0.246,0.346],[0.281,0.338],[0.317,0.331],[0.352,0.325],[0.387,0.32],[0.422,0.314],[0.458,0.309],[0.493,0.305],[0.529,0.3],[0.565,0.296],[0.6,0.292],[0.636,0.289],[0.671,0.285],[0.707,0.281],[0.743,0.279],[0.778,0.279],[0.814,0.281],[0.85,0.284]],[[0.529,0.123],[0.55,0.151],[0.554,0.187],[0.554,0.224],[0.554,0.26],[0.554,0.296],[0.554,0.333],[0.554,0.369],[0.554,0.406],[0.554,0.442],[0.554,0.478],[0.554,0.515],[0.554,0.551],[0.55,0.587],[0.536,0.621],[0.512,0.648],[0.478,0.66],[0.444,0.649],[0.421,0.622],[0.412,0.587],[0.411,0.55],[0.421,0.515],[0.444,0.488],[0.478,0.475],[0.513,0.483],[0.541,0.506],[0.56,0.537],[0.571,0.572],[0.575,0.608],[0.575,0.644],[0.57,0.68],[0.561,0.715],[0.547,0.749],[0.529,0.78],[0.507,0.809],[0.483,0.836],[0.456,0.862],[0.429,0.886]]],
+  'や': [[[0.165,0.453],[0.198,0.468],[0.234,0.465],[0.267,0.45],[0.3,0.434],[0.333,0.417],[0.365,0.401],[0.398,0.385],[0.431,0.369],[0.464,0.353],[0.497,0.338],[0.531,0.325],[0.565,0.312],[0.6,0.301],[0.635,0.292],[0.671,0.287],[0.708,0.284],[0.744,0.287],[0.78,0.295],[0.812,0.311],[0.839,0.336],[0.854,0.369],[0.856,0.406],[0.846,0.441],[0.826,0.471],[0.8,0.496],[0.77,0.517],[0.738,0.534],[0.703,0.547],[0.668,0.556],[0.632,0.561]],[[0.432,0.146],[0.462,0.153],[0.491,0.166],[0.517,0.182],[0.537,0.205],[0.542,0.234],[0.511,0.23]],[[0.275,0.224],[0.301,0.249],[0.314,0.283],[0.323,0.318],[0.332,0.353],[0.341,0.388],[0.351,0.422],[0.36,0.457],[0.37,0.492],[0.38,0.527],[0.39,0.562],[0.4,0.597],[0.41,0.632],[0.42,0.666],[0.43,0.701],[0.441,0.736],[0.451,0.77],[0.462,0.805],[0.473,0.84]]],
+  'に': [[[0.225,0.209],[0.237,0.243],[0.233,0.279],[0.226,0.315],[0.217,0.351],[0.209,0.386],[0.2,0.422],[0.192,0.458],[0.184,0.494],[0.178,0.53],[0.172,0.566],[0.168,0.602],[0.165,0.639],[0.166,0.675],[0.168,0.712],[0.173,0.748],[0.182,0.784],[0.205,0.774],[0.219,0.74],[0.232,0.706],[0.246,0.672]],[[0.488,0.281],[0.523,0.294],[0.561,0.29],[0.598,0.284],[0.636,0.276],[0.673,0.269],[0.711,0.264],[0.749,0.263],[0.787,0.267],[0.767,0.289],[0.732,0.304],[0.696,0.317],[0.66,0.33]],[[0.482,0.624],[0.49,0.659],[0.504,0.691],[0.526,0.719],[0.555,0.74],[0.588,0.753],[0.623,0.76],[0.658,0.763],[0.694,0.762],[0.73,0.759],[0.765,0.755],[0.8,0.749],[0.835,0.742]]],
+  'か': [[[0.226,0.354],[0.259,0.369],[0.295,0.366],[0.331,0.355],[0.366,0.345],[0.401,0.335],[0.437,0.328],[0.474,0.323],[0.511,0.324],[0.545,0.337],[0.566,0.367],[0.574,0.402],[0.576,0.439],[0.575,0.476],[0.572,0.513],[0.567,0.549],[0.561,0.585],[0.551,0.621],[0.54,0.656],[0.527,0.69],[0.512,0.724],[0.496,0.757],[0.475,0.788],[0.445,0.808],[0.413,0.792],[0.389,0.765]],[[0.445,0.161],[0.454,0.195],[0.448,0.23],[0.436,0.264],[0.423,0.297],[0.41,0.33],[0.396,0.363],[0.381,0.396],[0.367,0.429],[0.352,0.461],[0.336,0.494],[0.321,0.526],[0.305,0.558],[0.289,0.59],[0.273,0.622],[0.256,0.654],[0.239,0.685],[0.221,0.717],[0.203,0.747],[0.183,0.778]],[[0.71,0.29],[0.737,0.317],[0.763,0.346],[0.786,0.377],[0.807,0.41],[0.824,0.445],[0.838,0.481],[0.847,0.518]]],
+  'あ': [[[0.284,0.303],[0.316,0.318],[0.351,0.318],[0.386,0.315],[0.421,0.312],[0.456,0.307],[0.491,0.302],[0.525,0.296],[0.56,0.289],[0.594,0.282],[0.629,0.275],[0.664,0.275]],[[0.457,0.162],[0.47,0.196],[0.464,0.233],[0.457,0.27],[0.45,0.307],[0.444,0.344],[0.438,0.381],[0.434,0.419],[0.429,0.456],[0.426,0.493],[0.423,0.531],[0.421,0.568],[0.42,0.606],[0.42,0.643],[0.421,0.681],[0.424,0.719],[0.43,0.756],[0.439,0.792],[0.453,0.827]],[[0.602,0.405],[0.61,0.44],[0.601,0.475],[0.587,0.508],[0.572,0.541],[0.555,0.574],[0.537,0.605],[0.517,0.635],[0.495,0.664],[0.472,0.692],[0.448,0.719],[0.422,0.745],[0.396,0.77],[0.368,0.794],[0.336,0.812],[0.301,0.818],[0.267,0.807],[0.242,0.781],[0.229,0.747],[0.225,0.711],[0.229,0.675],[0.243,0.641],[0.262,0.611],[0.286,0.583],[0.313,0.559],[0.343,0.538],[0.374,0.519],[0.407,0.503],[0.44,0.489],[0.475,0.478],[0.51,0.469],[0.546,0.463],[0.582,0.461],[0.618,0.462],[0.654,0.467],[0.689,0.477],[0.723,0.491],[0.753,0.512],[0.778,0.538],[0.796,0.569],[0.807,0.604],[0.811,0.64],[0.809,0.676],[0.8,0.711],[0.785,0.744],[0.765,0.774],[0.739,0.8],[0.71,0.822],[0.679,0.839],[0.645,0.853],[0.61,0.863]]],
+  'ほ': [[[0.225,0.172],[0.24,0.205],[0.238,0.242],[0.231,0.278],[0.224,0.315],[0.218,0.351],[0.212,0.388],[0.206,0.424],[0.202,0.461],[0.198,0.498],[0.195,0.535],[0.193,0.572],[0.193,0.609],[0.193,0.646],[0.196,0.683],[0.199,0.72],[0.205,0.756],[0.211,0.793],[0.223,0.794],[0.23,0.758],[0.24,0.722],[0.255,0.688]],[[0.487,0.194],[0.52,0.207],[0.556,0.205],[0.592,0.199],[0.627,0.192],[0.663,0.185],[0.698,0.176],[0.733,0.167],[0.768,0.163]],[[0.494,0.406],[0.528,0.421],[0.565,0.42],[0.602,0.414],[0.639,0.408],[0.676,0.402],[0.712,0.395],[0.749,0.386],[0.785,0.378],[0.822,0.374]],[[0.665,0.211],[0.679,0.245],[0.68,0.282],[0.682,0.319],[0.684,0.356],[0.686,0.393],[0.688,0.43],[0.69,0.468],[0.692,0.505],[0.694,0.542],[0.695,0.579],[0.697,0.616],[0.698,0.653],[0.698,0.69],[0.689,0.726],[0.669,0.757],[0.641,0.781],[0.607,0.796],[0.571,0.806],[0.534,0.809],[0.497,0.806],[0.462,0.796],[0.432,0.775],[0.426,0.74],[0.447,0.71],[0.48,0.695],[0.517,0.689],[0.554,0.689],[0.591,0.692],[0.627,0.7],[0.663,0.711],[0.696,0.727],[0.727,0.747],[0.758,0.768],[0.788,0.789],[0.818,0.812]]],
+  'き': [[[0.28,0.278],[0.314,0.285],[0.349,0.283],[0.384,0.277],[0.419,0.27],[0.453,0.262],[0.488,0.254],[0.522,0.246],[0.556,0.237],[0.59,0.226],[0.622,0.211]],[[0.333,0.447],[0.369,0.456],[0.407,0.453],[0.444,0.446],[0.481,0.438],[0.518,0.429],[0.555,0.42],[0.592,0.411],[0.629,0.401],[0.664,0.388],[0.698,0.372]],[[0.385,0.13],[0.411,0.156],[0.427,0.189],[0.442,0.223],[0.459,0.256],[0.476,0.289],[0.495,0.321],[0.514,0.352],[0.534,0.383],[0.555,0.414],[0.577,0.444],[0.6,0.474],[0.623,0.502],[0.647,0.531],[0.671,0.558],[0.696,0.586],[0.715,0.616],[0.679,0.611],[0.644,0.599],[0.609,0.586]],[[0.31,0.764],[0.339,0.787],[0.371,0.805],[0.405,0.818],[0.441,0.827],[0.477,0.832],[0.514,0.834],[0.551,0.832],[0.588,0.827],[0.624,0.82],[0.659,0.81]]]
+};
+
+// Ordered by difficulty (stroke count and shape). `lesson` is when a spell is introduced. `role` is what it will do in castle defense.
+const SPELLS = [
+  { id: 'earth', fx: 'earth', kana: 'つ', romaji: 'tsu', word: '土', wordRomaji: 'tsuchi', element: 'Earth', name: 'Stone Wall', color: '#d39a5c', lesson: 1,
+    role: 'Repairs a crack in your castle wall.' },
+  { id: 'fire', fx: 'fire', kana: 'ひ', romaji: 'hi', word: '火', wordRomaji: 'hi', element: 'Fire', name: 'Fireball', color: '#ff8a2a', lesson: 1,
+    role: 'Scorches the monster in front.' },
+  { id: 'cloud', fx: 'water', kana: 'く', romaji: 'ku', word: '雲', wordRomaji: 'kumo', element: 'Cloud', name: 'Rain Cloud', color: '#d8def5', lesson: 2,
+    role: 'Soaks monsters so they slip and slow down.' },
+  { id: 'sky', fx: 'wind', kana: 'そ', romaji: 'so', word: '空', wordRomaji: 'sora', element: 'Sky', name: 'Sky Lift', color: '#7fd0ff', lesson: 2,
+    role: 'Lifts a monster into the air and drops it.' },
+  { id: 'ice', fx: 'ice', kana: 'こ', romaji: 'ko', word: '氷', wordRomaji: 'kōri', element: 'Ice', name: 'Frost Lock', color: '#bff3ff', lesson: 3,
+    role: 'Freezes monsters in place.' },
+  { id: 'rock', fx: 'earth', kana: 'い', romaji: 'i', word: '岩', wordRomaji: 'iwa', element: 'Rock', name: 'Boulder', color: '#a7a3b8', lesson: 3,
+    role: 'Rolls a boulder down the road.' },
+  { id: 'lightning', fx: 'lightning', kana: 'ら', romaji: 'ra', word: '雷', wordRomaji: 'rai', element: 'Lightning', name: 'Thunderbolt', color: '#ffe84a', lesson: 4,
+    role: 'Zaps one monster and jumps to the next.' },
+  { id: 'snow', fx: 'ice', kana: 'ゆ', romaji: 'yu', word: '雪', wordRomaji: 'yuki', element: 'Snow', name: 'Blizzard', color: '#f2f6ff', lesson: 4,
+    role: 'Slows every monster with deep snow.' },
+  { id: 'water', fx: 'water', kana: 'み', romaji: 'mi', word: '水', wordRomaji: 'mizu', element: 'Water', name: 'Tidal Wave', color: '#4fb6ff', lesson: 5,
+    role: 'Washes a whole row of monsters back.' },
+  { id: 'sand', fx: 'earth', kana: 'す', romaji: 'su', word: '砂', wordRomaji: 'suna', element: 'Sand', name: 'Sandstorm', color: '#f0c96a', lesson: 5,
+    role: 'Blinds monsters so they wander off the road.' },
+  { id: 'void', fx: 'void', kana: 'や', romaji: 'ya', word: '闇', wordRomaji: 'yami', element: 'Shadow', name: 'Vortex', color: '#c77dff', lesson: 6,
+    role: 'Swallows the biggest monster whole.' },
+  { id: 'rainbow', fx: 'star', kana: 'に', romaji: 'ni', word: '虹', wordRomaji: 'niji', element: 'Rainbow', name: 'Rainbow Shield', color: '#ff7ac8', lesson: 6,
+    role: 'Blocks the next hit on your castle.' },
+  { id: 'wind', fx: 'wind', kana: 'か', romaji: 'ka', word: '風', wordRomaji: 'kaze', element: 'Wind', name: 'Gust', color: '#8ff5d2', lesson: 7,
+    role: 'Blows monsters back down the road.' },
+  { id: 'storm', fx: 'lightning', kana: 'あ', romaji: 'a', word: '嵐', wordRomaji: 'arashi', element: 'Storm', name: 'Thunderstorm', color: '#9fb4ff', lesson: 7,
+    role: 'Strikes every monster in an area.' },
+  { id: 'star', fx: 'star', kana: 'ほ', romaji: 'ho', word: '星', wordRomaji: 'hoshi', element: 'Star', name: 'Starfall', color: '#fff27a', lesson: 8,
+    role: 'Rains stars on every monster.' },
+  { id: 'tree', fx: 'earth', kana: 'き', romaji: 'ki', word: '木', wordRomaji: 'ki', element: 'Tree', name: 'Thornwood', color: '#7ee07a', lesson: 8,
+    role: 'Grows thorny vines that trap monsters.' },
+];
+SPELLS.forEach(s => {
+  s.strokes = KANA_STROKES[s.kana];
+  const n = s.strokes.length;
+  s.how = `${n} stroke${n > 1 ? 's' : ''} · from ${s.word} (${s.wordRomaji}), ${s.element.toLowerCase()}`;
+});
+const SPELL = Object.fromEntries(SPELLS.map(s => [s.id, s]));
+
+// $P point-cloud recognizer (Vatavu, Anthony, Wobbrock 2012): stroke order and direction don't matter,
+// so it handles multi-stroke characters and kids who write strokes in their own order.
+const PN = 48;
+function pathLength(p) { let d = 0; for (let i = 1; i < p.length; i++) d += Math.hypot(p[i][0] - p[i - 1][0], p[i][1] - p[i - 1][1]); return d; }
+function bbox(p) { let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; for (const [x, y] of p) { if (x < x0) x0 = x; if (y < y0) y0 = y; if (x > x1) x1 = x; if (y > y1) y1 = y; } return { x0, y0, w: x1 - x0, h: y1 - y0 }; }
+// Resample a list of strokes into n points spread evenly along the total ink, never bridging the gap between strokes.
+function resampleStrokes(strokes, n) {
+  const total = strokes.reduce((t, st) => t + pathLength(st), 0);
+  if (total === 0) return Array.from({ length: n }, () => strokes[0][0].slice());
+  const I = total / (n - 1), out = [];
+  let D = 0;
+  for (const st of strokes) {
+    const src = st.map(q => q.slice());
+    if (!out.length) out.push(src[0].slice());
+    for (let i = 1; i < src.length; i++) {
+      const a = src[i - 1], b = src[i], d = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      if (d > 0 && D + d >= I) {
+        const t = (I - D) / d, q = [a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1])];
+        out.push(q); src.splice(i, 0, q); D = 0;
+      } else D += d;
+    }
+  }
+  const lastSt = strokes[strokes.length - 1];
+  while (out.length < n) out.push(lastSt[lastSt.length - 1].slice());
+  return out.slice(0, n);
+}
+function cloudNormalize(strokes) {
+  let p = resampleStrokes(strokes, PN);
+  const b = bbox(p), m = Math.max(b.w, b.h) || 1;
+  p = p.map(([x, y]) => [(x - b.x0) / m, (y - b.y0) / m]);
+  let cx = 0, cy = 0; for (const [x, y] of p) { cx += x; cy += y; } cx /= p.length; cy /= p.length;
+  return { pts: p.map(([x, y]) => [x - cx, y - cy]), aspect: b.w / (b.h || 1e-6) };
+}
+function cloudDistance(a, b, start) {
+  const n = a.length, matched = new Uint8Array(n); let sum = 0, i = start;
+  do {
+    let min = Infinity, index = -1;
+    for (let j = 0; j < n; j++) if (!matched[j]) { const d = Math.hypot(a[i][0] - b[j][0], a[i][1] - b[j][1]); if (d < min) { min = d; index = j; } }
+    matched[index] = 1;
+    sum += (1 - ((i - start + n) % n) / n) * min;
+    i = (i + 1) % n;
+  } while (i !== start);
+  return sum;
+}
+function greedyCloudMatch(a, b) {
+  const step = Math.floor(Math.pow(a.length, 0.5)); let min = Infinity;
+  for (let i = 0; i < a.length; i += step) min = Math.min(min, cloudDistance(a, b, i), cloudDistance(b, a, i));
+  return min;
+}
+const TEMPLATES = SPELLS.map(s => ({ id: s.id, n: s.strokes.length, ...cloudNormalize(s.strokes) }));
+const ACCEPT = 0.68;
+// Characters with more strokes get a little more room for wobble.
+const acceptFor = id => ACCEPT - 0.02 * (SPELL[id].strokes.length - 1);
+// strokes: array of strokes, each an array of [x, y]. Returns { id, score } (score 0..1) for the best match.
+function recognize(strokes) {
+  strokes = strokes.filter(st => st.length > 1);
+  if (!strokes.length) return null;
+  const c = cloudNormalize(strokes);
+  let best = null;
+  for (const t of TEMPLATES) {
+    let d = greedyCloudMatch(c.pts, t.pts);
+    // Gentle penalties: a stroke count far from the character's, or a very different width-to-height shape.
+    d *= 1 + 0.12 * Math.max(0, Math.abs(strokes.length - t.n) - 1);
+    d *= 1 + 0.35 * Math.abs(Math.log(c.aspect / t.aspect));
+    if (!best || d < best.d) best = { id: t.id, d };
+  }
+  return { id: best.id, score: Math.max(0, 1 - best.d / 8) };
+}
+// ============ RECOGNIZER-END ============
+
+// ---------- Lessons (later these become waves) ----------
+const LESSONS = [
+  { title: 'Earth and Fire', newSpells: ['earth', 'fire'], count: 5 },
+  { title: 'Cloud and Sky', newSpells: ['cloud', 'sky'], count: 6 },
+  { title: 'Ice and Rock', newSpells: ['ice', 'rock'], count: 6 },
+  { title: 'Lightning and Snow', newSpells: ['lightning', 'snow'], count: 7 },
+  { title: 'Water and Sand', newSpells: ['water', 'sand'], count: 7 },
+  { title: 'Shadow and Rainbow', newSpells: ['void', 'rainbow'], count: 8 },
+  { title: 'Wind and Storm', newSpells: ['wind', 'storm'], count: 8 },
+  { title: 'Stars and Trees', newSpells: ['star', 'tree'], count: 9 },
+];
+const MASTER = { title: 'Master trial', newSpells: [], count: 10 };
+
+// ---------- Canvas setup ----------
+const INK = '#140d2e';
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const bgCanvas = document.createElement('canvas');
+const bgCtx = bgCanvas.getContext('2d');
+let W = 0, H = 0, DPR = 1, S = 1;
+const scene = { groundY: 0, wizX: 0, wizY: 0, dumX: 0, dumY: 0, bubbleY: 0, bubbleR: 0 };
+let starsBg = [];
+
+function resize() {
+  const r = canvas.getBoundingClientRect();
+  W = Math.max(1, r.width); H = Math.max(1, r.height);
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  canvas.width = Math.round(W * DPR); canvas.height = Math.round(H * DPR);
+  bgCanvas.width = canvas.width; bgCanvas.height = canvas.height;
+  const portrait = H > W;
+  S = Math.max(0.62, Math.min(1.35, Math.min(W / 950, H / 640)));
+  if (portrait) S = Math.max(0.62, Math.min(1.1, W / 560));
+  scene.groundY = H * (portrait ? 0.8 : 0.82);
+  const wallH = 70 * S;
+  scene.wizX = Math.max(56 * S + 10, W * 0.16);
+  scene.wizY = scene.groundY - wallH;
+  scene.wallW = scene.wizX + 70 * S;
+  scene.dumX = Math.min(W - 50 * S, W * 0.8);
+  scene.dumY = scene.groundY;
+  scene.bubbleR = Math.max(36, 50 * S);
+  scene.bubbleY = scene.dumY - 150 * S - scene.bubbleR;
+  starsBg = Array.from({ length: Math.round(W * H / 9000) }, () => ({ x: Math.random() * W, y: Math.random() * scene.groundY * 0.85, r: Math.random() * 1.6 + 0.4, p: Math.random() * TAU }));
+  drawBackground();
+}
+
+function drawBackground() {
+  const c = bgCtx; c.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const g = c.createLinearGradient(0, 0, 0, scene.groundY);
+  g.addColorStop(0, '#120b36'); g.addColorStop(0.55, '#33227a'); g.addColorStop(1, '#a8508f');
+  c.fillStyle = g; c.fillRect(0, 0, W, H);
+  // moon
+  const mx = W * 0.62, my = H * 0.17, mr = 34 * S;
+  const mg = c.createRadialGradient(mx, my, mr * 0.5, mx, my, mr * 3.5);
+  mg.addColorStop(0, 'rgba(255,240,200,.35)'); mg.addColorStop(1, 'rgba(255,240,200,0)');
+  c.fillStyle = mg; c.fillRect(mx - mr * 4, my - mr * 4, mr * 8, mr * 8);
+  c.fillStyle = '#fff1c9'; c.beginPath(); c.arc(mx, my, mr, 0, TAU); c.fill();
+  c.fillStyle = 'rgba(214,190,140,.55)';
+  [[-0.3, -0.2, 0.22], [0.35, 0.15, 0.16], [-0.05, 0.4, 0.12]].forEach(([dx, dy, rr]) => { c.beginPath(); c.arc(mx + dx * mr, my + dy * mr, rr * mr, 0, TAU); c.fill(); });
+  // far hills
+  hills(c, scene.groundY - 60 * S, 70 * S, '#3a2470', 0.004);
+  hills(c, scene.groundY - 25 * S, 50 * S, '#4b2d7d', 0.007);
+  // ground
+  c.fillStyle = '#2f7a5a'; c.strokeStyle = INK; c.lineWidth = 4;
+  c.beginPath(); c.moveTo(0, scene.groundY); c.lineTo(W, scene.groundY); c.lineTo(W, H); c.lineTo(0, H); c.closePath(); c.fill(); c.stroke();
+  c.fillStyle = '#25634a';
+  for (let x = 10; x < W; x += 38) { c.beginPath(); c.ellipse(x + (x * 7) % 13, scene.groundY + 22 + (x % 3) * 10, 10, 4, 0, 0, TAU); c.fill(); }
+  // dirt road toward the castle
+  c.fillStyle = '#b98a5a';
+  c.beginPath(); c.moveTo(scene.wallW, scene.groundY + 2); c.lineTo(W, scene.groundY + 2); c.lineTo(W, scene.groundY + 34 * S); c.quadraticCurveTo(W * 0.6, scene.groundY + 22 * S, scene.wallW, scene.groundY + 26 * S); c.closePath(); c.fill();
+  // castle wall with battlements
+  const top = scene.wizY, ww = scene.wallW;
+  c.fillStyle = '#7172b4'; c.strokeStyle = INK; c.lineWidth = 4;
+  c.beginPath(); c.rect(-10, top, ww + 10, H - top + 10); c.fill(); c.stroke();
+  const mw = 26 * S, mh = 20 * S;
+  for (let x = -6; x < ww - mw * 0.5; x += mw * 1.7) { c.beginPath(); c.rect(x, top - mh, mw, mh + 2); c.fill(); c.stroke(); }
+  c.strokeStyle = 'rgba(20,13,46,.35)'; c.lineWidth = 2;
+  const bh = 22 * S;
+  for (let y = top + bh, row = 0; y < H; y += bh, row++) {
+    c.beginPath(); c.moveTo(0, y); c.lineTo(ww, y); c.stroke();
+    for (let x = (row % 2) * 24 * S; x < ww; x += 48 * S) { c.beginPath(); c.moveTo(x, y - bh); c.lineTo(x, y); c.stroke(); }
+  }
+  // tower behind the wizard
+  c.fillStyle = '#5f5fa3'; c.strokeStyle = INK; c.lineWidth = 4;
+  const tx = scene.wizX - 95 * S;
+  if (tx > -60 * S) {
+    c.beginPath(); c.rect(tx - 30 * S, top - 150 * S, 60 * S, 150 * S); c.fill(); c.stroke();
+    c.fillStyle = '#e2556b'; c.beginPath(); c.moveTo(tx - 40 * S, top - 150 * S); c.lineTo(tx, top - 215 * S); c.lineTo(tx + 40 * S, top - 150 * S); c.closePath(); c.fill(); c.stroke();
+    c.fillStyle = '#ffd25a'; c.beginPath(); c.roundRect(tx - 9 * S, top - 115 * S, 18 * S, 28 * S, [9 * S, 9 * S, 0, 0]); c.fill(); c.stroke();
+  }
+}
+function hills(c, base, amp, color, f) {
+  c.fillStyle = color; c.beginPath(); c.moveTo(0, H);
+  for (let x = 0; x <= W + 20; x += 20) c.lineTo(x, base - amp * (0.5 + 0.5 * Math.sin(x * f + color.length)) * (0.6 + 0.4 * Math.sin(x * f * 2.3)));
+  c.lineTo(W, H); c.closePath(); c.fill();
+}
+
+// ---------- Voice: each character is read aloud as it is cast ----------
+// Clips were synthesized with Open JTalk (HTS voice "Mei", CC BY 3.0, Nagoya Institute of Technology) and embedded as MP3.
+const KANA_CLIPS = {
+  'つ': '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qqqqqqqqqqqqqqqqqqqqqqqqqqqq//NkxHwAAANIAAAAAKqqqqqqqqpMQU1FMy4xMDCqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//NkxHwAAANIAAAAAKqqqqqqqqpMQU1FMy4xMDCqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//NkxHwAAANIAAAAAKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq',
+  'ひ': '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VVVVVVVVVVVVVVVVVVVVVVVVVVVV//NkxHwAAANIAAAAAFVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NkxHwAAANIAAAAAFVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NkxHwAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV',
+  'く': 'SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYwLjE2LjEwMAAAAAAAAAAAAAAA//OEwAAAAAAAAAAAAEluZm8AAAAPAAAADQAACBAAKSkpKSkpKTs7Ozs7Ozs7TU1NTU1NTU1fX19fX19fcXFxcXFxcXGCgoKCgoKCgpSUlJSUlJSmpqampqampri4uLi4uLi4ysrKysrKytzc3Nzc3Nzc7u7u7u7u7u7/////////AAAAAExhdmM2MC4zMQAAAAAAAAAAAAAAACQChgAAAAAAAAgQXejcmwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//NkxAAAAANIAUAAAPHxV4SCJ4LBZ+F4KJL/4jA4Q55R/8FPB3ge4NtL/9AzNx4L//4VQmjzLhpEw///LE0DAoEouOf///8yNBljgHgxmbhfyQPG/////+YGhcQYehKSUQlMTweAwg5P//////9Z8cA8BkEm5TpsTyXRHGPMl1RgI6qoUCkUGgUCg0mgUCgU//NkxIMdTDJwAYdoAQShvbh3kCHks3dQc5yzhUroWEhoNjjrSZBYb+JRA2KAl1a0GU6CIGG4CVBZGAY4QXMirNkS8Y2RDDASwFzYZQlhX1slsbIszQ64pEixECVIqOXb7N0YtZBB4JoX4ocWWLeSV/7evi5nDWCMA8AnAgYlgN1iPHAKZpKe9/1MzfFwCzzQ//NkxJA1C47KX4+YAp0VuUiWHkmS2RQRQdAjEkgvmtWv///9TKKAgoITBxoloZEHeLKHALkFximjNBvIr4lgj8MviC4skZAs+PUXJEzv0KXK1YhDQ8wAJE3GiUBZ12kkoAAI/N6Oo3vKTQpLMdhMwWEyqDBoZgJYmSxCYFA5aNSavTBATIhUYKBRgYAMMkNL//NkxD4mubq+/9woAAPDAfOLBMPAgmLjTCCxjAsUdIicp5eOZRUQYp0KU/qjUE/uhFeTPS1NO1h7GgUmfI5Yi0iWh0JgkoRX0WHfehaVmRVb1jyyTZkhb/2RoBxwAA1LRQRuQFDoJkGFEpAAABJyx1okQJ/2UZ0jOhgCTGDhjx0IlZTzOQUkoaSAICWNaIQE//NkxCYjOebGvtPSSMy1YwRFyzEaq0KSbb9qWmTZAKM261gjFZP4xxGkgQQ25wXbmRtpLjaQGAQChglNEpIRitGbbhsKh8h4zU1RKKyNAhbd+ww+ZLpY9skcRv9bF/WUADjAafKO/6Lrp+/XTfoWoxDpFNXwFFqttxuWSB2q+S8C+Nl8IYoIkT4yuTFOg6FR//NkxBwimeruX09gAhNezFDcOx3Xxp1pJcnKdNrpr5t/52g+q4m34FkQ8X7bz02S59KQld0RQmHQdL1vG1C596TLlWt35/P/ZmZ7eia7F5xAjXJRG0XQeRYaKwxH9Fgo9rmGRSBZIC/Qhz2ErQo9maLKT0StttZ2ejnzKpIAEAFJIABQSlGUGA98498B5wwg//NkxBQg8ka+V5hYABgRltQbBaS0WzxKFZr1hoqDmORjBAmhS4dlpIH/i7ckfpEHKDtMB17ZNRA0bkfa1UnnuEWk1vB4tNSUXxmp2iEPb9suh+rf3CSZyL2znzKqj/a2TZJnKFO/3Fkwrt/iDrS1vLH26+Yp/+xxNx5MuHKgaR/t/cYoUKFm0KFIVCp4hAKT//NkxBMaafpc7ckwAE0KFDkkSJHKrfJEjTzONRxKf5mWJAJH95liQClqrzP//qtciRWRAJHKrz3mZz1X9VveZ3z//M7M41c0iPBVwNHv4iDgif55Z1f5U6JTvyp1GV//Ue1grUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NkxCwAAANIAAAAAFVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NkxHwAAANIAAAAAFVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NkxHwAAANIAAAAAFVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NkxHwAAANIAAAAAFVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NkxHwAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV',
+  'そ': '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wYKYcL+tgpaUDtCIBvwfqREchUyI//NkxC4ou5K0f5mQANEeCzBcwsIrYiRFjJ6I4imThkoWAlCfPpGuiiXpQRdFBaykaspJLrRUs+TJu7uigyOupKkjOGrLWskTIzKqSSTq1sv/ucUmZLT30TpdLyBFn//SVUtJvSs61oppmqiqdLy3Nk2RQr/1/UtFP/12U62RMdP3UQh68qg1BqpOhKRjiB1G//NkxA4TsH4YFcwYADiIp7AZPJSS8yera5a1oGFGJQEDKnwVKhrO8Gp6VcCuV5Y8In/WdK//BWCtR5P6zpV3/iVYa/BqDUqdK/qPf/iJTEFNRTMuMTAwVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NkxEIAAANIAAAAAFVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NkxHwAAANIAAAAAFVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NkxHwAAANIAAAAAFVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NkxHwAAANIAAAAAFVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NkxHwAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV',
+  'こ': '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qqqqqqqqqqqqqqqqqqqqqqqqqqqq//NkxHwAAANIAAAAAKqqqqqqqqpMQU1FMy4xMDCqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//NkxHwAAANIAAAAAKqqqqqqqqpMQU1FMy4xMDCqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//NkxHwAAANIAAAAAKqqqqqqqqpMQU1FMy4xMDCqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//NkxHwAAANIAAAAAKqqqqqqqqpMQU1FMy4xMDCqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//NkxHwAAANIAAAAAKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq',
+  'い': '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',
+  'ら': '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qqqqqqqqqqqqqqqqqqqqqqqqqqqq//NkxHwAAANIAAAAAKqqqqqqqqpMQU1FMy4xMDCqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//NkxHwAAANIAAAAAKqqqqqqqqpMQU1FMy4xMDCqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//NkxHwAAANIAAAAAKqqqqqqqqpMQU1FMy4xMDCqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//NkxHwAAANIAAAAAKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq',
+  'ゆ': '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qqqqqqqqqqqqqqqqqqqqqqqqqqqq//NkxHwAAANIAAAAAKqqqqqqqqpMQU1FMy4xMDCqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//NkxHwAAANIAAAAAKqqqqqqqqpMQU1FMy4xMDCqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//NkxHwAAANIAAAAAKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq',
+  'み': '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',
+  'す': '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VVVVVVVVVVVVVVVVVVVVVVVVVVVV//NkxHwAAANIAAAAAFVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NkxHwAAANIAAAAAFVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NkxHwAAANIAAAAAFVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NkxHwAAANIAAAAAFVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NkxHwAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV',
+  'や': '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qqqqqqqqqqqqqqqqqqqqqqqqqqqq//NkxGAAAANIAAAAAKqqqqqqqqpMQU1FMy4xMDCqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//NkxHwAAANIAAAAAKqqqqqqqqpMQU1FMy4xMDCqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//NkxHwAAANIAAAAAKqqqqqqqqpMQU1FMy4xMDCqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//NkxHwAAANIAAAAAKqqqqqqqqpMQU1FMy4xMDCqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//NkxHwAAANIAAAAAKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq',
+  'に': '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',
+  'か': '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VVVVVVVVVVVVVVVVVVVVVVVVVVVV//NkxE0AAANIAAAAAFVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NkxHwAAANIAAAAAFVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NkxHwAAANIAAAAAFVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NkxHwAAANIAAAAAFVVVVVVVVVMQU1FMy4xMDBVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV//NkxHwAAANIAAAAAFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV',
+  'あ': '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qqqqqqqqqqqqqqqqqqqqqqqqqqqq//NkxHwAAANIAAAAAKqqqqqqqqpMQU1FMy4xMDCqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//NkxHwAAANIAAAAAKqqqqqqqqpMQU1FMy4xMDCqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//NkxHwAAANIAAAAAKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq',
+  'ほ': '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qqqqqqqqqqqqqqqqqqqqqqqqqqqq//NkxHwAAANIAAAAAKqqqqqqqqpMQU1FMy4xMDCqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//NkxHwAAANIAAAAAKqqqqqqqqpMQU1FMy4xMDCqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//NkxHwAAANIAAAAAKqqqqqqqqpMQU1FMy4xMDCqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq//NkxHwAAANIAAAAAKqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq',
+  'き': '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'
+};
+const Sound = {
+  muted: false, unlocked: false, el: null,
+  // One reused <audio> element: phones only let audio play after a tap, and once unlocked it keeps working.
+  // A media element also plays when an iPhone's ring/silent switch is on silent, which Web Audio does not.
+  init() {
+    if (this.unlocked) return;
+    this.unlocked = true;
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+    this.el = new Audio();
+    this.el.preload = 'auto';
+    this.el.src = 'data:audio/mpeg;base64,' + KANA_CLIPS['あ'];
+    this.el.muted = true;
+    const p = this.el.play();
+    if (p && p.then) p.then(() => { this.el.pause(); this.el.muted = false; }).catch(() => { this.el.muted = false; this.unlocked = false; });
+    else this.el.muted = false;
+  },
+  say(s) {
+    if (this.muted || !KANA_CLIPS[s.kana]) return;
+    if (!this.el) this.init();
+    try {
+      this.el.pause();
+      this.el.muted = false;
+      this.el.src = 'data:audio/mpeg;base64,' + KANA_CLIPS[s.kana];
+      this.el.currentTime = 0;
+      const p = this.el.play();
+      if (p && p.catch) p.catch(() => {});
+    } catch (e) {}
+  },
+};
+
+// ---------- Game state ----------
+const game = {
+  state: 'title', lessonIndex: 0, lesson: null, queue: [], target: null, awaiting: false,
+  score: 0, streak: 0, bestStreak: 0, firstTry: 0, total: 0, fails: 0, seen: {}, showGhost: false,
+};
+const wiz = { cast: 0, orb: '#ffcc3d', blink: 0, tip: [0, 0], fizzle: 0 };
+const dummy = { wob: 0, tint: null, tintT: 0, squash: 0 };
+const bubble = { pop: 0 };
+const particles = [], projectiles = [], floaters = [], fadeStrokes = [];
+let bolt = null, shake = 0, stroke = null, time = 0;
+// The character being written: finished strokes wait here until the player pauses or reaches the stroke count.
+const ink = { strokes: [], timer: 0, wait: 0 };
+const INK_PAUSE = 0.85; // seconds after lifting the finger before a partial character is judged
+
+const $ = id => document.getElementById(id);
+const overlay = $('overlay');
+let cardCanvases = [];
+
+function updateHud() {
+  $('score').textContent = game.score;
+  $('streak').textContent = game.streak;
+  $('lessonChip').textContent = game.lessonIndex < LESSONS.length ? `Lesson ${game.lessonIndex + 1} of ${LESSONS.length}` : 'Master trial';
+  if (game.target) {
+    const s = SPELL[game.target];
+    $('pName').textContent = `Write ${s.romaji}: ${s.name}`; $('pHow').textContent = s.how; $('pSwatch').style.background = s.color; $('pSwatch').textContent = s.kana;
+  }
+}
+
+function spellCard(s, showTier) {
+  const el = document.createElement('div'); el.className = 'card';
+  const cv = document.createElement('canvas'); cv.width = 240; cv.height = 240;
+  el.append(cv);
+  el.insertAdjacentHTML('beforeend',
+    `<span class="el" style="background:${s.color}">${s.element}</span><div class="nm"><span class="kana">${s.kana}</span> ${s.romaji}</div>` +
+    `<div class="sp">${s.name}</div><div class="role">${s.role}</div><div class="hw">${s.how}</div>` + (showTier ? `<div class="tier">Lesson ${s.lesson}</div>` : ''));
+  cardCanvases.push({ cv, spell: s, offset: Math.random() });
+  el.title = `Tap to hear ${s.kana} (${s.romaji})`;
+  el.addEventListener('click', () => { Sound.init(); Sound.say(s); });
+  return el;
+}
+
+function showOverlay(html, cls = '') {
+  cardCanvases = [];
+  overlay.innerHTML = `<div class="panel ${cls}">${html}</div>`;
+  overlay.hidden = false;
+  return overlay.querySelector('.panel');
+}
+function hideOverlay() { overlay.hidden = true; overlay.innerHTML = ''; cardCanvases = []; }
+
+function showTitle() {
+  game.state = 'title'; $('hud').hidden = true; $('prompt').hidden = true;
+  const p = showOverlay(`
+    <div class="eyebrow">Castle defense · Spell school</div>
+    <h1>Spellguard</h1>
+    <p>Monsters are coming for your castle. Your spells are hiragana: write a character with your finger or mouse and its element bursts out of your staff. ひ (hi) is fire, because fire is 火, hi, in Japanese. Each lesson teaches two new characters, and they get trickier as you go.</p>
+    <div class="actions"><button class="btn" id="startBtn" type="button">Start lessons</button><button class="btn ghost" id="bookBtn" type="button">Spellbook</button></div>
+    <p class="credit">Stroke order data: <a href="https://kanjivg.tagaini.net" target="_blank" rel="noopener">KanjiVG</a> by Ulrich Apel, CC BY-SA 3.0. Voice: Open JTalk with the HTS voice Mei, Nagoya Institute of Technology, CC BY 3.0.</p>`, 'narrow');
+  p.querySelector('#startBtn').onclick = () => { Sound.init(); resetRun(); startLesson(0); };
+  p.querySelector('#bookBtn').onclick = () => { Sound.init(); showBook(); };
+}
+
+function showBook() {
+  const p = showOverlay(`<div class="eyebrow">All 16 hiragana spells, easiest first</div><h2>Spellbook</h2><div class="cards"></div>
+    <div class="actions"><button class="btn" id="backBtn" type="button">Back</button></div>`);
+  const cards = p.querySelector('.cards');
+  SPELLS.forEach(s => cards.append(spellCard(s, true)));
+  p.querySelector('#backBtn').onclick = () => { showTitle(); };
+}
+
+function resetRun() { Object.assign(game, { score: 0, streak: 0, bestStreak: 0, seen: {} }); }
+
+function startLesson(i) {
+  game.lessonIndex = i;
+  game.lesson = i < LESSONS.length ? LESSONS[i] : MASTER;
+  const unlocked = SPELLS.filter(s => s.lesson <= Math.min(i + 1, LESSONS.length)).map(s => s.id);
+  game.queue = buildQueue(game.lesson, unlocked);
+  game.firstTry = 0; game.total = game.queue.length;
+  updateHud();
+  if (game.lesson.newSpells.length) showIntro(game.lesson); else beginPlay();
+}
+
+function buildQueue(lesson, unlocked) {
+  const q = [];
+  lesson.newSpells.forEach(id => q.push(id, id));
+  while (q.length < lesson.count) q.push(unlocked[Math.floor(Math.random() * unlocked.length)]);
+  // shuffle, then avoid the same spell twice in a row where possible
+  for (let k = q.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [q[k], q[j]] = [q[j], q[k]]; }
+  for (let k = 1; k < q.length; k++) if (q[k] === q[k - 1]) { const j = q.findIndex((x, n) => n > k && x !== q[k] && q[n - 1] !== x); if (j > 0) [q[k], q[j]] = [q[j], q[k]]; }
+  // the very first prompt of a lesson is a new spell, so it is practised right after the intro
+  if (lesson.newSpells.length && !lesson.newSpells.includes(q[0])) { const j = q.findIndex(x => lesson.newSpells.includes(x)); [q[0], q[j]] = [q[j], q[0]]; }
+  return q;
+}
+
+function showIntro(lesson) {
+  game.state = 'intro'; $('hud').hidden = false; $('prompt').hidden = true;
+  const p = showOverlay(`<div class="eyebrow">Lesson ${game.lessonIndex + 1} · New spells</div><h2>${lesson.title}</h2>
+    <p>Watch the stroke order, then write the character anywhere on the screen. The numbered dots show where each stroke starts. Tap a card to hear how it sounds.</p><div class="cards"></div>
+    <div class="actions"><button class="btn" id="goBtn" type="button">Let's cast!</button></div>`);
+  const cards = p.querySelector('.cards');
+  lesson.newSpells.forEach(id => cards.append(spellCard(SPELL[id], false)));
+  p.querySelector('#goBtn').onclick = () => { Sound.init(); beginPlay(); };
+}
+
+function beginPlay() { hideOverlay(); game.state = 'play'; $('hud').hidden = false; $('prompt').hidden = false; nextPrompt(); }
+
+function nextPrompt() {
+  if (game.state !== 'play') return;
+  if (!game.queue.length) return endLesson();
+  game.target = game.queue.shift();
+  ink.strokes = []; ink.timer = 0;
+  game.fails = 0;
+  game.showGhost = !game.seen[game.target];
+  game.seen[game.target] = true;
+  game.awaiting = true;
+  bubble.pop = 0;
+  updateHud();
+}
+
+function endLesson() {
+  game.state = 'end'; game.awaiting = false; $('prompt').hidden = true;
+  const acc = game.firstTry / game.total;
+  const stars = acc >= 0.9 ? 3 : acc >= 0.6 ? 2 : 1;
+  const last = game.lessonIndex >= LESSONS.length - 1;
+  const isMaster = game.lessonIndex >= LESSONS.length;
+  const blurb = isMaster ? 'Every spell, mixed up. Go again and beat your streak.'
+    : last ? `You know all ${SPELLS.length} spells. Next up is the master trial: every spell, mixed.`
+    : `Next lesson: ${LESSONS[game.lessonIndex + 1].title}.`;
+  const p = showOverlay(`<div class="eyebrow">${isMaster ? 'Master trial' : 'Lesson ' + (game.lessonIndex + 1)} complete</div>
+    <h2>${stars === 3 ? 'Spell-tacular!' : stars === 2 ? 'Well cast!' : 'Keep practising!'}</h2>
+    <div class="stars">${[1, 2, 3].map(n => n <= stars ? '★' : '<span class="off">★</span>').join('')}</div>
+    <div class="stats"><span><b>${game.firstTry}/${game.total}</b>first try</span><span><b>${game.score}</b>score</span><span><b>${game.bestStreak}</b>best streak</span></div>
+    <p>${blurb}</p>
+    <div class="actions"><button class="btn ghost" id="againBtn" type="button">Retry lesson</button><button class="btn" id="nextBtn" type="button">${isMaster ? 'Play again' : last ? 'Master trial' : 'Next lesson'}</button></div>`, 'narrow');
+  p.querySelector('#againBtn').onclick = () => { startLesson(game.lessonIndex); };
+  p.querySelector('#nextBtn').onclick = () => { startLesson(Math.min(game.lessonIndex + 1, LESSONS.length)); };
+}
+
+// ---------- Input ----------
+function pt(e) { const r = canvas.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
+canvas.addEventListener('pointerdown', e => {
+  if (game.state !== 'play') return;
+  e.preventDefault(); Sound.init();
+  canvas.setPointerCapture?.(e.pointerId);
+  ink.timer = 0;
+  stroke = { id: e.pointerId, pts: [pt(e)] };
+});
+canvas.addEventListener('pointermove', e => {
+  if (!stroke || e.pointerId !== stroke.id) return;
+  e.preventDefault();
+  const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+  for (const ev of (evs.length ? evs : [e])) {
+    const p = pt(ev), l = stroke.pts[stroke.pts.length - 1];
+    if (Math.hypot(p[0] - l[0], p[1] - l[1]) >= 2) stroke.pts.push(p);
+  }
+  const p = stroke.pts[stroke.pts.length - 1];
+  if (Math.random() < 0.6) particles.push({ x: p[0], y: p[1], vx: (Math.random() - 0.5) * 40, vy: (Math.random() - 0.5) * 40 - 20, life: 0.5, max: 0.5, size: 2 + Math.random() * 3, color: '#ffe9a8', kind: 'spark' });
+});
+function endStroke(e) {
+  if (!stroke || e.pointerId !== stroke.id) return;
+  const pts = stroke.pts; stroke = null;
+  handleStroke(pts);
+}
+canvas.addEventListener('pointerup', endStroke);
+canvas.addEventListener('pointercancel', endStroke);
+// Stop the page from scrolling, zooming or showing a context menu while drawing on phones.
+['touchstart', 'touchmove', 'gesturestart'].forEach(t => $('stage').addEventListener(t, e => { if (!overlay.contains(e.target) || overlay.hidden) e.preventDefault(); }, { passive: false }));
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+function handleStroke(pts) {
+  if (pathLength(pts) < 6) return; // a tap, not a stroke
+  if (!game.awaiting) { fadeStrokes.push({ pts, color: '#ffe9a8', t: 0.4, max: 0.4 }); return; }
+  ink.strokes.push(pts);
+  if (ink.strokes.length >= SPELL[game.target].strokes.length) judgeInk();
+  else { ink.timer = INK_PAUSE; ink.wait = INK_PAUSE; }
+}
+function judgeInk() {
+  const strokes = ink.strokes; ink.strokes = []; ink.timer = 0;
+  if (!strokes.length || !game.awaiting) return;
+  const all = strokes.flat(), b = bbox(all);
+  if (Math.max(b.w, b.h) < 40 * Math.max(0.7, S)) { strokes.forEach(pts => fadeStrokes.push({ pts, color: '#9a8fb8', t: 0.4, max: 0.4 })); floaters.push({ text: 'Write bigger!', x: b.x0 + b.w / 2, y: b.y0 - 20, t: 1.2, color: '#ffffff' }); return; }
+  const res = recognize(strokes);
+  if (res && res.id === game.target && res.score >= acceptFor(res.id)) success(res, strokes);
+  else fail(res && res.score >= acceptFor(res.id) ? res.id : null, strokes);
+}
+
+function success(res, strokes) {
+  const pts = strokes.flat();
+  const s = SPELL[res.id];
+  game.awaiting = false;
+  if (game.fails === 0) game.firstTry++;
+  game.streak++; game.bestStreak = Math.max(game.bestStreak, game.streak);
+  const quality = res.score > 0.9 ? 'Perfect!' : res.score > 0.84 ? 'Great!' : 'Nice!';
+  game.score += 100 + (res.score > 0.9 ? 50 : res.score > 0.84 ? 25 : 0) + (game.streak - 1) * 10;
+  strokes.forEach(st => fadeStrokes.push({ pts: st, color: s.color, t: 0.6, max: 0.6, glow: true }));
+  const c = centroid(pts);
+  floaters.push({ text: quality, x: c[0], y: c[1] - 20, t: 1.1, color: s.color, big: true });
+  Sound.say(s);
+  castSpell(s);
+  updateHud();
+}
+
+function fail(otherId, strokes) {
+  const pts = strokes.flat();
+  game.fails++; game.streak = 0; game.showGhost = true;
+  strokes.forEach(st => fadeStrokes.push({ pts: st, color: '#9a8fb8', t: 0.45, max: 0.45 }));
+  const c = centroid(pts);
+  floaters.push({ text: otherId ? `That's ${SPELL[otherId].kana}!` : 'Fizzle!', x: c[0], y: c[1] - 20, t: 1.2, color: '#ffffff' });
+  wiz.fizzle = 1;
+  for (let i = 0; i < 14; i++) particles.push({ x: wiz.tip[0], y: wiz.tip[1], vx: (Math.random() - 0.5) * 80, vy: -Math.random() * 70 - 10, life: 0.9, max: 0.9, size: 6 + Math.random() * 8, color: '#a79fc4', kind: 'smoke' });
+  updateHud();
+}
+function centroid(p) { let x = 0, y = 0; for (const q of p) { x += q[0]; y += q[1]; } return [x / p.length, y / p.length]; }
+
+// ---------- Spell effects ----------
+function target() { return [scene.dumX, scene.dumY - 75 * S]; }
+function castSpell(s) {
+  wiz.cast = 1; wiz.orb = s.color;
+  const [tx, ty] = target();
+  if (s.fx === 'lightning') {
+    setTimeout(() => { bolt = { t: 0.35, color: s.color }; impact(s); }, 120);
+    return;
+  }
+  const from = s.fx === 'star' ? [tx - 40 * S, -20] : s.fx === 'earth' ? [tx, -30] : wiz.tip.slice();
+  projectiles.push({ s, x0: from[0], y0: from[1], x: from[0], y: from[1], tx, ty, t: 0, dur: s.fx === 'earth' ? 0.55 : 0.5,
+    arc: s.fx === 'earth' || s.fx === 'star' ? 0 : -90 * S, spin: 0 });
+  if (s.fx === 'star') for (let k = 1; k <= 3; k++) projectiles.push({ s, x0: tx + (k - 2) * 70 * S, y0: -20 - k * 30, x: 0, y: 0, tx: tx + (k - 2) * 25 * S, ty: ty + 10 * S, t: -k * 0.08, dur: 0.5, arc: 0, spin: 0, echo: true });
+}
+
+function impact(s) {
+  const [tx, ty] = target();
+  shake = Math.min(14, shake + (s.fx === 'earth' || s.fx === 'lightning' ? 12 : 7));
+  dummy.wob = 1; dummy.tint = s.color; dummy.tintT = 1; dummy.squash = 1;
+  const n = 34;
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * TAU, sp = 60 + Math.random() * 260;
+    const p = { x: tx, y: ty, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0.8, max: 0.8, size: 3 + Math.random() * 6, color: s.color, kind: 'dot', g: 300 };
+    if (s.fx === 'fire') { p.vy = -Math.abs(p.vy) * 0.8; p.g = -120; p.color = Math.random() < 0.5 ? '#ffd23f' : '#ff5a1f'; }
+    if (s.fx === 'water') { p.g = 700; p.vy -= 160; }
+    if (s.fx === 'ice') { p.kind = 'shard'; p.g = 200; }
+    if (s.fx === 'earth') { p.kind = 'rock'; p.g = 900; p.vy = -Math.abs(p.vy); p.color = Math.random() < 0.5 ? s.color : '#8a5a33'; }
+    if (s.fx === 'star') { p.kind = 'star'; p.g = 120; }
+    if (s.fx === 'void') { p.kind = 'swirl'; p.a = a; p.r = 10 + Math.random() * 70 * S; p.vr = -60 - Math.random() * 60; p.g = 0; }
+    if (s.fx === 'wind') { p.kind = 'swirl'; p.a = a; p.r = 20 + Math.random() * 40 * S; p.vr = 90; p.g = 0; p.size = 2 + Math.random() * 3; }
+    particles.push(p);
+  }
+  particles.push({ x: tx, y: ty, life: 0.45, max: 0.45, size: 90 * S, color: s.color, kind: 'ring' });
+  setTimeout(nextPrompt, 750);
+}
+
+// ---------- Drawing helpers ----------
+function mapPts(pts, cx, cy, size) { return pts.map(([x, y]) => [cx + (x - 0.5) * size, cy + (y - 0.5) * size]); }
+function polyline(c, p, upto = p.length) { c.beginPath(); c.moveTo(p[0][0], p[0][1]); for (let i = 1; i < upto; i++) c.lineTo(p[i][0], p[i][1]); }
+// Draws the character's strokes in order, traced up to `prog` (0..1 over all strokes),
+// with a numbered dot where each stroke starts and a comet head on the stroke being drawn.
+function drawSpellShape(c, s, cx, cy, size, prog, o = {}) {
+  const strokes = s.strokes.map(st => mapPts(st, cx, cy, size));
+  const lens = strokes.map(pathLength), total = lens.reduce((a, b) => a + b, 0);
+  c.lineCap = 'round'; c.lineJoin = 'round';
+  if (o.guide) { c.save(); c.setLineDash([size * 0.03, size * 0.05]); c.strokeStyle = o.guideColor || 'rgba(255,255,255,.25)'; c.lineWidth = o.w * 0.6; strokes.forEach(p => { polyline(c, p); c.stroke(); }); c.restore(); }
+  let left = prog * total, head = null;
+  strokes.forEach((p, k) => {
+    if (left <= 0) return;
+    let upto = p.length;
+    if (left < lens[k]) { let d = 0; upto = 1; while (upto < p.length && d + Math.hypot(p[upto][0] - p[upto - 1][0], p[upto][1] - p[upto - 1][1]) <= left) { d += Math.hypot(p[upto][0] - p[upto - 1][0], p[upto][1] - p[upto - 1][1]); upto++; } upto = Math.max(2, upto); head = p[upto - 1]; }
+    left -= lens[k];
+    if (o.outline) { c.strokeStyle = INK; c.lineWidth = o.w + 6; polyline(c, p, upto); c.stroke(); }
+    c.save(); c.shadowColor = s.color; c.shadowBlur = o.glow ? 18 : 0;
+    c.strokeStyle = s.color; c.lineWidth = o.w; polyline(c, p, upto); c.stroke(); c.restore();
+  });
+  if (o.numbers !== false) {
+    const r = Math.max(7, o.w * 0.85 + 2);
+    c.font = `${Math.round(r * 1.25)}px ${FONT_DISPLAY}`; c.textAlign = 'center'; c.textBaseline = 'middle';
+    strokes.forEach((p, k) => {
+      c.fillStyle = '#5dff8f'; c.strokeStyle = INK; c.lineWidth = 2.5;
+      c.beginPath(); c.arc(p[0][0], p[0][1], r, 0, TAU); c.fill(); c.stroke();
+      c.fillStyle = INK; c.fillText(String(k + 1), p[0][0], p[0][1] + 1);
+    });
+    c.textBaseline = 'alphabetic';
+  }
+  if (o.comet && head) {
+    c.save(); c.shadowColor = '#fff'; c.shadowBlur = 20; c.fillStyle = '#fff';
+    c.beginPath(); c.arc(head[0], head[1], o.w * 0.9, 0, TAU); c.fill(); c.restore();
+  }
+}
+const FONT_DISPLAY = '"Lilita One", "Trebuchet MS", sans-serif';
+function starPath(c, x, y, r, rot = 0) {
+  c.beginPath();
+  for (let i = 0; i < 10; i++) { const a = rot - Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.45 : r; c.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); }
+  c.closePath();
+}
+
+function drawWizard(t) {
+  const c = ctx, x = scene.wizX, y = scene.wizY + Math.sin(t * 2.2) * 2 * S;
+  const castA = wiz.cast;
+  c.save(); c.translate(x, y); c.scale(S, S);
+  c.lineWidth = 4; c.strokeStyle = INK; c.lineJoin = 'round'; c.lineCap = 'round';
+  // shadow
+  c.fillStyle = 'rgba(20,13,46,.35)'; c.beginPath(); c.ellipse(0, 2, 42, 8, 0, 0, TAU); c.fill();
+  // robe
+  c.fillStyle = '#5b3fc4';
+  c.beginPath(); c.moveTo(-40, 0); c.quadraticCurveTo(-30, -55, -18, -82); c.lineTo(18, -82); c.quadraticCurveTo(30, -55, 40, 0); c.quadraticCurveTo(0, 8, -40, 0); c.closePath(); c.fill(); c.stroke();
+  c.fillStyle = '#ffcc3d';
+  [[-18, -22, 5], [14, -38, 4], [-4, -55, 3.5], [22, -12, 3.5]].forEach(([sx, sy, r]) => { starPath(c, sx, sy, r, 0.3); c.fill(); });
+  // belt
+  c.fillStyle = '#ffcc3d'; c.beginPath(); c.rect(-22, -52, 44, 7); c.fill(); c.stroke();
+  // staff (rotates around the hand)
+  const ang = 0.18 + castA * 0.75 - wiz.fizzle * 0.2;
+  const hx = 26, hy = -50;
+  c.save(); c.translate(hx, hy); c.rotate(ang);
+  c.strokeStyle = INK; c.lineWidth = 9; c.beginPath(); c.moveTo(0, 40); c.lineTo(0, -92); c.stroke();
+  c.strokeStyle = '#a8703f'; c.lineWidth = 5; c.beginPath(); c.moveTo(0, 40); c.lineTo(0, -92); c.stroke();
+  c.strokeStyle = INK; c.lineWidth = 4;
+  const glowR = 10 + castA * 8 + Math.sin(t * 5) * 1.5;
+  c.save(); c.shadowColor = wiz.orb; c.shadowBlur = 20 + castA * 30; c.fillStyle = wiz.orb;
+  c.beginPath(); c.arc(0, -102, glowR, 0, TAU); c.fill(); c.restore();
+  c.beginPath(); c.arc(0, -102, glowR, 0, TAU); c.stroke();
+  c.fillStyle = 'rgba(255,255,255,.7)'; c.beginPath(); c.arc(-3, -106, glowR * 0.3, 0, TAU); c.fill();
+  c.restore();
+  wiz.tip = [x + S * (hx + Math.sin(ang) * 102), y + S * (hy - Math.cos(ang) * 102)];
+  // sleeve + hand
+  c.strokeStyle = INK; c.lineWidth = 16; c.beginPath(); c.moveTo(10, -74); c.lineTo(hx, hy); c.stroke();
+  c.strokeStyle = '#5b3fc4'; c.lineWidth = 10; c.beginPath(); c.moveTo(10, -74); c.lineTo(hx, hy); c.stroke();
+  c.lineWidth = 4; c.strokeStyle = INK; c.fillStyle = '#ffd3a8'; c.beginPath(); c.arc(hx, hy, 7, 0, TAU); c.fill(); c.stroke();
+  // head
+  c.fillStyle = '#ffd3a8'; c.beginPath(); c.arc(0, -96, 19, 0, TAU); c.fill(); c.stroke();
+  // beard
+  c.fillStyle = '#f4f1ff';
+  c.beginPath(); c.moveTo(-17, -92); c.quadraticCurveTo(-22, -70, -8, -58); c.quadraticCurveTo(0, -48, 6, -58); c.quadraticCurveTo(22, -70, 17, -92); c.quadraticCurveTo(0, -82, -17, -92); c.closePath(); c.fill(); c.stroke();
+  // eyes (blink) and nose
+  const blink = (t % 4) < 0.12;
+  c.fillStyle = INK;
+  if (blink) { c.lineWidth = 3; c.beginPath(); c.moveTo(-10, -100); c.lineTo(-4, -100); c.moveTo(5, -100); c.lineTo(11, -100); c.stroke(); }
+  else { c.beginPath(); c.arc(-7, -100, 3, 0, TAU); c.arc(8, -100, 3, 0, TAU); c.fill(); }
+  c.lineWidth = 3; c.fillStyle = '#ff9f8a'; c.beginPath(); c.arc(1, -92, 5, 0, TAU); c.fill(); c.stroke();
+  // hat
+  c.lineWidth = 4; c.fillStyle = '#3d2a9e';
+  const flop = Math.sin(t * 1.7) * 3;
+  c.beginPath(); c.moveTo(-24, -110); c.quadraticCurveTo(-6, -150, 2 + flop, -168); c.quadraticCurveTo(14 + flop, -175, 22 + flop, -160); c.quadraticCurveTo(12, -150, 24, -110); c.closePath(); c.fill(); c.stroke();
+  c.beginPath(); c.ellipse(0, -110, 34, 8, 0, 0, TAU); c.fill(); c.stroke();
+  c.fillStyle = '#ffcc3d'; starPath(c, -2, -132, 6, 0.2); c.fill(); starPath(c, 10, -150, 3.5); c.fill();
+  c.restore();
+}
+
+function drawDummy(t) {
+  const c = ctx, x = scene.dumX, y = scene.dumY;
+  const wob = Math.sin(t * 22) * dummy.wob * 0.25;
+  const sq = 1 + Math.sin(dummy.squash * Math.PI) * 0.15;
+  c.save(); c.translate(x, y); c.scale(S, S); c.rotate(wob); c.scale(sq, 2 - sq);
+  c.lineWidth = 4; c.strokeStyle = INK; c.lineJoin = 'round'; c.lineCap = 'round';
+  c.fillStyle = 'rgba(20,13,46,.35)'; c.beginPath(); c.ellipse(0, 2, 34, 7, 0, 0, TAU); c.fill();
+  c.fillStyle = '#8a5a33'; c.beginPath(); c.rect(-5, -120, 10, 120); c.fill(); c.stroke();
+  c.beginPath(); c.rect(-46, -92, 92, 9); c.fill(); c.stroke();
+  // straw hands
+  c.fillStyle = '#f2c94c';
+  [-48, 48].forEach(hx => { c.beginPath(); c.moveTo(hx, -88); c.lineTo(hx + Math.sign(hx) * 12, -98); c.lineTo(hx + Math.sign(hx) * 14, -86); c.lineTo(hx + Math.sign(hx) * 12, -76); c.closePath(); c.fill(); c.stroke(); });
+  const body = () => { c.beginPath(); c.ellipse(0, -72, 27, 34, 0, 0, TAU); };
+  const head = () => { c.beginPath(); c.arc(0, -122, 21, 0, TAU); };
+  c.fillStyle = '#d9a86c'; body(); c.fill(); c.stroke();
+  c.fillStyle = '#e8bf86'; head(); c.fill(); c.stroke();
+  // patch and stitches
+  c.fillStyle = '#c0504d'; c.beginPath(); c.rect(6, -70, 14, 14); c.fill(); c.stroke();
+  c.lineWidth = 3;
+  c.beginPath(); c.moveTo(-10, -128); c.lineTo(-4, -122); c.moveTo(-4, -128); c.lineTo(-10, -122);
+  c.moveTo(4, -128); c.lineTo(10, -122); c.moveTo(10, -128); c.lineTo(4, -122); c.stroke();
+  c.beginPath(); c.moveTo(-9, -112); c.quadraticCurveTo(0, -106, 9, -112); c.stroke();
+  for (let k = -6; k <= 6; k += 6) { c.beginPath(); c.moveTo(k, -113); c.lineTo(k, -108); c.stroke(); }
+  // straw hair
+  c.strokeStyle = '#f2c94c'; c.lineWidth = 3;
+  for (let k = -14; k <= 14; k += 7) { c.beginPath(); c.moveTo(k * 0.8, -140); c.lineTo(k * 1.3, -150 - Math.abs(k) * 0.2); c.stroke(); }
+  if (dummy.tintT > 0) {
+    c.globalAlpha = dummy.tintT * 0.6; c.fillStyle = dummy.tint; body(); c.fill(); head(); c.fill(); c.globalAlpha = 1;
+  }
+  c.restore();
+}
+
+function drawBubble(t) {
+  if (!game.target || game.state !== 'play') return;
+  const s = SPELL[game.target];
+  const k = easeOutBack(Math.min(1, bubble.pop));
+  const r = scene.bubbleR * k, x = scene.dumX, y = scene.bubbleY + Math.sin(t * 2) * 3;
+  if (r < 1) return;
+  const c = ctx;
+  c.save(); c.lineWidth = 4; c.strokeStyle = INK; c.fillStyle = '#fff4d6';
+  c.beginPath(); c.moveTo(x - 10, y + r - 4); c.lineTo(x, y + r + 16 * k); c.lineTo(x + 10, y + r - 4); c.closePath(); c.fill(); c.stroke();
+  c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill(); c.stroke();
+  c.fillStyle = '#fff4d6'; c.beginPath(); c.rect(x - 8, y + r - 8, 16, 8); c.fill();
+  c.fillStyle = INK; c.beginPath(); c.arc(x, y, r - 7, 0, TAU); c.fill();
+  drawSpellShape(c, s, x, y, r * 1.45, 1, { w: Math.max(4, r * 0.12), glow: true, numbers: false });
+  c.restore();
+}
+
+function drawGhost(t) {
+  if (!game.showGhost || !game.awaiting || game.state !== 'play') return;
+  const s = SPELL[game.target];
+  const size = Math.min(W * 0.62, H * 0.34, 320);
+  const cx = W / 2, cy = Math.min(H * 0.42, scene.groundY - size * 0.6);
+  const dur = 0.9 + 0.55 * s.strokes.length, ph = t % (dur + 0.6), prog = Math.min(1, ph / dur);
+  ctx.save(); ctx.globalAlpha = 0.55;
+  drawSpellShape(ctx, s, cx, cy, size * 1.15, prog, { w: Math.max(6, size * 0.035), guide: true, guideColor: 'rgba(255,244,214,.45)', comet: true, glow: true });
+  ctx.restore();
+  ctx.save(); ctx.font = `20px ${getComputedStyle(document.documentElement).getPropertyValue('--font-display')}`;
+  ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(255,244,214,.75)';
+  ctx.fillText('Write it anywhere', cx, cy - size / 2 - 18);
+  ctx.restore();
+}
+
+function drawStroke() {
+  const c = ctx;
+  c.lineCap = 'round'; c.lineJoin = 'round';
+  for (const f of fadeStrokes) {
+    if (f.pts.length < 2) continue;
+    const a = f.t / f.max;
+    c.save(); c.globalAlpha = a; c.shadowColor = f.color; c.shadowBlur = f.glow ? 24 : 0;
+    c.strokeStyle = f.color; c.lineWidth = 9 + (1 - a) * 6; polyline(c, f.pts); c.stroke(); c.restore();
+  }
+  for (const st of ink.strokes) {
+    if (st.length < 2) continue;
+    c.save(); c.shadowColor = '#ffcc3d'; c.shadowBlur = 12; c.strokeStyle = '#ffcc3d'; c.lineWidth = 10; polyline(c, st); c.stroke();
+    c.shadowBlur = 0; c.strokeStyle = '#fffbe8'; c.lineWidth = 4; polyline(c, st); c.stroke(); c.restore();
+  }
+  if (ink.timer > 0 && !stroke && ink.strokes.length) { // a ring that fills while the game waits for the next stroke
+    const l = ink.strokes[ink.strokes.length - 1], e = l[l.length - 1], k = 1 - ink.timer / ink.wait;
+    c.save(); c.lineWidth = 4; c.strokeStyle = 'rgba(255,244,214,.3)'; c.beginPath(); c.arc(e[0] + 22, e[1] - 22, 10, 0, TAU); c.stroke();
+    c.strokeStyle = '#ffcc3d'; c.beginPath(); c.arc(e[0] + 22, e[1] - 22, 10, -Math.PI / 2, -Math.PI / 2 + TAU * k); c.stroke(); c.restore();
+  }
+  if (stroke && stroke.pts.length > 1) {
+    c.save(); c.shadowColor = '#ffcc3d'; c.shadowBlur = 18;
+    c.strokeStyle = '#ffcc3d'; c.lineWidth = 10; polyline(c, stroke.pts); c.stroke();
+    c.shadowBlur = 0; c.strokeStyle = '#fffbe8'; c.lineWidth = 4; polyline(c, stroke.pts); c.stroke();
+    c.restore();
+  }
+}
+
+function drawProjectiles(dt) {
+  const c = ctx;
+  for (let i = projectiles.length - 1; i >= 0; i--) {
+    const p = projectiles[i];
+    p.t += dt; if (p.t < 0) continue;
+    const k = Math.min(1, p.t / p.dur), e = p.s.fx === 'earth' ? k * k : k;
+    p.x = p.x0 + (p.tx - p.x0) * e; p.y = p.y0 + (p.ty - p.y0) * e + p.arc * Math.sin(Math.PI * e);
+    p.spin += dt * 10;
+    const r = (p.s.fx === 'earth' ? 24 : 14) * S;
+    if (Math.random() < 0.9) particles.push({ x: p.x, y: p.y, vx: (Math.random() - 0.5) * 30, vy: (Math.random() - 0.5) * 30, life: 0.35, max: 0.35, size: r * 0.5, color: p.s.color, kind: p.s.fx === 'star' ? 'star' : 'dot' });
+    c.save(); c.lineWidth = 4; c.strokeStyle = INK; c.shadowColor = p.s.color; c.shadowBlur = 22; c.fillStyle = p.s.color;
+    if (p.s.fx === 'star') { starPath(c, p.x, p.y, r * 1.3, p.spin); c.fill(); c.shadowBlur = 0; c.stroke(); }
+    else if (p.s.fx === 'earth') { c.beginPath(); for (let j = 0; j < 7; j++) { const a = p.spin * 0.3 + j * TAU / 7, rr = r * (0.8 + 0.2 * ((j * 37) % 5) / 5); c.lineTo(p.x + Math.cos(a) * rr, p.y + Math.sin(a) * rr); } c.closePath(); c.fill(); c.shadowBlur = 0; c.stroke(); }
+    else if (p.s.fx === 'wind') { c.shadowBlur = 0; c.strokeStyle = p.s.color; c.lineWidth = 5 * S; for (let j = 0; j < 3; j++) { c.beginPath(); c.arc(p.x, p.y, r * (0.6 + j * 0.45), p.spin + j, p.spin + j + 2.2); c.stroke(); } }
+    else { c.beginPath(); c.arc(p.x, p.y, r, 0, TAU); c.fill(); c.shadowBlur = 0; c.stroke(); c.fillStyle = 'rgba(255,255,255,.75)'; c.beginPath(); c.arc(p.x - r * 0.3, p.y - r * 0.3, r * 0.3, 0, TAU); c.fill(); }
+    c.restore();
+    if (k >= 1) { projectiles.splice(i, 1); if (!p.echo) impact(p.s); }
+  }
+  if (bolt) {
+    bolt.t -= dt;
+    const [tx, ty] = target(), [sx, sy] = wiz.tip;
+    const pts = [[tx, -10]];
+    const seg = 9;
+    for (let i = 1; i < seg; i++) { const k = i / seg; pts.push([tx + (Math.random() - 0.5) * 70 * S, -10 + (ty + 10) * k]); }
+    pts.push([tx, ty]);
+    c.save(); c.lineJoin = 'miter'; c.globalAlpha = Math.max(0, bolt.t / 0.35);
+    c.strokeStyle = INK; c.lineWidth = 14 * S; polyline(c, pts); c.stroke();
+    c.shadowColor = bolt.color; c.shadowBlur = 30; c.strokeStyle = bolt.color; c.lineWidth = 8 * S; polyline(c, pts); c.stroke();
+    c.strokeStyle = '#fff'; c.lineWidth = 3 * S; polyline(c, pts); c.stroke();
+    c.beginPath(); c.moveTo(sx, sy); c.lineTo((sx + tx) / 2, sy - 30 * S); c.stroke();
+    c.restore();
+    if (bolt.t <= 0) bolt = null;
+  }
+}
+
+function drawParticles(dt) {
+  const c = ctx;
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.life -= dt; if (p.life <= 0) { particles.splice(i, 1); continue; }
+    const a = p.life / p.max;
+    if (p.kind === 'swirl') { p.a += dt * (p.vr / 30); p.r = Math.max(0, p.r + (p.vr < 0 ? -40 : 40) * dt); }
+    else if (p.kind !== 'ring') { p.vy += (p.g || 0) * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.98; }
+    c.save(); c.globalAlpha = a; c.fillStyle = p.color; c.strokeStyle = INK;
+    switch (p.kind) {
+      case 'ring': c.globalAlpha = a * 0.8; c.strokeStyle = p.color; c.lineWidth = 8 * a; c.beginPath(); c.arc(p.x, p.y, p.size * (1.2 - a), 0, TAU); c.stroke(); break;
+      case 'smoke': c.globalAlpha = a * 0.7; c.beginPath(); c.arc(p.x, p.y, p.size * (1.6 - a), 0, TAU); c.fill(); break;
+      case 'shard': c.translate(p.x, p.y); c.rotate(p.vx * 0.01); c.beginPath(); c.moveTo(0, -p.size * 1.6); c.lineTo(p.size * 0.6, 0); c.lineTo(0, p.size * 1.6); c.lineTo(-p.size * 0.6, 0); c.closePath(); c.fill(); c.lineWidth = 1.5; c.stroke(); break;
+      case 'rock': c.beginPath(); c.rect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size); c.fill(); c.lineWidth = 2; c.stroke(); break;
+      case 'star': starPath(c, p.x, p.y, p.size, p.life * 6); c.fill(); break;
+      case 'swirl': { const [tx, ty] = target(); c.beginPath(); c.arc(tx + Math.cos(p.a) * p.r, ty + Math.sin(p.a) * p.r, p.size, 0, TAU); c.fill(); break; }
+      default: c.beginPath(); c.arc(p.x, p.y, p.size * (0.4 + 0.6 * a), 0, TAU); c.fill();
+    }
+    c.restore();
+  }
+}
+
+function drawFloaters(dt) {
+  const c = ctx, fam = getComputedStyle(document.documentElement).getPropertyValue('--font-display');
+  for (let i = floaters.length - 1; i >= 0; i--) {
+    const f = floaters[i];
+    f.t -= dt; if (f.t <= 0) { floaters.splice(i, 1); continue; }
+    f.y -= 40 * dt;
+    const size = (f.big ? 38 : 28) * Math.max(0.75, S);
+    c.save(); c.globalAlpha = Math.min(1, f.t * 2); c.font = `${size}px ${fam}`; c.textAlign = 'center';
+    const x = Math.max(size * 3, Math.min(W - size * 3, f.x));
+    c.lineWidth = 7; c.strokeStyle = INK; c.lineJoin = 'round'; c.strokeText(f.text, x, f.y);
+    c.fillStyle = f.color; c.fillText(f.text, x, f.y); c.restore();
+  }
+}
+
+function drawCards(t) {
+  for (const cc of cardCanvases) {
+    const c = cc.cv.getContext('2d'), w = cc.cv.width;
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    c.fillStyle = '#1a1340'; c.fillRect(0, 0, w, w);
+    const dur = 0.7 + 0.6 * cc.spell.strokes.length, ph = (t + cc.offset * dur) % (dur + 0.6), prog = Math.min(1, ph / dur);
+    drawSpellShape(c, cc.spell, w / 2, w / 2, w * 0.92, prog, { w: 11, guide: true, guideColor: 'rgba(255,244,214,.3)', comet: true, glow: true });
+    if (ph > dur) { // a little sparkle burst when the character is complete
+      const k = (ph - dur) / 0.6;
+      c.save(); c.globalAlpha = 1 - k; c.fillStyle = cc.spell.color;
+      for (let i = 0; i < 8; i++) { const a = i * TAU / 8; starPath(c, w / 2 + Math.cos(a) * w * 0.38 * (0.6 + k), w / 2 + Math.sin(a) * w * 0.38 * (0.6 + k), 7, k * 3); c.fill(); }
+      c.restore();
+    }
+  }
+}
+
+const easeOutBack = x => 1 + 2.7 * Math.pow(x - 1, 3) + 1.7 * Math.pow(x - 1, 2);
+const reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now; time += dt;
+  wiz.cast = Math.max(0, wiz.cast - dt * 2.2);
+  wiz.fizzle = Math.max(0, wiz.fizzle - dt * 2);
+  dummy.wob = Math.max(0, dummy.wob - dt * 1.8);
+  dummy.tintT = Math.max(0, dummy.tintT - dt * 1.4);
+  dummy.squash = Math.max(0, dummy.squash - dt * 3);
+  bubble.pop = Math.min(1, bubble.pop + dt * 3);
+  shake = Math.max(0, shake - dt * 40);
+  if (ink.timer > 0 && !stroke) { ink.timer -= dt; if (ink.timer <= 0) judgeInk(); }
+  for (let i = fadeStrokes.length - 1; i >= 0; i--) { fadeStrokes[i].t -= dt; if (fadeStrokes[i].t <= 0) fadeStrokes.splice(i, 1); }
+
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.save();
+  if (shake > 0 && !reduceMotion) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
+  ctx.drawImage(bgCanvas, 0, 0, W, H);
+  ctx.fillStyle = '#fff6dd';
+  for (const s of starsBg) { ctx.globalAlpha = 0.45 + 0.55 * Math.sin(time * 2 + s.p) ** 2; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, TAU); ctx.fill(); }
+  ctx.globalAlpha = 1;
+  drawDummy(time);
+  drawWizard(time);
+  drawBubble(time);
+  drawGhost(time);
+  drawProjectiles(dt);
+  drawParticles(dt);
+  ctx.restore();
+  drawStroke();
+  drawFloaters(dt);
+  if (cardCanvases.length) drawCards(time);
+  requestAnimationFrame(frame);
+}
+
+$('muteBtn').onclick = () => { Sound.init(); Sound.muted = !Sound.muted; if (Sound.muted && Sound.el) Sound.el.pause(); $('muteBtn').textContent = Sound.muted ? 'Muted' : 'Sound'; };
+window.addEventListener('resize', resize);
+resize();
+showTitle();
+requestAnimationFrame(frame);
+</script>
+
+
+</body>
+</html>

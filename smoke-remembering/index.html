@@ -1,0 +1,946 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<title>Smoke, Remembering</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,400;1,600&family=Great+Vibes&display=swap">
+<style>
+  /* Layout: one full-bleed WebGL night sky; the poem's current line whispers at the bottom. Single dark look by choice. */
+  :root {
+    --night: #08061a;
+    --dusk: #1b0f2c;
+    --mist: #e9e2ff;
+    --mist-dim: rgba(233, 226, 255, 0.42);
+    --mist-faint: rgba(233, 226, 255, 0.16);
+    --serif: "Cormorant Garamond", "Cormorant", Garamond, "Times New Roman", serif;
+    --script: "Great Vibes", "Snell Roundhand", "Apple Chancery", cursive;
+    color-scheme: dark;
+  }
+  html, body { height: 100%; }
+  body {
+    background: var(--night);
+    color: var(--mist);
+    overflow: hidden;
+    overscroll-behavior: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #c {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    touch-action: none;
+    background: radial-gradient(ellipse at 50% 70%, var(--dusk), var(--night) 70%);
+  }
+  .verse {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 28px);
+    text-align: center;
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(17px, 4.6vw, 24px);
+    letter-spacing: 0.02em;
+    line-height: 1.4;
+    pointer-events: none;
+    text-wrap: balance;
+  }
+  .verse span {
+    color: var(--mist-faint);
+    transition: color 1.6s ease;
+  }
+  .verse span.lit { color: var(--mist-dim); }
+  .verse span.now { color: var(--mist); text-shadow: 0 0 14px rgba(200, 185, 255, 0.55); }
+  .stanza-mark {
+    display: block;
+    font-size: 0.62em;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    font-style: normal;
+    color: var(--mist-faint);
+    margin-bottom: 6px;
+  }
+  .hint {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: calc(env(safe-area-inset-top, 0px) + 22px);
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    text-align: center;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 15px;
+    letter-spacing: 0.06em;
+    color: var(--mist-dim);
+    pointer-events: none;
+    transition: opacity 2.5s ease;
+  }
+  .hint.gone { opacity: 0; }
+  [hidden] { display: none !important; }
+  .fail {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 20px;
+    text-align: center;
+    color: var(--mist);
+  }
+</style>
+</head>
+<body>
+<canvas id="c" aria-label="A cloud of smoke that flows from word to word of a poem"></canvas>
+<div class="hint" id="hint">touch the smoke to stir it</div>
+<div class="verse" id="verse" aria-live="polite"></div>
+<div class="fail" id="fail" hidden>This poem needs WebGL with floating-point textures, which this browser does not offer.</div>
+
+<script>
+(() => {
+'use strict';
+
+/* ---------------- The poem ----------------
+   Each entry is one breath of smoke. Lines group the breaths for the caption. */
+const LINES = [
+  ['once', 'a breath', 'became', 'a word'],
+  ['the word', 'became', 'a wish'],
+  ['the wish', 'unravelled', 'into sky'],
+  ['and the sky', 'remembered', 'you'],
+  ['so breathe', 'and let', 'the smoke', 'keep dreaming'],
+];
+const SCRIPT_WORDS = new Set(['once', 'a word', 'a wish', 'into sky', 'you', 'keep dreaming']);
+const PALETTE = [
+  [0.80, 0.74, 1.00], // lavender
+  [1.00, 0.80, 0.88], // rose
+  [0.72, 0.92, 1.00], // mist blue
+  [1.00, 0.90, 0.74], // candle
+  [0.86, 0.80, 1.00],
+];
+const BEATS = [];
+LINES.forEach((line, li) => line.forEach((w, wi) => BEATS.push({
+  text: w, line: li, idx: wi,
+  script: SCRIPT_WORDS.has(w),
+  color: PALETTE[(BEATS.length) % PALETTE.length],
+  dur: (w === 'you' || w === 'keep dreaming') ? 8.5 : 6.2,
+})));
+
+/* ---------------- WebGL setup ---------------- */
+const canvas = document.getElementById('c');
+const isPhone = Math.min(screen.width, screen.height) < 600 || /Mobi|Android/i.test(navigator.userAgent);
+const reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+const CFG = {
+  SIM_RES: isPhone ? 112 : 144,
+  DYE_RES: isPhone ? 576 : 768,
+  PRESSURE_ITER: isPhone ? 18 : 24,
+  PIXEL_RATIO: Math.min(window.devicePixelRatio || 1, isPhone ? 1.5 : 2),
+  CURL: 14,
+  VEL_DISSIPATION: 1.6,
+  PRESSURE_KEEP: 0.8,
+};
+
+const ctxInfo = getContext();
+if (!ctxInfo) { document.getElementById('fail').hidden = false; return; }
+const { gl, ext } = ctxInfo;
+
+function getContext() {
+  const params = { alpha: false, depth: false, stencil: false, antialias: false, preserveDrawingBuffer: false, powerPreference: 'high-performance' };
+  let gl = canvas.getContext('webgl2', params);
+  const isGL2 = !!gl;
+  if (!gl) gl = canvas.getContext('webgl', params) || canvas.getContext('experimental-webgl', params);
+  if (!gl) return null;
+  let halfFloat, supportLinear;
+  if (isGL2) {
+    gl.getExtension('EXT_color_buffer_float');
+    gl.getExtension('EXT_color_buffer_half_float');
+    supportLinear = true;
+  } else {
+    halfFloat = gl.getExtension('OES_texture_half_float');
+    supportLinear = !!gl.getExtension('OES_texture_half_float_linear');
+    if (!halfFloat) return null;
+  }
+  const type = isGL2 ? gl.HALF_FLOAT : halfFloat.HALF_FLOAT_OES;
+  let rgba, rg, r;
+  if (isGL2) {
+    rgba = supported(gl, gl.RGBA16F, gl.RGBA, type);
+    rg = supported(gl, gl.RG16F, gl.RG, type) || rgba;
+    r = supported(gl, gl.R16F, gl.RED, type) || rg;
+  } else {
+    rgba = rg = r = supported(gl, gl.RGBA, gl.RGBA, type);
+  }
+  if (!rgba) return null;
+  return { gl, ext: { type, rgba, rg, r, linear: supportLinear } };
+}
+function supported(gl, internal, format, type) {
+  const tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texImage2D(gl.TEXTURE_2D, 0, internal, 4, 4, 0, format, type, null);
+  const fbo = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+  const ok = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  gl.deleteFramebuffer(fbo); gl.deleteTexture(tex);
+  return ok ? { internal, format } : null;
+}
+
+/* ---------------- Shaders ---------------- */
+const VERT = `
+precision highp float;
+attribute vec2 aPosition;
+varying vec2 vUv, vL, vR, vT, vB;
+uniform vec2 texelSize;
+void main(){
+  vUv = aPosition * 0.5 + 0.5;
+  vL = vUv - vec2(texelSize.x, 0.0);
+  vR = vUv + vec2(texelSize.x, 0.0);
+  vT = vUv + vec2(0.0, texelSize.y);
+  vB = vUv - vec2(0.0, texelSize.y);
+  gl_Position = vec4(aPosition, 0.0, 1.0);
+}`;
+
+const NOISE = `
+vec2 hash2(vec2 p){
+  p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
+  return -1.0 + 2.0 * fract(sin(p) * 43758.5453);
+}
+float gnoise(vec2 p){
+  vec2 i = floor(p); vec2 f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(mix(dot(hash2(i), f), dot(hash2(i + vec2(1.0, 0.0)), f - vec2(1.0, 0.0)), u.x),
+             mix(dot(hash2(i + vec2(0.0, 1.0)), f - vec2(0.0, 1.0)), dot(hash2(i + vec2(1.0, 1.0)), f - vec2(1.0, 1.0)), u.x), u.y);
+}`;
+
+const FRAG = {
+  advection: `
+precision highp float; precision highp sampler2D;
+varying vec2 vUv;
+uniform sampler2D uVelocity, uSource;
+uniform vec2 texelSize, dyeTexelSize;
+uniform float dt, dissipation;
+vec4 bilerp(sampler2D sam, vec2 uv, vec2 ts){
+  vec2 st = uv / ts - 0.5; vec2 iuv = floor(st); vec2 f = fract(st);
+  vec4 a = texture2D(sam, (iuv + vec2(0.5, 0.5)) * ts);
+  vec4 b = texture2D(sam, (iuv + vec2(1.5, 0.5)) * ts);
+  vec4 c = texture2D(sam, (iuv + vec2(0.5, 1.5)) * ts);
+  vec4 d = texture2D(sam, (iuv + vec2(1.5, 1.5)) * ts);
+  return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
+void main(){
+#ifdef MANUAL_FILTERING
+  vec2 coord = vUv - dt * bilerp(uVelocity, vUv, texelSize).xy * texelSize;
+  vec4 result = bilerp(uSource, coord, dyeTexelSize);
+#else
+  vec2 coord = vUv - dt * texture2D(uVelocity, vUv).xy * texelSize;
+  vec4 result = texture2D(uSource, coord);
+#endif
+  // nothing flows in from beyond the screen edges
+  vec2 inside = step(vec2(0.0), coord) * step(coord, vec2(1.0));
+  result *= inside.x * inside.y;
+  gl_FragColor = result / (1.0 + dissipation * dt);
+}`,
+  divergence: `
+precision highp float; precision highp sampler2D;
+varying vec2 vUv, vL, vR, vT, vB;
+uniform sampler2D uVelocity;
+void main(){
+  float L = texture2D(uVelocity, vL).x;
+  float R = texture2D(uVelocity, vR).x;
+  float T = texture2D(uVelocity, vT).y;
+  float B = texture2D(uVelocity, vB).y;
+  vec2 C = texture2D(uVelocity, vUv).xy;
+  if (vL.x < 0.0) L = -C.x;
+  if (vR.x > 1.0) R = -C.x;
+  if (vT.y > 1.0) T = -C.y;
+  if (vB.y < 0.0) B = -C.y;
+  gl_FragColor = vec4(0.5 * (R - L + T - B), 0.0, 0.0, 1.0);
+}`,
+  curl: `
+precision highp float; precision highp sampler2D;
+varying vec2 vUv, vL, vR, vT, vB;
+uniform sampler2D uVelocity;
+void main(){
+  float L = texture2D(uVelocity, vL).y;
+  float R = texture2D(uVelocity, vR).y;
+  float T = texture2D(uVelocity, vT).x;
+  float B = texture2D(uVelocity, vB).x;
+  gl_FragColor = vec4(0.5 * (R - L - T + B), 0.0, 0.0, 1.0);
+}`,
+  vorticity: `
+precision highp float; precision highp sampler2D;
+varying vec2 vUv, vL, vR, vT, vB;
+uniform sampler2D uVelocity, uCurl;
+uniform float curl, dt;
+void main(){
+  float L = texture2D(uCurl, vL).x;
+  float R = texture2D(uCurl, vR).x;
+  float T = texture2D(uCurl, vT).x;
+  float B = texture2D(uCurl, vB).x;
+  float C = texture2D(uCurl, vUv).x;
+  vec2 force = 0.5 * vec2(abs(T) - abs(B), abs(R) - abs(L));
+  force /= length(force) + 0.0001;
+  force *= curl * C;
+  force.y *= -1.0;
+  vec2 vel = texture2D(uVelocity, vUv).xy + force * dt;
+  gl_FragColor = vec4(clamp(vel, -1000.0, 1000.0), 0.0, 1.0);
+}`,
+  pressure: `
+precision highp float; precision highp sampler2D;
+varying vec2 vUv, vL, vR, vT, vB;
+uniform sampler2D uPressure, uDivergence;
+void main(){
+  float L = texture2D(uPressure, vL).x;
+  float R = texture2D(uPressure, vR).x;
+  float T = texture2D(uPressure, vT).x;
+  float B = texture2D(uPressure, vB).x;
+  float div = texture2D(uDivergence, vUv).x;
+  gl_FragColor = vec4((L + R + B + T - div) * 0.25, 0.0, 0.0, 1.0);
+}`,
+  gradient: `
+precision highp float; precision highp sampler2D;
+varying vec2 vUv, vL, vR, vT, vB;
+uniform sampler2D uPressure, uVelocity;
+void main(){
+  float L = texture2D(uPressure, vL).x;
+  float R = texture2D(uPressure, vR).x;
+  float T = texture2D(uPressure, vT).x;
+  float B = texture2D(uPressure, vB).x;
+  vec2 vel = texture2D(uVelocity, vUv).xy - vec2(R - L, T - B);
+  gl_FragColor = vec4(vel, 0.0, 1.0);
+}`,
+  clear: `
+precision highp float; precision highp sampler2D;
+varying vec2 vUv;
+uniform sampler2D uTexture;
+uniform float value;
+void main(){ gl_FragColor = value * texture2D(uTexture, vUv); }`,
+  splat: `
+precision highp float; precision highp sampler2D;
+varying vec2 vUv;
+uniform sampler2D uTarget;
+uniform float aspectRatio, radius;
+uniform vec3 color;
+uniform vec2 point;
+void main(){
+  vec2 p = vUv - point; p.x *= aspectRatio;
+  vec3 s = exp(-dot(p, p) / radius) * color;
+  gl_FragColor = vec4(texture2D(uTarget, vUv).xyz + s, 1.0);
+}`,
+  /* Ambient forces: a drifting curl-noise wind plus buoyancy (warm smoke rises). */
+  force: `
+precision highp float; precision highp sampler2D;
+varying vec2 vUv;
+uniform sampler2D uVelocity, uDye;
+uniform float time, noiseAmp, buoyancy, dt, aspect;
+${NOISE}
+float psi(vec2 p){
+  return gnoise(p + vec2(0.0, -time * 0.18)) + 0.5 * gnoise(p * 2.13 + vec2(time * 0.21, 3.7));
+}
+void main(){
+  vec2 p = vec2(vUv.x * aspect, vUv.y) * 2.6;
+  float e = 0.02;
+  float a = psi(p + vec2(0.0, e)), b = psi(p - vec2(0.0, e));
+  float c = psi(p + vec2(e, 0.0)), d = psi(p - vec2(e, 0.0));
+  vec2 wind = vec2(a - b, -(c - d)) / (2.0 * e);
+  float smoke = dot(texture2D(uDye, vUv).rgb, vec3(0.3333));
+  vec2 vel = texture2D(uVelocity, vUv).xy;
+  vel += dt * (wind * noiseAmp + vec2(0.0, buoyancy * smoke));
+  gl_FragColor = vec4(vel, 0.0, 1.0);
+}`,
+  display: `
+precision highp float; precision highp sampler2D;
+varying vec2 vUv;
+uniform sampler2D uDye;
+uniform vec2 dyeTexel;
+uniform float time, aspect;
+float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+vec3 tap(vec2 o){ return texture2D(uDye, vUv + o * dyeTexel).rgb; }
+void main(){
+  vec3 d = texture2D(uDye, vUv).rgb;
+  // soft glow
+  vec3 g = vec3(0.0);
+  g += tap(vec2( 7.0, 0.0)) + tap(vec2(-7.0, 0.0)) + tap(vec2(0.0, 7.0)) + tap(vec2(0.0, -7.0));
+  g += tap(vec2( 11.0, 11.0)) + tap(vec2(-11.0, 11.0)) + tap(vec2(11.0, -11.0)) + tap(vec2(-11.0, -11.0));
+  g *= 0.125;
+  // light the smoke from above as if it had volume
+  float l = dot(tap(vec2(-1.5, 0.0)), vec3(0.333)), r = dot(tap(vec2(1.5, 0.0)), vec3(0.333));
+  float t = dot(tap(vec2(0.0, 1.5)), vec3(0.333)), b = dot(tap(vec2(0.0, -1.5)), vec3(0.333));
+  vec3 n = normalize(vec3(l - r, b - t, 0.35));
+  float light = clamp(dot(n, normalize(vec3(-0.25, 0.7, 0.65))), 0.0, 1.0);
+  // night sky
+  vec2 q = vUv - vec2(0.5, 0.36); q.x *= aspect;
+  vec3 bg = mix(vec3(0.105, 0.060, 0.170), vec3(0.030, 0.024, 0.085), smoothstep(0.0, 0.85, length(q)));
+  bg += vec3(0.02, 0.01, 0.03) * (1.0 - vUv.y);
+  vec3 smoke = 1.0 - exp(-d * 1.35);
+  vec3 col = bg * (1.0 - 0.55 * smoke) + smoke * (0.62 + 0.55 * light) + (1.0 - exp(-g * 1.4)) * 0.22;
+  col += (h(vUv * 917.0 + fract(time * 7.13)) - 0.5) * 0.022;
+  gl_FragColor = vec4(col, 1.0);
+}`,
+};
+
+function compile(type, src, keywords) {
+  if (keywords) src = keywords.map(k => '#define ' + k + '\n').join('') + src;
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) console.error(gl.getShaderInfoLog(s));
+  return s;
+}
+const vs = compile(gl.VERTEX_SHADER, VERT);
+function program(fragSrc, keywords) {
+  const p = gl.createProgram();
+  gl.attachShader(p, vs);
+  gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fragSrc, keywords));
+  gl.bindAttribLocation(p, 0, 'aPosition');
+  gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) console.error(gl.getProgramInfoLog(p));
+  const u = {};
+  const n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
+  for (let i = 0; i < n; i++) {
+    const name = gl.getActiveUniform(p, i).name;
+    u[name] = gl.getUniformLocation(p, name);
+  }
+  return { p, u, use() { gl.useProgram(p); } };
+}
+const P = {};
+for (const k in FRAG) P[k] = program(FRAG[k], k === 'advection' && !ext.linear ? ['MANUAL_FILTERING'] : null);
+
+/* Points are drawn as soft round sprites, added on top of the velocity and smoke fields. */
+const POINT_VERT = `
+precision highp float;
+attribute vec2 aPos;
+attribute vec2 aVel;
+attribute float aAmt;
+uniform float uSize;
+varying vec2 vVel;
+varying float vAmt;
+void main(){
+  vVel = aVel; vAmt = aAmt;
+  gl_PointSize = uSize;
+  gl_Position = vec4(aPos * 2.0 - 1.0, 0.0, 1.0);
+}`;
+const POINT_FRAG = `
+precision highp float;
+varying vec2 vVel;
+varying float vAmt;
+uniform float uMode, uGain;
+uniform vec3 uColor;
+uniform vec2 uScale;
+void main(){
+  vec2 c = gl_PointCoord * 2.0 - 1.0;
+  float r2 = dot(c, c);
+  if (r2 > 1.0) discard;
+  float g = exp(-r2 * 3.0);
+  if (uMode < 0.5) gl_FragColor = vec4(vVel * uScale * g * uGain, 0.0, 0.0);
+  else gl_FragColor = vec4(uColor * g * vAmt * uGain, 0.0);
+}`;
+const PP = (() => {
+  const p = gl.createProgram();
+  gl.attachShader(p, compile(gl.VERTEX_SHADER, POINT_VERT));
+  gl.attachShader(p, compile(gl.FRAGMENT_SHADER, POINT_FRAG));
+  gl.bindAttribLocation(p, 0, 'aPos');
+  gl.bindAttribLocation(p, 1, 'aVel');
+  gl.bindAttribLocation(p, 2, 'aAmt');
+  gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) console.error(gl.getProgramInfoLog(p));
+  const u = {};
+  ['uSize', 'uMode', 'uGain', 'uColor', 'uScale'].forEach(n => u[n] = gl.getUniformLocation(p, n));
+  return { p, u };
+})();
+
+const quadBuf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, -1, 1, 1, 1, 1, -1]), gl.STATIC_DRAW);
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
+gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array([0, 1, 2, 0, 2, 3]), gl.STATIC_DRAW);
+gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+gl.enableVertexAttribArray(0);
+
+function blit(target) {
+  if (target) { gl.viewport(0, 0, target.w, target.h); gl.bindFramebuffer(gl.FRAMEBUFFER, target.fbo); }
+  else { gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight); gl.bindFramebuffer(gl.FRAMEBUFFER, null); }
+  gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+}
+
+function makeFBO(w, h, fmt, filter) {
+  gl.activeTexture(gl.TEXTURE0);
+  const tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texImage2D(gl.TEXTURE_2D, 0, fmt.internal, w, h, 0, fmt.format, ext.type, null);
+  const fbo = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+  gl.viewport(0, 0, w, h);
+  gl.clearColor(0, 0, 0, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  return {
+    tex, fbo, w, h, tx: 1 / w, ty: 1 / h,
+    attach(id) { gl.activeTexture(gl.TEXTURE0 + id); gl.bindTexture(gl.TEXTURE_2D, tex); return id; },
+  };
+}
+function makeDouble(w, h, fmt, filter) {
+  let a = makeFBO(w, h, fmt, filter), b = makeFBO(w, h, fmt, filter);
+  return {
+    w, h, tx: 1 / w, ty: 1 / h,
+    get read() { return a; }, get write() { return b; },
+    swap() { const t = a; a = b; b = t; },
+  };
+}
+
+function resFor(res) {
+  const w = gl.drawingBufferWidth, h = gl.drawingBufferHeight;
+  let ar = w / h; if (ar < 1) ar = 1 / ar;
+  const lo = Math.round(res), hi = Math.round(res * ar);
+  return w > h ? { w: hi, h: lo } : { w: lo, h: hi };
+}
+
+let velocity, dye, divergence, curlFBO, pressure, simRes, dyeRes;
+const textCanvas = document.createElement('canvas');
+const tctx = textCanvas.getContext('2d', { willReadFrequently: true });
+
+function initFramebuffers() {
+  simRes = resFor(CFG.SIM_RES);
+  dyeRes = resFor(CFG.DYE_RES);
+  const filt = ext.linear ? gl.LINEAR : gl.NEAREST;
+  gl.disable(gl.BLEND);
+  dye = makeDouble(dyeRes.w, dyeRes.h, ext.rgba, filt);
+  velocity = makeDouble(simRes.w, simRes.h, ext.rg, filt);
+  divergence = makeFBO(simRes.w, simRes.h, ext.r, gl.NEAREST);
+  curlFBO = makeFBO(simRes.w, simRes.h, ext.r, gl.NEAREST);
+  pressure = makeDouble(simRes.w, simRes.h, ext.r, gl.NEAREST);
+}
+
+function resizeCanvas() {
+  const w = Math.floor(canvas.clientWidth * CFG.PIXEL_RATIO);
+  const h = Math.floor(canvas.clientHeight * CFG.PIXEL_RATIO);
+  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; return true; }
+  return false;
+}
+
+/* ---------------- Words rendered to a target mask ---------------- */
+function renderWord(beat) {
+  const W = dyeRes.w, H = dyeRes.h;
+  textCanvas.width = W; textCanvas.height = H;
+  tctx.clearRect(0, 0, W, H);
+  const family = beat.script ? '"Great Vibes", "Snell Roundhand", cursive' : '"Cormorant Garamond", Garamond, serif';
+  const style = beat.script ? '400 ' : 'italic 600 ';
+  const portrait = H > W;
+  // on a tall screen every phrase of two or more words becomes exactly two balanced lines
+  const parts = beat.text.split(' ');
+  let lines = [beat.text];
+  if (portrait && parts.length > 1) {
+    let best = 1, bestLen = Infinity;
+    for (let k = 1; k < parts.length; k++) {
+      const len = Math.max(parts.slice(0, k).join(' ').length, parts.slice(k).join(' ').length);
+      if (len < bestLen) { bestLen = len; best = k; }
+    }
+    lines = [parts.slice(0, best).join(' '), parts.slice(best).join(' ')];
+  }
+  let size = 200;
+  tctx.font = style + size + 'px ' + family;
+  const widest = Math.max(...lines.map(l => tctx.measureText(l).width));
+  const maxW = W * (beat.script ? 0.84 : 0.8);
+  // generous leading so the two lines of smoke stay apart instead of merging
+  const lineH = lines.length > 1 ? (beat.script ? 1.38 : 1.32) : 1;
+  const maxH = H * (portrait ? (beat.script ? 0.48 : 0.42) : 0.5);
+  size = Math.min(size * maxW / widest, maxH / (lines.length * lineH));
+  size = Math.min(size, W * 0.42);
+  tctx.font = style + size + 'px ' + family;
+  tctx.textAlign = 'center';
+  tctx.textBaseline = 'middle';
+  tctx.fillStyle = '#fff';
+  tctx.strokeStyle = '#fff';
+  tctx.lineJoin = 'round';
+  tctx.lineWidth = size * (beat.script ? 0.022 : 0.012);
+  tctx.shadowColor = 'rgba(255,255,255,0.5)';
+  tctx.shadowBlur = size * 0.015;
+  const cy = H * (portrait ? 0.47 : 0.46);
+  lines.forEach((l, i) => {
+    const y = cy + (i - (lines.length - 1) / 2) * size * lineH;
+    tctx.strokeText(l, W / 2, y);
+    tctx.fillText(l, W / 2, y);
+  });
+  return sampleTargets();
+}
+
+/* ---------------- Point cloud ----------------
+   Each word is sampled into N points. For every new word, each point is paired with a spot in
+   the new word so that the total travel is short (points on the top line stay on the top line),
+   then flies there along a gentle curve. Moving points push the fluid and shed smoke. */
+const N = isPhone ? 1800 : 2800;
+const pts = {};
+['x', 'y', 'ax', 'ay', 'bx', 'by', 'delay', 'bend', 'seed', 'ox', 'oy', 'ovx', 'ovy'].forEach(k => pts[k] = new Float32Array(N));
+const pdata = new Float32Array(N * 5);
+const pointBuf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, pointBuf);
+gl.bufferData(gl.ARRAY_BUFFER, pdata.byteLength, gl.DYNAMIC_DRAW);
+gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+const MOVE = 2.4;
+let moveT = 0;
+
+function sampleTargets() {
+  const W = textCanvas.width, H = textCanvas.height;
+  const data = tctx.getImageData(0, 0, W, H).data;
+  const idx = [];
+  for (let i = 0, n = W * H; i < n; i++) if (data[i * 4 + 3] > 140) idx.push(i);
+  const tx = new Float32Array(N), ty = new Float32Array(N);
+  for (let k = 0; k < N; k++) {
+    const i = idx.length ? idx[(Math.random() * idx.length) | 0] : ((H / 2) | 0) * W + (W >> 1);
+    tx[k] = ((i % W) + Math.random()) / W;
+    ty[k] = 1 - (((i / W) | 0) + Math.random()) / H;
+  }
+  return { tx, ty };
+}
+
+function morphTo({ tx, ty }) {
+  const ar = dyeRes.w / dyeRes.h;
+  const key = (x, y) => x * ar + y * 0.25;
+  const from = Array.from({ length: N }, (_, i) => i).sort((i, j) => key(pts.x[i], pts.y[i]) - key(pts.x[j], pts.y[j]));
+  const to = Array.from({ length: N }, (_, i) => i).sort((i, j) => key(tx[i], ty[i]) - key(tx[j], ty[j]));
+  const bx = pts.bx, by = pts.by;
+  for (let k = 0; k < N; k++) { bx[from[k]] = tx[to[k]]; by[from[k]] = ty[to[k]]; }
+  // improve the pairing: swap destinations whenever that shortens the two journeys
+  const cost = (i, x, y) => { const dx = (pts.x[i] - x) * ar, dy = pts.y[i] - y; return dx * dx + dy * dy; };
+  for (let it = 0; it < N * 40; it++) {
+    const i = (Math.random() * N) | 0, j = (Math.random() * N) | 0;
+    if (cost(i, bx[j], by[j]) + cost(j, bx[i], by[i]) < cost(i, bx[i], by[i]) + cost(j, bx[j], by[j])) {
+      let t = bx[i]; bx[i] = bx[j]; bx[j] = t;
+      t = by[i]; by[i] = by[j]; by[j] = t;
+    }
+  }
+  for (let i = 0; i < N; i++) {
+    pts.ax[i] = pts.x[i]; pts.ay[i] = pts.y[i];
+    pts.delay[i] = Math.random() * 0.55;
+    pts.bend[i] = (Math.random() - 0.5) * 0.3;
+    pts.seed[i] = Math.random() * 100;
+  }
+  moveT = 0;
+}
+
+const SPRING = 8, DAMP = 3.4;
+/* A finger sweeping through the cloud flings nearby points along with it. */
+function pushPoints(x, y, vx, vy, strength) {
+  const ar = dyeRes.w / dyeRes.h, R2 = 0.07 * 0.07;
+  for (let i = 0; i < N; i++) {
+    const dx = (pts.x[i] - x) * ar, dy = pts.y[i] - y;
+    const d2 = dx * dx + dy * dy;
+    if (d2 > R2 * 9) continue;
+    const f = Math.exp(-d2 / R2) * strength;
+    pts.ovx[i] += vx * f; pts.ovy[i] += vy * f;
+  }
+}
+
+const easeInOut = s => s < 0.5 ? 4 * s * s * s : 1 - Math.pow(-2 * s + 2, 3) / 2;
+function updatePoints(dt, t) {
+  moveT += dt;
+  const ar = dyeRes.w / dyeRes.h;
+  for (let i = 0; i < N; i++) {
+    const s = Math.min(Math.max((moveT - pts.delay[i]) / MOVE, 0), 1);
+    const e = easeInOut(s);
+    const ax = pts.ax[i], ay = pts.ay[i];
+    const dx = (pts.bx[i] - ax) * ar, dy = pts.by[i] - ay;
+    const len = Math.hypot(dx, dy) || 1e-6;
+    const arc = Math.sin(Math.PI * e) * pts.bend[i] * Math.min(1, len * 2.5);
+    const w = 0.003 * (0.4 + 0.6 * e);
+    const sd = pts.seed[i];
+    let nx = ax + (pts.bx[i] - ax) * e + (-dy / len) * arc / ar + Math.sin(t * 0.9 + sd) * w / ar;
+    let ny = ay + (pts.by[i] - ay) * e + (dx / len) * arc + Math.cos(t * 0.7 + sd * 1.3) * w;
+    // swipe displacement, pulled back to the word by a soft spring
+    pts.ovx[i] += (-SPRING * pts.ox[i] - DAMP * pts.ovx[i]) * dt;
+    pts.ovy[i] += (-SPRING * pts.oy[i] - DAMP * pts.ovy[i]) * dt;
+    pts.ox[i] += pts.ovx[i] * dt;
+    pts.oy[i] += pts.ovy[i] * dt;
+    nx += pts.ox[i]; ny += pts.oy[i];
+    const vx = (nx - pts.x[i]) / dt, vy = (ny - pts.y[i]) / dt;
+    pts.x[i] = nx; pts.y[i] = ny;
+    const o = i * 5;
+    pdata[o] = nx; pdata[o + 1] = ny; pdata[o + 2] = vx; pdata[o + 3] = vy;
+    pdata[o + 4] = 1 + Math.min(Math.hypot(vx * ar, vy) * 4, 1.6);
+  }
+}
+
+function drawPoints(target, mode, size, gain, color) {
+  gl.viewport(0, 0, target.w, target.h);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, target.fbo);
+  gl.uniform1f(PP.u.uMode, mode);
+  gl.uniform1f(PP.u.uSize, size);
+  gl.uniform1f(PP.u.uGain, gain);
+  gl.uniform3f(PP.u.uColor, color[0], color[1], color[2]);
+  gl.uniform2f(PP.u.uScale, simRes.w, simRes.h);
+  gl.drawArrays(gl.POINTS, 0, N);
+}
+
+/* Moving points drag the fluid with them; every point keeps breathing smoke into the sky. */
+function injectPoints(dt, color) {
+  gl.useProgram(PP.p);
+  gl.bindBuffer(gl.ARRAY_BUFFER, pointBuf);
+  gl.bufferSubData(gl.ARRAY_BUFFER, 0, pdata);
+  gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 20, 0);
+  gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 20, 8);
+  gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 20, 16);
+  gl.enableVertexAttribArray(1);
+  gl.enableVertexAttribArray(2);
+  gl.enable(gl.BLEND);
+  gl.blendFunc(gl.ONE, gl.ONE);
+  drawPoints(velocity.read, 0, Math.max(3, simRes.w * 0.05), 0.35 * dt, color);
+  drawPoints(dye.read, 1, Math.max(3, dyeRes.w * 0.017), 0.9 * dt, color);
+  gl.disable(gl.BLEND);
+  gl.disableVertexAttribArray(1);
+  gl.disableVertexAttribArray(2);
+  gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+  gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+}
+
+/* ---------------- Simulation ---------------- */
+function splat(x, y, dx, dy, color, radius) {
+  const ar = canvas.width / canvas.height;
+  P.splat.use();
+  gl.uniform1i(P.splat.u.uTarget, velocity.read.attach(0));
+  gl.uniform1f(P.splat.u.aspectRatio, ar);
+  gl.uniform2f(P.splat.u.point, x, y);
+  gl.uniform3f(P.splat.u.color, dx, dy, 0);
+  gl.uniform1f(P.splat.u.radius, radius * (ar > 1 ? ar : 1));
+  blit(velocity.write); velocity.swap();
+  if (color) {
+    gl.uniform1i(P.splat.u.uTarget, dye.read.attach(0));
+    gl.uniform3f(P.splat.u.color, color[0], color[1], color[2]);
+    blit(dye.write); dye.swap();
+  }
+}
+
+function step(dt, ph, time) {
+  const ar = simRes.w / simRes.h;
+  injectPoints(dt, ph.color);
+
+  P.curl.use();
+  gl.uniform2f(P.curl.u.texelSize, velocity.tx, velocity.ty);
+  gl.uniform1i(P.curl.u.uVelocity, velocity.read.attach(0));
+  blit(curlFBO);
+
+  P.vorticity.use();
+  gl.uniform2f(P.vorticity.u.texelSize, velocity.tx, velocity.ty);
+  gl.uniform1i(P.vorticity.u.uVelocity, velocity.read.attach(0));
+  gl.uniform1i(P.vorticity.u.uCurl, curlFBO.attach(1));
+  gl.uniform1f(P.vorticity.u.curl, CFG.CURL);
+  gl.uniform1f(P.vorticity.u.dt, dt);
+  blit(velocity.write); velocity.swap();
+
+  P.force.use();
+  gl.uniform2f(P.force.u.texelSize, velocity.tx, velocity.ty);
+  gl.uniform1i(P.force.u.uVelocity, velocity.read.attach(0));
+  gl.uniform1i(P.force.u.uDye, dye.read.attach(1));
+  gl.uniform1f(P.force.u.time, time);
+  gl.uniform1f(P.force.u.noiseAmp, ph.noise * (reduceMotion ? 0.5 : 1));
+  gl.uniform1f(P.force.u.buoyancy, ph.buoy);
+  gl.uniform1f(P.force.u.dt, dt);
+  gl.uniform1f(P.force.u.aspect, ar);
+  blit(velocity.write); velocity.swap();
+
+  P.divergence.use();
+  gl.uniform2f(P.divergence.u.texelSize, velocity.tx, velocity.ty);
+  gl.uniform1i(P.divergence.u.uVelocity, velocity.read.attach(0));
+  blit(divergence);
+
+  P.clear.use();
+  gl.uniform1i(P.clear.u.uTexture, pressure.read.attach(0));
+  gl.uniform1f(P.clear.u.value, CFG.PRESSURE_KEEP);
+  blit(pressure.write); pressure.swap();
+
+  P.pressure.use();
+  gl.uniform2f(P.pressure.u.texelSize, velocity.tx, velocity.ty);
+  gl.uniform1i(P.pressure.u.uDivergence, divergence.attach(0));
+  for (let i = 0; i < CFG.PRESSURE_ITER; i++) {
+    gl.uniform1i(P.pressure.u.uPressure, pressure.read.attach(1));
+    blit(pressure.write); pressure.swap();
+  }
+
+  P.gradient.use();
+  gl.uniform2f(P.gradient.u.texelSize, velocity.tx, velocity.ty);
+  gl.uniform1i(P.gradient.u.uPressure, pressure.read.attach(0));
+  gl.uniform1i(P.gradient.u.uVelocity, velocity.read.attach(1));
+  blit(velocity.write); velocity.swap();
+
+  P.advection.use();
+  gl.uniform2f(P.advection.u.texelSize, velocity.tx, velocity.ty);
+  if (!ext.linear) gl.uniform2f(P.advection.u.dyeTexelSize, velocity.tx, velocity.ty);
+  const vid = velocity.read.attach(0);
+  gl.uniform1i(P.advection.u.uVelocity, vid);
+  gl.uniform1i(P.advection.u.uSource, vid);
+  gl.uniform1f(P.advection.u.dt, dt);
+  gl.uniform1f(P.advection.u.dissipation, CFG.VEL_DISSIPATION);
+  blit(velocity.write); velocity.swap();
+
+  if (!ext.linear) gl.uniform2f(P.advection.u.dyeTexelSize, dye.tx, dye.ty);
+  gl.uniform1i(P.advection.u.uVelocity, velocity.read.attach(0));
+  gl.uniform1i(P.advection.u.uSource, dye.read.attach(1));
+  gl.uniform1f(P.advection.u.dissipation, ph.dyeDiss);
+  blit(dye.write); dye.swap();
+
+}
+
+function render(time) {
+  P.display.use();
+  gl.uniform1i(P.display.u.uDye, dye.read.attach(0));
+  gl.uniform2f(P.display.u.dyeTexel, dye.tx, dye.ty);
+  gl.uniform1f(P.display.u.time, time);
+  gl.uniform1f(P.display.u.aspect, canvas.width / canvas.height);
+  blit(null);
+}
+
+/* ---------------- Choreography ----------------
+   morph: the cloud of points flies from the old word to the new one, dragging smoke
+   hold: the points idle in place, the word breathes and wisps curl upward */
+const smooth = x => x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x);
+const lerp = (a, b, k) => a + (b - a) * k;
+function phase(beat) {
+  const k = smooth(moveT / (MOVE + 0.6));
+  return { noise: lerp(8, 3.5, k), buoy: 1.6, dyeDiss: lerp(0.9, 1.3, k), color: beat.color };
+}
+
+/* ---------------- Caption ---------------- */
+const verseEl = document.getElementById('verse');
+const ROMAN = ['i', 'ii', 'iii', 'iv', 'v'];
+let shownLine = -1;
+function updateVerse(bi) {
+  const beat = BEATS[bi];
+  if (beat.line !== shownLine) {
+    shownLine = beat.line;
+    verseEl.innerHTML = '';
+    const mark = document.createElement('span');
+    mark.className = 'stanza-mark';
+    mark.textContent = ROMAN[beat.line];
+    verseEl.appendChild(mark);
+    LINES[beat.line].forEach((w, i) => {
+      if (i) verseEl.appendChild(document.createTextNode(' '));
+      const s = document.createElement('span');
+      s.textContent = w;
+      verseEl.appendChild(s);
+    });
+  }
+  const spans = verseEl.querySelectorAll('span:not(.stanza-mark)');
+  spans.forEach((s, i) => { s.className = i < beat.idx ? 'lit' : i === beat.idx ? 'now' : ''; });
+}
+
+/* ---------------- Touch ---------------- */
+const pointers = new Map();
+canvas.addEventListener('pointerdown', e => {
+  pointers.set(e.pointerId, { x: e.offsetX, y: e.offsetY });
+  hideHint();
+});
+canvas.addEventListener('pointermove', e => {
+  const p = pointers.get(e.pointerId);
+  if (!p && e.pointerType !== 'mouse') return;
+  const last = p || { x: e.offsetX, y: e.offsetY };
+  const dx = e.offsetX - last.x, dy = e.offsetY - last.y;
+  pointers.set(e.pointerId, { x: e.offsetX, y: e.offsetY, dx, dy, fresh: true, down: !!p && p.down !== false });
+  if (!p) pointers.get(e.pointerId).hover = true;
+});
+const lift = e => pointers.delete(e.pointerId);
+canvas.addEventListener('pointerup', lift);
+canvas.addEventListener('pointercancel', lift);
+canvas.addEventListener('pointerleave', lift);
+
+function applyPointers(color) {
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  pointers.forEach(p => {
+    if (!p.fresh) return;
+    p.fresh = false;
+    const strength = p.hover ? 0.5 : 1;
+    const fx = (p.dx / w) * 5200 * strength, fy = (-p.dy / h) * 5200 * strength * (h / w);
+    const amt = Math.min(Math.hypot(p.dx, p.dy) / 40, 1) * (p.hover ? 0.04 : 0.12);
+    splat(p.x / w, 1 - p.y / h, fx, fy, [color[0] * amt, color[1] * amt, color[2] * amt], 0.0018);
+    let vx = (p.dx / w) * 40, vy = (-p.dy / h) * 40;
+    const sp = Math.hypot(vx, vy);
+    if (sp > 1.4) { vx *= 1.4 / sp; vy *= 1.4 / sp; }
+    pushPoints(p.x / w, 1 - p.y / h, vx, vy, 0.6 * strength);
+  });
+}
+
+const hint = document.getElementById('hint');
+let hintGone = false;
+function hideHint() { if (!hintGone) { hintGone = true; hint.classList.add('gone'); } }
+setTimeout(hideHint, 7000);
+
+/* Keep the phone screen awake while the poem plays */
+async function wake() {
+  try { if (navigator.wakeLock && document.visibilityState === 'visible') await navigator.wakeLock.request('screen'); } catch (_) {}
+}
+document.addEventListener('visibilitychange', wake);
+
+/* ---------------- Main loop ---------------- */
+let beatIdx = 0, beatT = 0, simTime = 0, last = performance.now();
+
+function startBeat(i) {
+  beatIdx = i % BEATS.length;
+  beatT = 0;
+  morphTo(renderWord(BEATS[beatIdx]));
+  updateVerse(beatIdx);
+}
+
+function frame(now) {
+  let dt = Math.min((now - last) / 1000, 1 / 30);
+  last = now;
+  if (resizeCanvas()) { initFramebuffers(); morphTo(renderWord(BEATS[beatIdx])); }
+  const beat = BEATS[beatIdx];
+  simTime += dt;
+  beatT += dt;
+  updatePoints(dt, simTime);
+  const ph = phase(beat);
+  applyPointers(beat.color);
+  step(dt, ph, simTime);
+  render(simTime);
+  if (beatT >= beat.dur) startBeat(beatIdx + 1);
+  requestAnimationFrame(frame);
+}
+
+async function boot() {
+  const fonts = [
+    'italic 600 64px "Cormorant Garamond"',
+    'italic 400 20px "Cormorant Garamond"',
+    '400 64px "Great Vibes"',
+  ];
+  try {
+    await Promise.race([
+      Promise.all(fonts.map(f => document.fonts.load(f))),
+      new Promise(r => setTimeout(r, 2500)),
+    ]);
+  } catch (_) {}
+  resizeCanvas();
+  initFramebuffers();
+  // the cloud starts as a low haze of points
+  for (let i = 0; i < N; i++) { pts.x[i] = Math.random(); pts.y[i] = 0.03 + Math.random() * 0.4; }
+  startBeat(0);
+  wake();
+  last = performance.now();
+  requestAnimationFrame(frame);
+}
+boot();
+})();
+</script>
+
+
+</body>
+</html>

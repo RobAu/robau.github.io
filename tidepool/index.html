@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<title>Tidepool</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300&family=Karla:wght@400&display=swap">
+<style>
+/* Layout: one full-bleed canvas, a single quiet caption that fades out. Committed dark world. */
+:root{
+  --ink:#06121a; --foam:#d9ece8; --mist:rgba(217,236,232,.55); --glass:rgba(6,18,26,.35);
+  --display:"Fraunces", Georgia, "Times New Roman", serif;
+  --body:"Karla", system-ui, -apple-system, sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--ink);color:var(--foam);
+  -webkit-tap-highlight-color:transparent;touch-action:none;user-select:none;-webkit-user-select:none}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+.cap{position:fixed;left:0;right:0;bottom:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-bottom:calc(env(safe-area-inset-bottom,0px) + 9vh);
+  text-align:center;pointer-events:none;transition:opacity 4s ease;}
+.cap h1{font-family:var(--display);font-weight:300;font-size:clamp(28px,8vw,44px);letter-spacing:.02em;margin:0 0 8px;text-wrap:balance}
+.cap p{font-family:var(--body);font-size:14px;color:var(--mist);margin:0;letter-spacing:.06em}
+.cap.gone{opacity:0}
+.breath{position:fixed;top:calc(env(safe-area-inset-top,0px) + 16px);right:max(16px,env(safe-area-inset-right,0px));
+  font-family:var(--body);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--mist);
+  background:var(--glass);border:1px solid rgba(217,236,232,.18);border-radius:999px;padding:8px 14px;
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);cursor:pointer;transition:opacity 4s ease}
+.breath:focus-visible{outline:2px solid var(--foam);outline-offset:2px}
+.breath.dim{opacity:.25}
+.guide{position:fixed;left:0;right:0;top:50%;transform:translateY(-50%);text-align:center;pointer-events:none;
+  font-family:var(--display);font-weight:300;font-size:22px;letter-spacing:.08em;color:var(--mist);transition:opacity 1.2s ease}
+.err{position:fixed;inset:0;display:grid;place-items:center;padding:0 24px;font-family:var(--body);text-align:center;color:var(--mist)}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="cap" id="cap">
+  <h1>Tidepool</h1>
+  <p>Touch the water. Drag to draw a current.</p>
+</div>
+<button class="breath" id="breath" type="button" aria-pressed="false">Breathe</button>
+<div class="guide" id="guide" hidden></div>
+
+<script>
+(() => {
+const canvas = document.getElementById('c');
+const gl = canvas.getContext('webgl', {antialias:false, alpha:false, powerPreference:'low-power'});
+if (!gl) { document.body.insertAdjacentHTML('beforeend','<div class="err">This phone’s browser has WebGL turned off, so the pool can’t render.</div>'); return; }
+
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const MAXR = 10;
+
+const vs = `attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}`;
+const fs = `
+precision highp float;
+uniform vec2 res; uniform float t; uniform float breath;
+uniform vec4 rip[${MAXR}]; // xy pos (px), z start time, w strength
+float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+  return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}
+float fbm(vec2 p){float v=0.,a=.5;mat2 m=mat2(1.6,1.2,-1.2,1.6);
+  for(int i=0;i<5;i++){v+=a*n(p);p=m*p;a*=.5;}return v;}
+vec3 pal(float x, float s){
+  // cosine palette whose phase drifts slowly: deep teal -> indigo -> sea-glass -> dusk plum
+  vec3 a=vec3(.10,.19,.22), b=vec3(.09,.15,.16), c=vec3(1.,1.,1.);
+  vec3 d=vec3(.52,.40,.30)+vec3(.10,.18,.06)*sin(s+vec3(0.,1.7,3.4));
+  return a+b*cos(6.28318*(c*x+d));
+}
+void main(){
+  vec2 frag=gl_FragCoord.xy;
+  float m=min(res.x,res.y);
+  vec2 uv=(frag-.5*res)/m;
+  // ripples displace the water
+  vec2 disp=vec2(0.); float ring=0.;
+  for(int i=0;i<${MAXR};i++){
+    vec4 r=rip[i]; if(r.w<=0.) continue;
+    float age=t-r.z; if(age<0.||age>7.) continue;
+    vec2 d=(frag-r.xy)/m; float dist=length(d);
+    float front=age*.16;
+    float w=exp(-pow((dist-front)*14.,2.))*exp(-age*.55)*r.w;
+    disp+=normalize(d+1e-5)*w*.035*sin((dist-front)*60.);
+    ring+=w;
+  }
+  vec2 q=uv+disp;
+  float tt=t*.035;
+  vec2 w1=vec2(fbm(q*1.6+vec2(0.,tt)),fbm(q*1.6+vec2(5.2,1.3)-tt));
+  vec2 w2=vec2(fbm(q*1.4+2.2*w1+vec2(1.7,9.2)+tt*.7),fbm(q*1.4+2.2*w1+vec2(8.3,2.8)-tt*.5));
+  float f=fbm(q*1.2+2.6*w2);
+  float slow=t*.012;
+  vec3 col=pal(f*.9+length(w2)*.35,slow);
+  col*=.55+.75*f*f;
+  // soft caustic shimmer
+  float ca=pow(abs(sin(fbm(q*5.+w2*3.+t*.05)*12.)),18.);
+  col+=vec3(.55,.75,.72)*ca*.06;
+  // light along ripple rings
+  col+=vec3(.70,.88,.85)*ring*.22;
+  // drifting motes rising slowly
+  vec2 g=uv*7.+vec2(0.,-t*.05); vec2 id=floor(g); vec2 gf=fract(g)-.5;
+  float rnd=h(id); vec2 off=vec2(h(id+3.1),h(id+7.7))-.5;
+  float mote=smoothstep(.06,0.,length(gf-off*.6))*step(.82,rnd);
+  mote*=.5+.5*sin(t*.6+rnd*40.);
+  col+=vec3(.85,.95,.9)*mote*.35;
+  // breathing: gentle lift of light
+  col*=1.+breath*.18;
+  // vignette
+  float v=smoothstep(1.25,.25,length((frag-.5*res)/res.yy*vec2(1.,1.)));
+  col*=mix(.45,1.,v);
+  // dither to avoid banding
+  col+=(h(frag+fract(t))-.5)/255.;
+  gl_FragColor=vec4(col,1.);
+}`;
+
+function sh(type, src){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);
+  if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));return s;}
+const pr=gl.createProgram();
+gl.attachShader(pr,sh(gl.VERTEX_SHADER,vs));gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,fs));gl.linkProgram(pr);gl.useProgram(pr);
+const buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+const loc=gl.getAttribLocation(pr,'p');gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+const uRes=gl.getUniformLocation(pr,'res'),uT=gl.getUniformLocation(pr,'t'),uB=gl.getUniformLocation(pr,'breath'),uR=gl.getUniformLocation(pr,'rip');
+
+// Render below native resolution: soft water doesn't need sharp pixels, and it saves battery.
+let scale=1;
+function resize(){
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  const target=0.55*dpr;
+  scale=target;
+  canvas.width=Math.max(1,Math.round(innerWidth*scale));
+  canvas.height=Math.max(1,Math.round(innerHeight*scale));
+  gl.viewport(0,0,canvas.width,canvas.height);
+}
+addEventListener('resize',resize);resize();
+
+const rip=new Float32Array(MAXR*4); let ri=0;
+const speed = reduce ? 0.4 : 1;
+let simT = 0, last = performance.now();
+function addRipple(x,y,strength){
+  rip[ri*4]=x*scale; rip[ri*4+1]=canvas.height-y*scale; rip[ri*4+2]=simT; rip[ri*4+3]=strength;
+  ri=(ri+1)%MAXR;
+}
+
+// Caption fades after first touch or 7s
+const cap=document.getElementById('cap');
+let capGone=false; function hideCap(){ if(!capGone){capGone=true;cap.classList.add('gone');} }
+setTimeout(hideCap,7000);
+
+// Keep screen awake while the pool is visible (optional)
+let lock=null;
+async function wake(){ try{ if(navigator.wakeLock && !lock){ lock=await navigator.wakeLock.request('screen'); lock.addEventListener('release',()=>lock=null);} }catch(e){} }
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') wake(); });
+
+let down=false, lx=0, ly=0;
+canvas.addEventListener('pointerdown',e=>{ down=true; lx=e.clientX; ly=e.clientY; addRipple(lx,ly,1); hideCap(); wake(); dimBtn(); });
+canvas.addEventListener('pointermove',e=>{ if(!down) return; const dx=e.clientX-lx, dy=e.clientY-ly;
+  if(dx*dx+dy*dy>40*40){ lx=e.clientX; ly=e.clientY; addRipple(lx,ly,.55); } });
+['pointerup','pointercancel','pointerleave'].forEach(n=>canvas.addEventListener(n,()=>down=false));
+
+// Occasional raindrop when left alone, so the pool stays alive
+let idle=0;
+function maybeDrop(dt){ idle+=dt; if(idle>9+Math.random()*12){ idle=0; addRipple(Math.random()*innerWidth, Math.random()*innerHeight, .35); } }
+canvas.addEventListener('pointerdown',()=>idle=0);
+
+// Breathing guide: 4s in, 6s out
+const btn=document.getElementById('breath'), guide=document.getElementById('guide');
+let breathing=false, bStart=0, dimTimer;
+function dimBtn(){ clearTimeout(dimTimer); btn.classList.remove('dim'); dimTimer=setTimeout(()=>btn.classList.add('dim'),5000); }
+dimBtn();
+btn.addEventListener('click',()=>{ breathing=!breathing; bStart=simT; btn.setAttribute('aria-pressed',breathing);
+  btn.textContent=breathing?'Stop':'Breathe'; guide.hidden=!breathing; hideCap(); wake(); dimBtn(); });
+let breath=0, lastPhase='';
+function breathVal(){
+  if(!breathing) return 0;
+  const c=(simT-bStart)%10;
+  let phase, v;
+  if(c<4){ phase='breathe in'; v=.5-.5*Math.cos(Math.PI*c/4); }
+  else { phase='breathe out'; v=.5+.5*Math.cos(Math.PI*(c-4)/6); }
+  if(phase!==lastPhase){ lastPhase=phase; guide.textContent=phase; }
+  return v;
+}
+
+function frame(now){
+  const dt=Math.min(.1,(now-last)/1000); last=now; simT+=dt*speed;
+  maybeDrop(dt);
+  const target=breathVal(); breath+= (target-breath)*Math.min(1,dt*4);
+  gl.uniform2f(uRes,canvas.width,canvas.height);
+  gl.uniform1f(uT,simT+40.); // offset so the first frame is already well-formed
+  gl.uniform1f(uB,breath);
+  // ripple start times are stored in simT; shader uses t = simT+40, so shift
+  const shifted=rip.slice(); for(let i=0;i<MAXR;i++) shifted[i*4+2]+=40.;
+  gl.uniform4fv(uR,shifted);
+  gl.drawArrays(gl.TRIANGLES,0,3);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+})();
+</script>
+
+
+</body>
+</html>

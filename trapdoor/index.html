@@ -1,0 +1,1069 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<title>Trapdoor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Onest:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: a mission dossier on the left, a live phone on the right; every trap is a real interaction inside the phone. */
+:root{
+  --cobalt:#1e3ad6;
+  --cobalt-deep:#10228f;
+  --night:#0a1346;
+  --paper:#f4f6ff;
+  --ink:#0c1240;
+  --muted:#5a6396;
+  --trap:#ff4d6d;
+  --sun:#ffd23f;
+  --mint:#33e0a1;
+  --line:rgba(255,255,255,.18);
+  --f-display:"Dela Gothic One","Arial Black",Impact,sans-serif;
+  --f-body:"Onest",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html,body{min-height:100%}
+body{
+  background:var(--cobalt);
+  background-image:radial-gradient(rgba(255,255,255,.13) 1.2px,transparent 1.3px);
+  background-size:22px 22px;
+  color:#fff;font-family:var(--f-body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:0 40px;
+}
+button{font:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.wrap{max-width:1120px;margin:0 auto}
+
+/* ---------- top bar ---------- */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:18px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--f-display);font-size:20px;letter-spacing:.04em;color:#fff;background:none;border:0;padding:0}
+.brand .hatch-mini{width:26px;height:26px;border-radius:5px;background:var(--night);position:relative;overflow:hidden;box-shadow:inset 0 0 0 2px var(--sun)}
+.brand .hatch-mini::after{content:"";position:absolute;inset:3px;background:var(--sun);transform-origin:top;transform:perspective(40px) rotateX(55deg);border-radius:2px}
+.top-actions{display:flex;gap:8px}
+.chip-btn{background:rgba(255,255,255,.1);color:#fff;border:1px solid var(--line);border-radius:999px;padding:7px 14px;font-weight:600;font-size:13px;display:inline-flex;gap:6px;align-items:center}
+.chip-btn:hover{background:rgba(255,255,255,.18)}
+
+/* ---------- intro ---------- */
+.intro{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:40px;align-items:center;padding-block:28px 10px}
+.kicker{font-family:var(--f-mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--sun)}
+.intro h1{font-family:var(--f-display);font-weight:400;font-size:clamp(54px,10vw,120px);line-height:.9;margin:.15em 0 .2em;letter-spacing:-.01em;text-wrap:balance}
+.intro h1 .o{display:inline-block;color:var(--sun);transform:rotate(-6deg)}
+.intro p.lede{font-size:clamp(17px,2vw,20px);max-width:34em;color:#dfe4ff;margin:0 0 26px}
+.cta{background:var(--sun);color:var(--ink);border:0;border-radius:14px;padding:16px 28px;font-weight:800;font-size:18px;box-shadow:0 6px 0 #b08a00;transition:transform .12s, box-shadow .12s;display:inline-flex;gap:10px;align-items:center}
+.cta:hover{transform:translateY(-2px);box-shadow:0 8px 0 #b08a00}
+.cta:active{transform:translateY(4px);box-shadow:0 2px 0 #b08a00}
+.meters-preview{display:flex;gap:18px;flex-wrap:wrap;margin-top:26px;font-size:13px;color:#c8cff7}
+.meters-preview b{font-family:var(--f-mono);color:#fff;font-size:15px;display:block}
+.hatch-stage{position:relative;aspect-ratio:1/1;max-width:420px;width:100%;justify-self:center;perspective:900px}
+.hatch-hole{position:absolute;inset:10%;background:radial-gradient(circle at 50% 40%,#050a2b,#000 70%);border-radius:18px;box-shadow:inset 0 20px 50px #000,0 0 0 10px var(--night),0 0 0 14px var(--sun)}
+.hatch-door{position:absolute;inset:10%;border-radius:18px;background:
+  repeating-linear-gradient(90deg,transparent 0 46px,rgba(0,0,0,.12) 46px 48px),var(--sun);
+  transform-origin:top center;animation:hatch 4.5s cubic-bezier(.6,.05,.3,1) infinite;display:grid;place-items:center;box-shadow:0 14px 30px rgba(0,0,0,.35)}
+.hatch-door span{font-family:var(--f-display);color:var(--ink);font-size:clamp(20px,3.4vw,32px);text-align:center;line-height:1.05;transform:rotate(-4deg)}
+.hatch-door span small{display:block;font-family:var(--f-mono);font-size:12px;letter-spacing:.1em;margin-top:8px}
+.floaty{position:absolute;background:#fff;color:var(--ink);font-weight:700;font-size:13px;padding:7px 12px;border-radius:10px;box-shadow:0 8px 20px rgba(0,0,0,.25);animation:bob 3.2s ease-in-out infinite;white-space:nowrap}
+.floaty.a{top:2%;left:-4%;transform:rotate(-5deg)}
+.floaty.b{bottom:6%;right:-6%;background:var(--trap);color:#fff;animation-delay:-1.2s}
+.floaty.c{top:46%;right:-8%;animation-delay:-2s}
+@keyframes hatch{0%,18%{transform:rotateX(0)}38%,70%{transform:rotateX(-78deg)}88%,100%{transform:rotateX(0)}}
+@keyframes bob{0%,100%{translate:0 0}50%{translate:0 -8px}}
+.pattern-strip{display:flex;flex-wrap:wrap;gap:8px;margin-top:34px;padding-top:22px;border-top:1px dashed var(--line)}
+.pattern-strip span{font-size:12.5px;font-weight:600;padding:5px 11px;border-radius:999px;border:1px solid var(--line);color:#dfe4ff}
+
+/* ---------- game ---------- */
+.game{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:36px;align-items:start;padding-block:8px}
+.dossier{display:flex;flex-direction:column;gap:18px;min-width:0}
+.progress{display:flex;gap:5px;flex-wrap:wrap}
+.progress i{width:22px;height:8px;border-radius:4px;background:rgba(255,255,255,.18)}
+.progress i.ok{background:var(--mint)}
+.progress i.bad{background:var(--trap)}
+.progress i.now{background:#fff;animation:pulse 1.2s infinite}
+@keyframes pulse{50%{opacity:.4}}
+.mission{background:var(--paper);color:var(--ink);border-radius:20px;padding:24px 24px 22px;position:relative;box-shadow:0 10px 0 var(--cobalt-deep)}
+.mission .lvl{font-family:var(--f-mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between;gap:10px}
+.mission h2{font-family:var(--f-display);font-weight:400;font-size:clamp(24px,3vw,32px);line-height:1.08;margin:10px 0 12px;text-wrap:balance}
+.mission .task{font-size:16.5px;margin:0;max-width:38em}
+.mission .task b{background:linear-gradient(transparent 60%,rgba(255,210,63,.7) 60%)}
+.stamp-tag{position:absolute;top:-12px;right:18px;background:var(--trap);color:#fff;font-family:var(--f-mono);font-size:11px;font-weight:700;letter-spacing:.1em;padding:5px 10px;border-radius:6px;transform:rotate(3deg)}
+.ledger{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.meter{background:rgba(10,19,70,.55);border:1px solid var(--line);border-radius:16px;padding:14px 14px 12px;min-width:0}
+.meter .lab{font-size:11.5px;text-transform:uppercase;letter-spacing:.1em;color:#b9c2f5;font-weight:600}
+.meter .val{font-family:var(--f-mono);font-weight:700;font-size:clamp(18px,2.4vw,24px);font-variant-numeric:tabular-nums;margin-top:2px;white-space:nowrap}
+.meter .sub{font-size:12px;color:#9aa5e6}
+.meter.hit{animation:hit .6s}
+.meter.hit .val{color:var(--trap)}
+@keyframes hit{0%{transform:scale(1)}25%{transform:scale(1.06) rotate(-1deg);border-color:var(--trap)}100%{transform:scale(1)}}
+.tip{font-size:13.5px;color:#cdd4ff;display:flex;gap:10px;align-items:flex-start}
+.tip b{color:var(--sun)}
+.skip{align-self:flex-start;background:none;border:0;color:#aab3ee;text-decoration:underline;font-size:13px;padding:0}
+
+/* ---------- phone ---------- */
+.phone{width:380px;max-width:100%;height:min(740px,calc(100svh - 110px));min-height:600px;background:#05081f;border-radius:48px;padding:12px;box-shadow:0 0 0 2px #2a3270,0 30px 60px rgba(0,0,0,.45),inset 0 0 0 2px #1a2056;position:relative;justify-self:center}
+.phone::before{content:"";position:absolute;top:20px;left:50%;translate:-50% 0;width:96px;height:26px;border-radius:20px;background:#000;z-index:5}
+.screen-wrap{position:relative;width:100%;height:100%;border-radius:37px;overflow:hidden;background:#fff;display:flex;flex-direction:column}
+.status{height:46px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:6px 26px 0;font-size:13px;font-weight:700;color:#111;background:#fff;font-family:-apple-system,system-ui,sans-serif}
+.status .icons{display:flex;gap:5px;align-items:center}
+.status .bat{width:22px;height:11px;border:1.5px solid #111;border-radius:3px;position:relative}
+.status .bat::after{content:"";position:absolute;inset:1.5px;right:5px;background:#111;border-radius:1px}
+#screen{position:relative;flex:1;overflow:hidden;color:#1b1b22;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.4}
+.home-bar{position:absolute;bottom:7px;left:50%;translate:-50% 0;width:120px;height:5px;border-radius:3px;background:rgba(0,0,0,.35);z-index:30;pointer-events:none}
+
+/* generic app kit (inside the phone, light UI by design) */
+.scr{position:absolute;inset:0;display:flex;flex-direction:column;background:#fff;color:#1b1b22;--brand:#333}
+.scr .body{flex:1;overflow:auto;-webkit-overflow-scrolling:touch}
+.ab{height:52px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid #ececf2;font-weight:800;font-size:17px;gap:10px}
+.ab .logo{color:var(--brand);letter-spacing:-.02em}
+.ab .ico{font-size:18px;color:#666;background:none;border:0;padding:4px}
+.pad{padding:16px}
+.btn{display:block;width:100%;border:0;border-radius:12px;padding:14px;font-weight:700;font-size:15px;text-align:center}
+.btn.primary{background:var(--brand);color:#fff}
+.btn.outline{background:#fff;color:#333;border:1.5px solid #d6d6de}
+.btn.grey{background:#ececf1;color:#8a8a96;font-weight:600}
+.btn.big{padding:17px;font-size:16px}
+.link{background:none;border:0;padding:4px;color:#8d8d99;font-size:12px;text-decoration:underline}
+.muted{color:#7b7b88}
+.small{font-size:12px}
+.tiny{font-size:10.5px;color:#a3a3ad}
+.hr{height:1px;background:#ececf2;margin:12px 0}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.mback{position:absolute;inset:0;background:rgba(10,10,25,.55);display:flex;align-items:center;justify-content:center;padding:18px;z-index:10;animation:fade .25s}
+.modal{background:#fff;border-radius:20px;padding:22px;width:100%;position:relative;animation:popin .35s cubic-bezier(.3,1.5,.5,1)}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:22px 22px 0 0;padding:20px 18px 26px;z-index:10;box-shadow:0 -10px 40px rgba(0,0,0,.25);animation:up .35s ease-out;max-height:92%;overflow:auto}
+@keyframes fade{from{opacity:0}}
+@keyframes popin{from{transform:scale(.8);opacity:0}}
+@keyframes up{from{transform:translateY(100%)}}
+.ptoast{position:absolute;left:12px;right:12px;top:10px;background:#1b1b22;color:#fff;border-radius:14px;padding:10px 12px;font-size:12.5px;z-index:25;display:flex;gap:10px;align-items:center;animation:toast 3.6s forwards;pointer-events:none}
+.ptoast .dot{width:26px;height:26px;border-radius:50%;flex:none;background:linear-gradient(135deg,#ffb36b,#ff5f8a)}
+@keyframes toast{0%{transform:translateY(-120%)}10%,85%{transform:none}100%{transform:translateY(-130%)}}
+.check{display:flex;gap:10px;align-items:flex-start;padding:10px 0;font-size:13px;cursor:pointer}
+.check input{width:18px;height:18px;margin:1px 0 0;flex:none;accent-color:var(--brand)}
+.field{width:100%;border:1.5px solid #dcdce4;border-radius:10px;padding:12px;font:inherit;font-size:14px;margin-top:6px;background:#fff;color:#1b1b22}
+.tile{border-radius:14px;aspect-ratio:1/1;display:flex;align-items:flex-end;padding:10px;font-weight:700;font-size:12px;color:#fff}
+.toggle{appearance:none;-webkit-appearance:none;width:42px;height:24px;border-radius:12px;background:#d4d4dc;position:relative;flex:none;cursor:pointer;transition:background .2s;margin:0}
+.toggle::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.toggle:checked{background:var(--brand)}
+.toggle:checked::after{transform:translateX(18px)}
+.toggle:disabled{opacity:.5;cursor:not-allowed}
+.badge{display:inline-block;font-size:10.5px;font-weight:800;padding:3px 7px;border-radius:6px;letter-spacing:.02em}
+.shake{animation:shake .4s}
+@keyframes shake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+
+/* ---------- reveal ---------- */
+.overlay{position:fixed;inset:0;z-index:100;background:rgba(5,9,40,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:max(24px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(24px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));animation:fade .25s}
+.card{background:var(--paper);color:var(--ink);border-radius:24px;max-width:560px;width:100%;margin:auto;padding:30px 28px 26px;position:relative;animation:popin .45s cubic-bezier(.3,1.4,.5,1)}
+.verdict{font-family:var(--f-display);font-size:15px;letter-spacing:.06em;display:inline-block;padding:7px 14px;border:3px solid currentColor;border-radius:10px;transform:rotate(-4deg);margin-bottom:14px}
+.verdict.bad{color:var(--trap)}
+.verdict.ok{color:#0f9e6c}
+.card h3{font-family:var(--f-display);font-weight:400;font-size:clamp(28px,5vw,38px);line-height:1.02;margin:0 0 4px;text-wrap:balance}
+.card .aka{font-family:var(--f-mono);font-size:12px;color:var(--muted);margin-bottom:14px}
+.card .what{font-size:16px;margin:0 0 18px;padding:14px 16px;border-radius:14px;background:#fff;border:1px solid #dfe3fb}
+.costs{display:flex;gap:8px;flex-wrap:wrap;margin:-6px 0 18px}
+.costs span{font-family:var(--f-mono);font-size:12.5px;font-weight:700;padding:5px 10px;border-radius:8px;background:rgba(255,77,109,.12);color:#c41f43}
+.costs span.zero{background:rgba(51,224,161,.18);color:#0b7a53}
+.explain{display:grid;gap:14px}
+.explain h4{margin:0 0 3px;font-size:11.5px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted)}
+.explain p{margin:0;font-size:15px}
+.law{font-size:13px;color:var(--muted);border-top:1px dashed #c5cbef;padding-top:12px;margin-top:4px}
+.card .next{margin-top:22px;width:100%;justify-content:center}
+.xclose{position:absolute;top:14px;right:14px;width:36px;height:36px;border-radius:50%;border:0;background:#e3e7fb;color:var(--ink);font-size:18px}
+
+/* ---------- guide & end ---------- */
+.guide-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-top:18px}
+.gcard{background:#fff;border:1px solid #dfe3fb;border-radius:16px;padding:14px 16px;min-width:0}
+.gcard .n{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.gcard h5{font-family:var(--f-display);font-weight:400;font-size:18px;line-height:1.1;margin:4px 0 6px}
+.gcard p{margin:0;font-size:13px;color:#353c6b}
+.gcard.locked{background:repeating-linear-gradient(-45deg,#eef0fb 0 8px,#e6e9f8 8px 16px)}
+.gcard.locked h5{color:#a2a9d4}
+.gcard .res{font-size:11px;font-weight:800;letter-spacing:.06em;margin-top:8px}
+.gcard .res.ok{color:#0f9e6c}.gcard .res.bad{color:#d0284b}
+.end{padding-block:24px}
+.end-hero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:30px;align-items:end}
+.end h1{font-family:var(--f-display);font-weight:400;font-size:clamp(40px,7vw,80px);line-height:.95;margin:.2em 0 .25em;text-wrap:balance}
+.rank{background:var(--sun);color:var(--ink);border-radius:20px;padding:18px 22px;transform:rotate(3deg);box-shadow:0 8px 0 #b08a00;text-align:center;min-width:0}
+.rank small{font-family:var(--f-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;display:block}
+.rank b{font-family:var(--f-display);font-weight:400;font-size:26px;display:block;line-height:1.1;margin-top:4px}
+.end .ledger{margin:24px 0 8px}
+.panel{background:var(--paper);color:var(--ink);border-radius:24px;padding:24px;margin-top:22px}
+.panel h2{font-family:var(--f-display);font-weight:400;font-size:26px;margin:0}
+.panel .muted2{color:var(--muted);margin:4px 0 0}
+.end-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}
+.ghost-btn{background:transparent;color:#fff;border:2px solid rgba(255,255,255,.5);border-radius:14px;padding:14px 22px;font-weight:700}
+
+/* ---------- inspector (final) ---------- */
+.insp [data-hot],.insp [data-decoy]{cursor:zoom-in;border-radius:8px;transition:box-shadow .2s}
+.insp [data-hot]:hover,.insp [data-decoy]:hover{box-shadow:0 0 0 2px rgba(30,58,214,.35)}
+.insp .found{box-shadow:0 0 0 3px #ff4d6d !important;position:relative}
+.insp .found::after{content:attr(data-label);position:absolute;left:50%;top:-10px;translate:-50% -50%;background:#ff4d6d;color:#fff;font-size:10px;font-weight:800;padding:3px 7px;border-radius:6px;white-space:nowrap;z-index:3;letter-spacing:.02em;font-family:-apple-system,system-ui,sans-serif}
+
+@media (max-width:860px){
+  .intro{grid-template-columns:1fr;gap:10px}
+  .hatch-stage{max-width:300px;order:-1}
+  .game{grid-template-columns:minmax(0,1fr);gap:20px}
+  .phone{height:min(700px,calc(100svh - 40px));min-height:580px}
+  .end-hero{grid-template-columns:1fr}
+  .rank{justify-self:start}
+}
+@media (max-width:480px){
+  .ledger{gap:6px}
+  .meter{padding:10px}
+  .meter .sub{display:none}
+  .phone{border-radius:40px;padding:9px}
+  .screen-wrap{border-radius:32px}
+  .card{padding:26px 20px 22px}
+  .floaty.a{left:0}.floaty.b{right:0}.floaty.c{right:0}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition:none !important}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <button class="brand" id="homeBtn" aria-label="Trapdoor home"><span class="hatch-mini"></span>TRAPDOOR</button>
+    <div class="top-actions">
+      <button class="chip-btn" id="guideBtn">Field guide <span id="guideCount">0/13</span></button>
+      <button class="chip-btn" id="soundBtn" aria-pressed="true">Sound on</button>
+    </div>
+  </header>
+
+  <section class="intro" id="intro">
+    <div>
+      <div class="kicker">A game about dark patterns</div>
+      <h1>Trap<span class="o">d</span>oor</h1>
+      <p class="lede">Thirteen apps that want your money, your time and your data. Each one hides a trick that real designers use every day. Do the task without falling for it, then learn exactly how the trick works.</p>
+      <button class="cta" id="startBtn">Open the first app <span aria-hidden="true">→</span></button>
+      <div class="meters-preview">
+        <div><b>€0.00</b>money spent on tricks</div>
+        <div><b>0 min</b>time stolen</div>
+        <div><b>0</b>data points leaked</div>
+      </div>
+    </div>
+    <div class="hatch-stage" aria-hidden="true">
+      <div class="hatch-hole"></div>
+      <div class="hatch-door"><span>Only 2 left!<small>OFFER ENDS 00:59</small></span></div>
+      <div class="floaty a">No thanks, I hate saving money</div>
+      <div class="floaty b">☑ Add protection +€3.99</div>
+      <div class="floaty c">17 people looking now</div>
+    </div>
+    <div class="pattern-strip" style="grid-column:1/-1" id="strip"></div>
+  </section>
+
+  <section class="game" id="game" hidden>
+    <div class="dossier">
+      <div class="progress" id="progress" aria-label="Progress"></div>
+      <div class="mission">
+        <span class="stamp-tag">YOUR TASK</span>
+        <div class="lvl"><span id="mLvl">Trap 01 / 13</span><span id="mApp">App</span></div>
+        <h2 id="mTitle">Mission</h2>
+        <p class="task" id="mTask"></p>
+      </div>
+      <div class="ledger" id="ledger">
+        <div class="meter" id="mMoney"><div class="lab">Money spent</div><div class="val" id="vMoney">€0.00</div><div class="sub">on things you didn't want</div></div>
+        <div class="meter" id="mTime"><div class="lab">Time stolen</div><div class="val" id="vTime">0 min</div><div class="sub">scrolling, spam, hoops</div></div>
+        <div class="meter" id="mData"><div class="lab">Data leaked</div><div class="val" id="vData">0</div><div class="sub">bits of you, shared</div></div>
+      </div>
+      <div class="tip"><b>Tip</b><span id="mTip">Read every button before you tap it. The app is not on your side.</span></div>
+      <button class="skip" id="giveUp">I'm stuck, show me the trick</button>
+    </div>
+    <div class="phone">
+      <div class="screen-wrap">
+        <div class="status"><span>9:41</span><span class="icons"><span>●●●</span><span class="bat"></span></span></div>
+        <div id="screen"></div>
+      </div>
+      <div class="home-bar"></div>
+    </div>
+  </section>
+
+  <section class="end" id="end" hidden></section>
+</div>
+
+<div class="overlay" id="overlay" hidden></div>
+
+<script>
+(function(){
+const $=(q,r=document)=>r.querySelector(q);
+const $$=(q,r=document)=>[...r.querySelectorAll(q)];
+const on=(r,a,fn)=>$$(`[data-a="${a}"]`,r).forEach(el=>el.addEventListener('click',e=>{e.preventDefault();fn(e,el)}));
+const eur=n=>'€'+n.toFixed(2);
+const pad2=n=>String(n).padStart(2,'0');
+
+/* ---------------- sound ---------------- */
+let ac=null, soundOn=true;
+try{ if(localStorage.getItem('trapdoor-sound')==='off') soundOn=false }catch(e){}
+function tone(freq,dur,type='sine',vol=.08,when=0){
+  if(!soundOn) return;
+  try{
+    ac=ac||new (window.AudioContext||window.webkitAudioContext)();
+    const t=ac.currentTime+when,o=ac.createOscillator(),g=ac.createGain();
+    o.type=type;o.frequency.setValueAtTime(freq,t);
+    g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+dur);
+    return o;
+  }catch(e){}
+}
+const sfx={
+  tap(){tone(660,.06,'triangle',.05)},
+  coin(){tone(300,.12,'square',.04);tone(180,.2,'square',.04,.08)},
+  bad(){const o=tone(320,.5,'sawtooth',.06);try{o&&o.frequency.exponentialRampToValueAtTime(90,ac.currentTime+.5)}catch(e){}},
+  good(){[523,659,784,1046].forEach((f,i)=>tone(f,.18,'triangle',.06,i*.08))},
+  tick(){tone(1200,.03,'square',.02)},
+  spin(){tone(400+Math.random()*400,.04,'triangle',.03)}
+};
+function setSoundLabel(){const b=$('#soundBtn');b.textContent=soundOn?'Sound on':'Sound off';b.setAttribute('aria-pressed',soundOn)}
+$('#soundBtn').addEventListener('click',()=>{soundOn=!soundOn;try{localStorage.setItem('trapdoor-sound',soundOn?'on':'off')}catch(e){};setSoundLabel();sfx.tap()});
+setSoundLabel();
+
+/* ---------------- levels ---------------- */
+const LEVELS=[
+/* 1 */{
+  app:'Glowbar skincare', title:'The guilt-trip popup',
+  task:'You are just looking at moisturisers. <b>Get rid of the popup without signing up.</b>',
+  tip:'When saying no makes you feel stupid, someone wrote it that way on purpose.',
+  p:{name:'Confirmshaming',aka:'a.k.a. guilt-tripping, manipulinks',
+    short:'The "no" option is worded to make you feel silly for declining.',
+    why:'Nobody wants to agree with "I prefer paying full price". Shame and loss aversion push you toward the button the company wants, even when you don\'t care about the offer.',
+    beat:'Ignore the wording and read what the button actually does. "No thanks, I\'d rather be boring" is just "No".',
+    law:'Regulators in the EU and the US now list confirmshaming as a manipulative design practice in their guidance on dark patterns.'},
+  build(s,g){
+    s.innerHTML=`<div class="scr" style="--brand:#e2557a">
+      <div class="ab"><span class="logo">glowbar</span><span class="ico">☰</span></div>
+      <div class="body pad" style="filter:blur(2px)">
+        <div style="font-weight:800;font-size:20px;margin-bottom:10px">Moisturisers</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="tile" style="background:linear-gradient(160deg,#ffc2d1,#e2557a)">Dew Drop €24</div>
+          <div class="tile" style="background:linear-gradient(160deg,#ffe0b3,#f08a4b)">Barrier Balm €31</div>
+          <div class="tile" style="background:linear-gradient(160deg,#c9f0e4,#3aa58a)">Calm Gel €19</div>
+          <div class="tile" style="background:linear-gradient(160deg,#d9d3ff,#7864d8)">Night Cream €36</div>
+        </div>
+      </div>
+      <div class="mback"><div class="modal" style="text-align:center;padding-top:30px">
+        <button data-a="x" aria-label="Close" style="position:absolute;top:8px;right:10px;background:none;border:0;color:#ddd;font-size:16px">✕</button>
+        <div style="font-size:11px;letter-spacing:.14em;font-weight:800;color:#e2557a">WAIT! DON'T LEAVE YET</div>
+        <div style="font-size:30px;font-weight:900;line-height:1.05;margin:8px 0">15% OFF<br>your first order</div>
+        <p class="muted small" style="margin:0 0 12px">Join 80,000 glow-getters. Fresh skin tips and secret sales, straight to your inbox.</p>
+        <input class="field" type="email" id="l1mail" placeholder="you@email.com" aria-label="Email">
+        <button class="btn primary big" data-a="yes" style="margin-top:10px">YES! I deserve glowing skin</button>
+        <button class="link" data-a="no" style="margin-top:8px">No thanks, I'd rather keep my dull, tired skin</button>
+      </div></div></div>`;
+    on(s,'yes',()=>g.end(false,{time:12,data:2,note:'You handed over your email to make a popup go away. Expect four promo emails a week, and your address shared with "partners".'}));
+    const win=()=>g.end(true,{note:'You closed it. The decline link was tiny, grey, and written as an insult so you\'d think twice before clicking it.'});
+    on(s,'no',win);on(s,'x',win);
+  }},
+/* 2 */{
+  app:'Flytrip travel', title:'The tick-box maze',
+  task:'Create an account to book a flight. <b>You want zero marketing and no data sharing.</b> Read each box carefully.',
+  tip:'Read each sentence twice. Watch out for double negatives and boxes that are already ticked.',
+  p:{name:'Trick questions & preselection',aka:'a.k.a. double negatives, default opt-ins',
+    short:'Confusing wording and pre-ticked boxes make "yes" the result of doing nothing.',
+    why:'Most people keep defaults (the default effect), and nobody parses "untick to not stop" at signup speed. Each box flips the logic so you can\'t use one rule for all of them.',
+    beat:'Slow down at every checkbox. Rephrase it in plain words: "If this is ticked, they will…". Untick anything you didn\'t choose yourself.',
+    law:'In the EU, a pre-ticked box is not valid consent (Court of Justice, Planet49 ruling, 2019). Consent has to be an active choice.'},
+  build(s,g){
+    s.innerHTML=`<div class="scr" style="--brand:#0a84c6">
+      <div class="ab"><span class="logo">flytrip</span><span class="ico">✈</span></div>
+      <div class="body pad">
+        <div style="font-size:20px;font-weight:800">Create your account</div>
+        <p class="muted small" style="margin:4px 0 12px">Just one step before you see your fares.</p>
+        <label class="small muted">Email<input class="field" value="alex@example.com" aria-label="Email"></label>
+        <div style="height:10px"></div>
+        <label class="small muted">Password<input class="field" type="password" value="hunter22" aria-label="Password"></label>
+        <div class="hr"></div>
+        <label class="check"><input type="checkbox" id="c1" checked><span>Yes, send me exclusive deals, travel inspiration and offers from Flytrip and our partners.</span></label>
+        <label class="check"><input type="checkbox" id="c2"><span>Tick this box if you would prefer not to stop receiving our weekly travel tips.</span></label>
+        <label class="check"><input type="checkbox" id="c3" checked><span>Untick this box if you do not want us to not share your details with selected partners.</span></label>
+        <label class="check"><input type="checkbox" id="c4"><span>I accept the Terms of Service and Privacy Policy.</span></label>
+        <div id="err" class="small" style="color:#d0284b;min-height:18px"></div>
+        <button class="btn primary big" data-a="go">Create account</button>
+      </div></div>`;
+    on(s,'go',()=>{
+      const c=id=>$('#'+id,s).checked;
+      if(!c('c4')){$('#err',s).textContent='Please accept the Terms to continue.';$('#err',s).classList.add('shake');setTimeout(()=>$('#err',s).classList.remove('shake'),400);return}
+      const wrong=[];
+      if(c('c1')) wrong.push('The first box was pre-ticked, so you agreed to partner offers.');
+      if(c('c2')) wrong.push('"Prefer not to stop receiving" means you want the tips. Ticking it signed you up.');
+      if(!c('c3')) wrong.push('Box three was a double negative: unticking it meant your details get shared. Read it again: "untick if you do not want us to not share".');
+      if(!wrong.length) g.end(true,{note:'Flawless. You unticked the pre-ticked offer, left the "not stop receiving" box alone and saw through the triple negative.'});
+      else g.end(false,{time:6*wrong.length,data:2*wrong.length,note:wrong.join(' ')});
+    });
+  }},
+/* 3 */{
+  app:'Threadly shop', title:'The basket that fills itself',
+  task:'Buy <b>one T-shirt for €15.00</b>, with free standard delivery. Nothing else.',
+  tip:'Check every line of the basket and every option below it before you pay.',
+  p:{name:'Sneak into basket',aka:'a.k.a. basket sneaking, pre-ticked extras',
+    short:'Extra items, insurance or upgrades appear in your basket without you adding them.',
+    why:'At checkout you\'re focused on finishing. Small add-ons blend into the total, and removing them feels like extra work, so most people just pay.',
+    beat:'Before paying, compare the total to the price you expected. If it\'s higher, find out why, line by line.',
+    law:'In the EU, a seller may not charge for extras added through pre-ticked boxes; you are entitled to a refund (Consumer Rights Directive, Article 22).'},
+  build(s,g){
+    const st={war:true,wrap:true,tree:true,ship:'express'};
+    s.innerHTML=`<div class="scr" style="--brand:#111">
+      <div class="ab"><span class="logo">THREADLY</span><span class="small muted">Checkout · 2 of 2</span></div>
+      <div class="body pad">
+        <div style="font-weight:800;font-size:18px;margin-bottom:10px">Your basket</div>
+        <div class="row" style="padding:8px 0"><div style="display:flex;gap:10px;align-items:center"><div style="width:48px;height:48px;border-radius:10px;background:linear-gradient(135deg,#ffd166,#ef476f)"></div><div><b>Classic Tee</b><div class="small muted">Size M · Sunset</div></div></div><b>€15.00</b></div>
+        <div class="row" id="warRow" style="padding:8px 0"><div style="display:flex;gap:10px;align-items:center"><div style="width:48px;height:48px;border-radius:10px;background:#eef;display:grid;place-items:center;color:#557">🛡</div><div><b class="small">Wash&amp;Wear Care Plan</b><div class="tiny">Added for your peace of mind · <button class="link" data-a="rmwar" style="font-size:10.5px;padding:0">remove</button></div></div></div><span class="small">€3.99</span></div>
+        <div class="hr"></div>
+        <div style="font-weight:700;margin-bottom:4px">Delivery</div>
+        <label class="check" style="padding:6px 0"><input type="radio" name="ship" value="express" checked><span><b>Express</b> · tomorrow · €4.95 <span class="badge" style="background:#111;color:#fff">POPULAR</span></span></label>
+        <label class="check" style="padding:6px 0"><input type="radio" name="ship" value="std"><span>Standard · 3-5 days · Free</span></label>
+        <div class="hr"></div>
+        <label class="check" style="padding:6px 0"><input type="checkbox" id="wrap" checked><span class="small">Make it special: eco gift wrap (+€2.50)</span></label>
+        <div class="row" style="padding:6px 0"><span class="small">Round up to plant a tree 🌱 (+€1.00)</span><input type="checkbox" class="toggle" id="tree" checked aria-label="Plant a tree"></div>
+        <div class="hr"></div>
+        <div class="row"><span class="muted">Total</span><b id="tot" style="font-size:20px"></b></div>
+        <button class="btn primary big" data-a="pay" style="margin-top:12px">Pay now</button>
+        <p class="tiny" style="text-align:center">Secure checkout · Apple Pay · Card</p>
+      </div></div>`;
+    const total=()=>15+(st.war?3.99:0)+(st.wrap?2.5:0)+(st.tree?1:0)+(st.ship==='express'?4.95:0);
+    const upd=()=>{$('#tot',s).textContent=eur(total())};
+    on(s,'rmwar',()=>{st.war=false;$('#warRow',s).remove();sfx.tap();upd()});
+    $$('input[name=ship]',s).forEach(r=>r.addEventListener('change',()=>{st.ship=r.value;upd()}));
+    $('#wrap',s).addEventListener('change',e=>{st.wrap=e.target.checked;upd()});
+    $('#tree',s).addEventListener('change',e=>{st.tree=e.target.checked;upd()});
+    upd();
+    on(s,'pay',()=>{
+      const extra=+(total()-15).toFixed(2);
+      if(extra<=0) return g.end(true,{note:'Exactly €15.00. You removed the care plan, switched off express delivery, the gift wrap and the tree round-up. Four sneaky extras, all dodged.'});
+      const list=[];if(st.war)list.push('a €3.99 care plan you never chose');if(st.ship==='express')list.push('€4.95 express delivery that was pre-selected');if(st.wrap)list.push('€2.50 gift wrap');if(st.tree)list.push('a €1 round-up');
+      g.end(false,{money:extra,note:'You paid '+eur(total())+' instead of €15.00. In there: '+list.join(', ')+'.'});
+    });
+  }},
+/* 4 */{
+  app:'TixNow tickets', title:'The price that keeps growing',
+  task:'Buy one ticket for the Neon Harbor concert. <b>Your total budget is €35.</b> Only pay if the final price fits.',
+  tip:'The first price you see is not always the price you pay.',
+  p:{name:'Hidden costs',aka:'a.k.a. drip pricing',
+    short:'A low price is advertised, and unavoidable fees are revealed only at the last step.',
+    why:'After several steps you\'ve invested time and imagined the evening. Sunk cost and a ticking countdown make walking away feel worse than paying more.',
+    beat:'Go straight to the final total before you get attached. Compare all-in prices, not headline prices.',
+    law:'In the US, the FTC\'s fees rule (in force since May 2025) requires live-event tickets and hotel stays to show the total price up front. EU rules also require the full price to include unavoidable charges.'},
+  build(s,g){
+    let step=0,seat=29,secs=299;
+    const render=()=>{
+      if(step===0) s.innerHTML=`<div class="scr" style="--brand:#7b2ff7">
+        <div class="ab"><span class="logo">TixNow</span><span class="ico">⌕</span></div>
+        <div class="body">
+          <div style="height:190px;background:radial-gradient(circle at 30% 30%,#ff5fa2,transparent 50%),radial-gradient(circle at 70% 60%,#3ad0ff,transparent 50%),#14072e;display:flex;align-items:flex-end;padding:16px;color:#fff"><div><div class="small" style="opacity:.8">SAT 14 MAR · HARBOR HALL</div><div style="font-size:26px;font-weight:900">Neon Harbor</div></div></div>
+          <div class="pad">
+            <div class="row"><div><div class="muted small">Tickets from</div><div style="font-size:30px;font-weight:900">€29</div></div><span class="badge" style="background:#ffe8f0;color:#d0285b">SELLING FAST</span></div>
+            <p class="small muted">An evening of synth-pop on the water. Doors 19:00.</p>
+            <button class="btn primary big" data-a="next">Find tickets</button>
+          </div></div></div>`;
+      if(step===1) s.innerHTML=`<div class="scr" style="--brand:#7b2ff7">
+        <div class="ab"><button class="ico" data-a="back">‹</button><span>Choose seats</span><span></span></div>
+        <div class="body pad">
+          <label class="check" style="border:1.5px solid #ddd;border-radius:12px;padding:14px;margin-bottom:10px"><input type="radio" name="seat" value="29" checked><span><b>Standing</b><br><span class="small muted">General admission</span></span><b style="margin-left:auto">€29</b></label>
+          <label class="check" style="border:1.5px solid #ddd;border-radius:12px;padding:14px"><input type="radio" name="seat" value="49"><span><b>Balcony</b><br><span class="small muted">Seated, great view</span></span><b style="margin-left:auto">€49</b></label>
+          <p class="small muted">Quantity: 1</p>
+          <button class="btn primary big" data-a="next">Continue</button>
+        </div></div>`;
+      if(step===2){
+        const fees=[['Service fee',7.5],['Facility charge',3.25],['Order processing',2.95],['E-ticket delivery',1.5]];
+        const tot=seat+fees.reduce((a,b)=>a+b[1],0);
+        s.innerHTML=`<div class="scr" style="--brand:#7b2ff7">
+          <div class="ab"><span>Review order</span><span class="badge" style="background:#ffe8f0;color:#d0285b" id="hold">Held for 4:59</span></div>
+          <div class="body pad">
+            <div class="row"><span>1 × ${seat===29?'Standing':'Balcony'}</span><span>${eur(seat)}</span></div>
+            ${fees.map(f=>`<div class="row small muted" style="padding-top:6px"><span>${f[0]}</span><span>${eur(f[1])}</span></div>`).join('')}
+            <div class="hr"></div>
+            <div class="row"><b>Total</b><b style="font-size:22px">${eur(tot)}</b></div>
+            <p class="tiny">Fees are non-refundable. Prices include VAT.</p>
+            <button class="btn primary big" data-a="pay">Pay ${eur(tot)}</button>
+            <div style="text-align:center;margin-top:8px"><button class="link" data-a="release">Release my tickets</button></div>
+          </div></div>`;
+        on(s,'pay',()=>g.end(false,{money:+(tot-29).toFixed(2),note:`You paid ${eur(tot)}, well over your €35 budget. The "€29" ticket came with ${eur(tot-seat)} in fees that only appeared on the last screen.`}));
+        on(s,'release',()=>g.end(true,{note:`Good call. The €29 ticket really cost ${eur(tot)} once four separate fees were added on the last step, under a countdown.`}));
+        g.every(()=>{secs--;const h=$('#hold',s);if(h)h.textContent='Held for '+Math.floor(secs/60)+':'+pad2(secs%60);if(secs%2===0)sfx.tick()},1000);
+      }
+      on(s,'next',()=>{if(step===1){const r=$('input[name=seat]:checked',s);seat=+r.value}step++;sfx.tap();render()});
+      on(s,'back',()=>{step--;render()});
+    };
+    render();
+  }},
+/* 5 */{
+  app:'Dealrush', title:'The countdown that never ends',
+  task:'You don\'t need new headphones, but this deal looks huge. <b>Watch the timer before you decide.</b>',
+  tip:'Let the clock hit zero and see what happens.',
+  p:{name:'Fake urgency',aka:'a.k.a. false countdowns, limited-time pressure',
+    short:'A timer or "ends tonight" message pushes you to decide before you can think.',
+    why:'Time pressure switches off careful comparison. Fear of missing out is stronger than the wish to save money, so you act fast and buy.',
+    beat:'Wait. Refresh the page or come back tomorrow. A real deadline rarely restarts; a fake one usually does.',
+    law:'Under EU unfair commercial practices rules, falsely claiming an offer is available only for a very short time is banned outright (UCPD, Annex I).'},
+  build(s,g){
+    let t=12,resets=0;
+    s.innerHTML=`<div class="scr" style="--brand:#ff3b30">
+      <div class="ab"><span class="logo">dealrush</span><span class="ico">🛒</span></div>
+      <div class="body pad">
+        <div style="background:#ff3b30;color:#fff;border-radius:14px;padding:12px 14px;text-align:center">
+          <div class="small" style="font-weight:800;letter-spacing:.1em">⚡ FLASH DEAL ENDS IN</div>
+          <div id="clock" style="font-size:40px;font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:.04em">00:00:12</div>
+          <div id="ext" class="small" style="min-height:18px"></div>
+        </div>
+        <div style="height:170px;margin:14px 0;border-radius:16px;background:radial-gradient(circle at 50% 45%,#555 0 22%,#222 23% 30%,transparent 31%),linear-gradient(135deg,#f2f2f7,#d8d8e2)"></div>
+        <div style="font-weight:800;font-size:18px">AuraBeat Pro Wireless</div>
+        <div class="row" style="justify-content:flex-start;gap:10px;margin:4px 0 2px"><span style="font-size:28px;font-weight:900;color:#ff3b30">€89</span><s class="muted">€249</s><span class="badge" style="background:#ffe5e3;color:#ff3b30">-64%</span></div>
+        <div class="small muted">⭐ 4.8 · 2,301 sold in the last hour</div>
+        <button class="btn primary big" data-a="buy" style="margin-top:14px">Buy now, before it's gone</button>
+        <div style="text-align:center;margin-top:6px"><button class="link" data-a="no">Not today</button></div>
+      </div></div>`;
+    const names=['Lotte in Ghent','Jonas in Utrecht','Mia in Antwerp','Sam in Leeds','Noor in Rotterdam'];
+    g.every(()=>{
+      t--; if(t<0){t=12;resets++;$('#ext',s).textContent='Deal extended for you!';sfx.bad();}
+      else if(t<10) $('#ext',s).textContent=resets?'Deal extended for you!':'';
+      $('#clock',s).textContent='00:00:'+pad2(Math.max(t,0));
+      if(t<=5) sfx.tick();
+    },1000);
+    g.every(()=>g.toast(names[Math.floor(Math.random()*names.length)]+' just bought this'),4200);
+    on(s,'buy',()=>g.end(false,{money:89,note:'You spent €89 on headphones you didn\'t need. The "€249" price was never real, and the timer '+(resets?'had already reset itself '+resets+'×.':'would have reset itself at zero.')}));
+    on(s,'no',()=>g.end(true,{note:resets?'You caught it: the timer hit zero and quietly started over. The "deal" never ends because the deadline is fake.':'You walked away. If you had waited, you would have seen the timer reset itself at zero and start again.'}));
+  }},
+/* 6 */{
+  app:'Stayzy hotels', title:'The last room in town',
+  task:'Book a double room in Lisbon for Friday at the <b>best price</b>, ideally with free cancellation.',
+  tip:'Scarcity and crowd messages are easy to fake. Look at the full list.',
+  p:{name:'Fake scarcity & social proof',aka:'a.k.a. low-stock messages, activity notifications',
+    short:'"Only 1 left!" and "17 people are looking" make you rush, whether or not it\'s true.',
+    why:'We value what seems rare and copy what others do. A hint of competition makes a choice feel urgent and pre-approved.',
+    beat:'Check the full list and other sites. Ask whether the claim can be checked at all; usually it can\'t.',
+    law:'Making false claims about stock or demand counts as a misleading commercial practice under EU and UK consumer law.'},
+  build(s,g){
+    let view='deal';
+    const render=()=>{
+      if(view==='deal') s.innerHTML=`<div class="scr" style="--brand:#00875a">
+        <div class="ab"><span class="logo">stayzy</span><span class="small muted">Lisbon · Fri</span></div>
+        <div class="body">
+          <div style="height:150px;background:linear-gradient(160deg,#ffcf8b,#e8743b 60%,#7c2e2a)"></div>
+          <div class="pad">
+            <div style="font-weight:800;font-size:18px">Casa Azulejo Boutique</div>
+            <div class="small muted">Alfama · ⭐ 9.1 Superb</div>
+            <div style="background:#fff1f1;color:#c62828;border-radius:10px;padding:10px;margin:12px 0;font-size:13px;font-weight:700">🔥 Only 1 room left at this price!<div id="look" style="font-weight:500;margin-top:2px">17 people are looking right now</div></div>
+            <div class="row"><span class="small">Double room · <b>non-refundable</b></span><b style="font-size:22px">€142</b></div>
+            <div class="small muted" style="margin-bottom:12px">Booked 43 times in the last 24 hours</div>
+            <button class="btn primary big" data-a="book">Reserve now</button>
+            <div style="text-align:center;margin-top:6px"><button class="link" data-a="all">See all rooms</button></div>
+          </div></div></div>`;
+      else s.innerHTML=`<div class="scr" style="--brand:#00875a">
+        <div class="ab"><button class="ico" data-a="back">‹</button><span>All rooms · 14 available</span><span></span></div>
+        <div class="body pad">
+          ${[['Double room','Free cancellation · breakfast',129,'ok'],['Double room','Non-refundable',142,'deal'],['Twin room','Free cancellation',134,'x'],['Double, city view','Free cancellation',151,'x'],['Junior suite','Free cancellation',189,'x']].map(r=>`
+          <button data-a="pick" data-k="${r[3]}" data-p="${r[2]}" style="display:flex;width:100%;text-align:left;justify-content:space-between;align-items:center;background:#fff;border:1.5px solid #e2e2ea;border-radius:12px;padding:12px;margin-bottom:8px;color:#1b1b22">
+            <span><b>${r[0]}</b><br><span class="small muted">${r[1]}</span></span><b>€${r[2]}</b></button>`).join('')}
+          <p class="tiny">Prices per night, taxes included.</p>
+        </div></div>`;
+      on(s,'book',()=>g.end(false,{money:13,note:'You booked the €142 non-refundable room. The same room with free cancellation and breakfast was €129, and 14 rooms were still available. "Only 1 left" referred to one rate, not the hotel.'}));
+      on(s,'all',()=>{view='all';sfx.tap();render()});
+      on(s,'back',()=>{view='deal';render()});
+      on(s,'pick',(e,el)=>{
+        if(el.dataset.k==='ok') g.end(true,{note:'You checked the full list and found the same room for €129 with free cancellation. There were 14 rooms left, not one.'});
+        else g.end(false,{money:+el.dataset.p-129,note:'You picked a €'+el.dataset.p+' room, but the cheapest double with free cancellation was €129.'});
+      });
+      if(view==='deal') g.every(()=>{const l=$('#look',s);if(l)l.textContent=(14+Math.floor(Math.random()*9))+' people are looking right now'},1800);
+    };
+    render();
+  }},
+/* 7 */{
+  app:'FreeFonts Hub', title:'Which button is real?',
+  task:'Download the font file <b>Quicksand-Regular.zip</b>. Only the real file.',
+  tip:'Ads love to look like the thing you came for. Look for tiny "Ad" labels.',
+  p:{name:'Disguised ads',aka:'a.k.a. fake download buttons, native ads',
+    short:'Ads are designed to look like the page\'s own buttons or content.',
+    why:'You came to click "Download", so your eyes jump to the biggest download-looking thing. The real link is made plain on purpose.',
+    beat:'Hover or long-press to check where a link goes. Look for "Ad" or "Sponsored" labels, and trust the boring, specific link (the file name and size).',
+    law:'The EU Digital Services Act requires platforms to label ads clearly, and bans interfaces designed to deceive users (Article 25).'},
+  build(s,g){
+    s.innerHTML=`<div class="scr" style="--brand:#2a7de1">
+      <div class="ab"><span class="logo">FreeFonts<span style="color:#f2a900">Hub</span></span><span class="ico">☰</span></div>
+      <div class="body pad">
+        <div style="position:relative;background:linear-gradient(90deg,#16c172,#0e9f5a);border-radius:12px;padding:16px;color:#fff;text-align:center;margin-bottom:12px">
+          <span class="tiny" style="position:absolute;top:4px;right:8px;color:#c9f4dd">Ad</span>
+          <button data-a="ad" style="background:#fff;color:#0e9f5a;border:0;border-radius:10px;padding:12px 18px;font-weight:900;font-size:16px;width:100%">⬇ DOWNLOAD NOW</button>
+          <div class="tiny" style="color:#d9f7e7;margin-top:4px">Fast · Secure · Free</div>
+        </div>
+        <div style="font-size:24px;font-weight:300;letter-spacing:.02em;margin:4px 0">Quicksand Regular</div>
+        <div class="small muted">by Andrew Paglinawan · OFL license</div>
+        <div style="font-size:28px;margin:10px 0;color:#444">Aa Bb Cc 123</div>
+        <button data-a="ad" style="display:flex;gap:10px;align-items:center;width:100%;background:#2a7de1;color:#fff;border:0;border-radius:12px;padding:14px;font-weight:800;font-size:15px;justify-content:center">▶ Start Download <span class="tiny" style="color:#cfe2ff">(Sponsored)</span></button>
+        <div class="hr"></div>
+        <div class="small" style="font-weight:700">Files</div>
+        <div class="row small" style="padding:8px 0"><span>Quicksand-Regular.zip · 84 KB</span><button class="link" data-a="real" style="color:#2a7de1;font-size:12px">download</button></div>
+        <div style="position:relative;border:1px solid #eee;border-radius:12px;padding:12px;margin-top:8px;display:flex;gap:10px;align-items:center">
+          <span class="tiny" style="position:absolute;top:3px;right:8px">Ad</span>
+          <div style="width:40px;height:40px;border-radius:10px;background:#ffb800;display:grid;place-items:center;font-weight:900">!</div>
+          <div style="flex:1"><b class="small">Your download is ready</b><div class="tiny">Click to continue (1 file)</div></div>
+          <button data-a="ad" style="background:#ffb800;border:0;border-radius:8px;padding:8px 10px;font-weight:800">Open</button>
+        </div>
+      </div></div>`;
+    on(s,'ad',()=>g.end(false,{time:20,data:3,note:'That was an ad. Instead of a font you got a "PC Speed Booster" installer and a browser extension that tracks your searches. Cleaning that up takes a while.'}));
+    on(s,'real',()=>g.end(true,{note:'Found it. Of four "download" buttons, three were ads. The real one was a small text link next to the file name and size.'}));
+  }},
+/* 8 */{
+  app:'Streamly', title:'Easy to join, hard to leave',
+  task:'You signed up for a free trial that turned into <b>€12.99 a month</b>. <b>Cancel your subscription.</b>',
+  tip:'The way out is usually at the bottom, small, and behind several "are you sure?" screens.',
+  p:{name:'Roach motel',aka:'a.k.a. obstruction, hard to cancel',
+    short:'Signing up takes one tap; leaving takes a maze of menus, offers and guilt.',
+    why:'Every extra step is a chance to give up. Discounts, pauses and "you\'ll lose everything" warnings play on loss aversion until you stay.',
+    beat:'Search "cancel" in the help pages, scroll to the bottom, and decline every offer. You can also cancel through your app store or bank.',
+    law:'Germany has required a clear "cancel contract" button on websites since July 2022. The EU Digital Services Act bans making cancellation harder than signing up.'},
+  build(s,g){
+    let view='home';const steps={n:0};
+    const wrap=(inner,title='')=>`<div class="scr" style="--brand:#e50914;background:#111;color:#eee">
+      <div class="ab" style="border-color:#222;color:#fff">${title?'<button class="ico" data-a="home" style="color:#aaa">‹</button><span>'+title+'</span><span style="width:24px"></span>':'<span class="logo">STREAMLY</span><button class="ico" data-a="acct" style="color:#ddd" aria-label="Account">◉</button>'}</div>
+      <div class="body pad">${inner}</div></div>`;
+    const card='background:#1d1d1f;border-radius:14px;padding:14px;margin-bottom:10px';
+    const render=()=>{
+      steps.n++;
+      if(view==='home') s.innerHTML=wrap(`
+        <div style="font-weight:800;font-size:18px;margin-bottom:10px;color:#fff">Continue watching</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          ${['#e85d75','#5b8def','#f4a259','#3bb273'].map((c,i)=>`<div style="height:110px;border-radius:12px;background:linear-gradient(160deg,${c},#111);display:flex;align-items:flex-end;padding:8px;font-size:12px;font-weight:700">${['Night Shift','Orbit','The Bakery','Wild North'][i]}</div>`).join('')}
+        </div>
+        <div style="font-weight:800;font-size:18px;margin:16px 0 10px;color:#fff">Because you watched Orbit</div>
+        <div style="height:120px;border-radius:12px;background:linear-gradient(90deg,#3a1c71,#d76d77,#ffaf7b)"></div>
+        <p class="small" style="color:#888;margin-top:14px">Tap your profile icon to manage your account.</p>`);
+      if(view==='acct') s.innerHTML=wrap(`
+        ${['Profile','Plan & billing','Downloads','Help centre','Sign out'].map(x=>`<button data-a="${x==='Plan & billing'?'plan':'nada'}" style="display:block;width:100%;text-align:left;background:#1d1d1f;color:#eee;border:0;border-radius:12px;padding:14px;margin-bottom:8px">${x}<span style="float:right;color:#666">›</span></button>`).join('')}`,'Account');
+      if(view==='plan') s.innerHTML=wrap(`
+        <div style="${card}"><div class="small" style="color:#999">Your plan</div><div style="font-size:20px;font-weight:800;color:#fff">Premium · €12.99/mo</div><div class="small" style="color:#999">Next payment 2 Dec</div></div>
+        <button class="btn primary big" data-a="upgrade">Upgrade to Family · €17.99</button>
+        <div style="height:10px"></div>
+        <button class="btn" data-a="nada" style="background:#2a2a2d;color:#ddd">Change payment method</button>
+        <div style="height:10px"></div>
+        <button class="btn" data-a="nada" style="background:#2a2a2d;color:#ddd">Billing history</button>
+        <div style="height:280px"></div>
+        <div class="small" style="color:#666">Questions about billing? Visit the Help centre.</div>
+        <div style="text-align:center;margin-top:16px"><button class="link" data-a="c1" style="color:#555">Cancel membership</button></div>`,'Plan & billing');
+      if(view==='c1') s.innerHTML=wrap(`
+        <div style="text-align:center;padding-top:20px"><div style="font-size:46px">🥺</div><div style="font-size:22px;font-weight:800;color:#fff;margin:8px 0">Wait, don't go!</div><p style="color:#aaa">Stay and get <b style="color:#fff">50% off for 3 months</b>. That's just €6.49/mo.</p></div>
+        <button class="btn primary big" data-a="discount">Claim my 50% off</button>
+        <div style="text-align:center;margin-top:10px"><button class="link" data-a="c2" style="color:#777">Continue to cancel</button></div>`,'Cancel');
+      if(view==='c2') s.innerHTML=wrap(`
+        <div style="font-size:18px;font-weight:800;color:#fff;margin-bottom:10px">Why are you leaving?</div>
+        ${['Too expensive','Not enough to watch','Taking a break','Other'].map(x=>`<label class="check" style="${card};display:flex"><input type="radio" name="why"><span>${x}</span></label>`).join('')}
+        <div id="whyErr" class="small" style="color:#ff6b6b;min-height:18px"></div>
+        <button class="btn" data-a="c3" style="background:#2a2a2d;color:#ddd">Continue</button>`,'Cancel');
+      if(view==='c3') s.innerHTML=wrap(`
+        <div style="${card};text-align:center"><div style="font-size:20px;font-weight:800;color:#fff">Need a break? Pause instead.</div><p style="color:#aaa;margin:6px 0 0">Keep your profile and lists. We'll pick up again automatically in 1 month.</p></div>
+        <button class="btn primary big" data-a="pause">Pause my membership</button>
+        <div style="text-align:center;margin-top:10px"><button class="link" data-a="c4" style="color:#777">No thanks, I still want to cancel</button></div>`,'Cancel');
+      if(view==='c4') s.innerHTML=wrap(`
+        <div style="font-size:20px;font-weight:800;color:#fff">Are you sure?</div>
+        <p style="color:#aaa">If you cancel you will lose:</p>
+        <ul style="color:#ddd;padding-left:18px;line-height:1.8"><li>Your watch history</li><li>3 downloaded episodes</li><li>Personalised picks for you</li></ul>
+        <button class="btn primary big" data-a="keep">Keep my membership</button>
+        <div style="height:10px"></div>
+        <button class="btn" data-a="final" style="background:transparent;border:1.5px solid #444;color:#999">Finish cancellation</button>`,'Cancel');
+      on(s,'acct',()=>{view='acct';render()});
+      on(s,'home',()=>{view=view==='plan'?'acct':(view==='acct'?'home':'plan');render()});
+      on(s,'plan',()=>{view='plan';render()});
+      on(s,'nada',(e,el)=>{el.classList.add('shake');setTimeout(()=>el.classList.remove('shake'),400)});
+      on(s,'c1',()=>{view='c1';render()});
+      on(s,'c2',()=>{view='c2';render()});
+      on(s,'c3',()=>{if(!$('input[name=why]:checked',s)){$('#whyErr',s).textContent='Please pick a reason to continue.';return}view='c3';render()});
+      on(s,'c4',()=>{view='c4';render()});
+      on(s,'upgrade',()=>g.end(false,{money:5,note:'You upgraded instead of cancelling. The biggest button on the billing page was "Upgrade", and "Cancel" sat tiny and grey below a wall of empty space.'}));
+      on(s,'discount',()=>g.end(false,{money:19.47,note:'You took the discount and stayed: 3 months at €6.49, after which it goes back to €12.99. That\'s exactly what the offer was for.'}));
+      on(s,'pause',()=>g.end(false,{money:12.99,note:'You paused, which means billing restarts automatically in a month. Many people forget, so a pause is often just a delayed charge.'}));
+      on(s,'keep',()=>g.end(false,{money:12.99,note:'On the last screen the big red button was "Keep my membership". You hit it, and you\'ll be charged again on 2 December.'}));
+      on(s,'final',()=>g.end(true,{time:Math.min(steps.n,9),note:'Cancelled. It took '+steps.n+' screens, a scroll past empty space, a discount, a forced survey, a pause offer and a loss warning. Signing up took one tap.'}));
+    };
+    render();
+  }},
+/* 9 */{
+  app:'Dailybyte news', title:'The question that keeps coming back',
+  task:'<b>Read the article to the end</b> and tap "Finished reading". Keep notifications off.',
+  tip:'There\'s "Not now", but there\'s never "Never". Stay patient.',
+  p:{name:'Nagging',aka:'a.k.a. persistent prompts, repeated requests',
+    short:'The same request interrupts you again and again until you give in.',
+    why:'Each "no" costs effort while "yes" makes the interruptions stop. Annoyance wears you down: you agree just for peace and quiet.',
+    beat:'Look for a permanent "Don\'t ask again" in settings, and block site notifications in your browser or phone settings once and for all.',
+    law:'The EU Digital Services Act lists "repeatedly requesting a choice the user has already made" as a banned design practice (Article 25).'},
+  build(s,g){
+    let shows=0;
+    const paras=['The city council voted on Tuesday to turn the old harbour warehouses into a covered market, ending a decade of debate about the site.','Plans include 60 food stalls, a rooftop garden and space for weekend repair cafés. Construction is expected to start next spring.','Local traders welcomed the decision, though some residents worry about traffic on the narrow quay roads on market days.','The council says a new tram stop and bike parking for 800 bikes will open together with the market.','A public meeting to discuss the design will be held at the library on the 21st. Residents can also send ideas online.','Councillor Ines Vos said the project would "give the waterfront back to the people who live here."'];
+    s.innerHTML=`<div class="scr" style="--brand:#1f6feb">
+      <div class="ab"><span class="logo" style="font-family:Georgia,serif">Dailybyte</span><span class="ico">🔔</span></div>
+      <div class="body pad" id="art">
+        <div class="tiny" style="letter-spacing:.1em;font-weight:800;color:#1f6feb">CITY</div>
+        <h3 style="font-family:Georgia,serif;font-size:24px;line-height:1.15;margin:6px 0 10px">Old harbour warehouses to become covered market</h3>
+        <div class="small muted" style="margin-bottom:12px">By Dailybyte staff · 4 min read</div>
+        <div style="height:140px;border-radius:12px;background:linear-gradient(160deg,#9cc9ff,#3b6fb6);margin-bottom:12px"></div>
+        ${paras.map(p=>`<p style="font-family:Georgia,serif;font-size:15px;line-height:1.6">${p}</p>`).join('')}
+        <button class="btn primary" data-a="done" style="margin:10px 0 30px">Finished reading</button>
+      </div>
+      <div id="nag"></div></div>`;
+    const msgs=[['Never miss a story','Turn on notifications for breaking news.'],['You\'re missing out!','Readers with notifications on see stories 3× faster.'],['Last chance, we promise','Allow notifications to keep reading without interruptions.']];
+    const show=()=>{
+      if(shows>=msgs.length) return;
+      const m=msgs[shows++];sfx.tick();
+      $('#nag',s).innerHTML=`<div class="mback"><div class="modal" style="text-align:center"><div style="font-size:34px">🔔</div><div style="font-size:19px;font-weight:800;margin:6px 0">${m[0]}</div><p class="muted small">${m[1]}</p><button class="btn primary" data-a="allow">Allow</button><button class="link" data-a="later" style="margin-top:6px">Not now</button></div></div>`;
+      on(s,'allow',()=>g.end(false,{time:25,data:1,note:'After '+shows+' interruption'+(shows>1?'s':'')+' you allowed notifications. Expect around 8 pings a day designed to pull you back into the app.'}));
+      on(s,'later',()=>{$('#nag',s).innerHTML='';g.after(show,2600)});
+    };
+    g.after(show,1500);
+    on(s,'done',()=>{
+      g.end(true,{time:shows,note:'You said "Not now" '+shows+' time'+(shows===1?'':'s')+' and kept reading. Notice there was never a "Never" option: the app planned to ask again.'});
+    });
+  }},
+/* 10 */{
+  app:'Loopr', title:'Just one more clip',
+  task:'Your friend Sam sent you a message in this app. <b>Read it, then close the app.</b> Waste as little time as possible.',
+  tip:'Autoplay starts the next clip before you decide. Look for your inbox.',
+  p:{name:'Infinite scroll & autoplay',aka:'a.k.a. bottomless feeds, attention capture',
+    short:'Content never ends and the next video starts by itself, so there\'s no natural moment to stop.',
+    why:'Without a stopping point, the decision to leave never comes up. Autoplay turns "should I watch another?" into "should I make the effort to stop?".',
+    beat:'Turn off autoplay in settings, set a timer before opening the app, and go straight to what you came for.',
+    law:'The EU is investigating large platforms under the Digital Services Act over addictive design such as endless feeds and autoplay.'},
+  build(s,g){
+    let idx=0,paused=false;
+    const clips=[['#ff6b6b','#4ecdc4','Cat vs. cucumber, round 7'],['#f7b733','#fc4a1a','I tried 10 street foods in Seoul'],['#667eea','#764ba2','This pasta hack is illegal'],['#11998e','#38ef7d','POV: Monday morning'],['#fc5c7d','#6a82fb','You won\'t believe what happens at 0:12'],['#f12711','#f5af19','Rating every airport lounge'],['#00c6ff','#0072ff','Wait for it…']];
+    s.innerHTML=`<div class="scr" style="--brand:#ff2e63;background:#000;color:#fff">
+      <div style="position:absolute;top:0;left:0;right:0;z-index:4;display:flex;justify-content:space-between;align-items:center;padding:12px 16px">
+        <span style="font-weight:900;font-size:18px">loopr</span>
+        <button data-a="inbox" aria-label="Inbox" style="background:none;border:0;color:#fff;font-size:15px;position:relative;opacity:.75;padding:4px">✉<span style="position:absolute;top:2px;right:0;width:7px;height:7px;border-radius:50%;background:#ff2e63"></span></button>
+      </div>
+      <div id="feed" style="position:absolute;inset:0;overflow:hidden"></div>
+      <div id="inb"></div></div>`;
+    const feed=$('#feed',s);
+    const draw=(dir=1)=>{
+      const c=clips[idx%clips.length];
+      feed.innerHTML=`<div style="position:absolute;inset:0;background:linear-gradient(160deg,${c[0]},${c[1]});animation:${dir?'slideup':'fade'} .35s ease-out">
+        <div style="position:absolute;inset:0;display:grid;place-items:center;font-size:70px;opacity:.25">▶</div>
+        <div style="position:absolute;right:12px;bottom:110px;display:flex;flex-direction:column;gap:16px;align-items:center;font-size:11px;font-weight:700"><span style="font-size:24px">♥</span>${(12+idx*7)%90}.${idx%9}K<span style="font-size:24px">💬</span>${300+idx*41}</div>
+        <div style="position:absolute;left:14px;right:70px;bottom:44px"><b>@clip${1000+idx*37}</b><div style="font-size:14px;margin-top:4px">${c[2]}</div></div>
+        <div style="position:absolute;left:0;right:0;bottom:28px;height:3px;background:rgba(255,255,255,.25)"><div style="height:100%;background:#fff;width:0;animation:grow 5s linear forwards"></div></div>
+        <div style="position:absolute;bottom:34px;right:14px;font-size:10px;opacity:.7">Swipe up · next plays automatically</div>
+      </div>`;
+    };
+    const next=(auto)=>{if(paused)return;idx++;g.charge(0,1,0);draw();if(!auto)sfx.tap()};
+    draw(0);
+    g.every(()=>next(true),5000);
+    let lastW=0;
+    feed.addEventListener('wheel',e=>{e.preventDefault();const n=Date.now();if(n-lastW>700&&e.deltaY>0){lastW=n;next()}},{passive:false});
+    let ty=null;feed.addEventListener('touchstart',e=>{ty=e.touches[0].clientY},{passive:true});
+    feed.addEventListener('touchend',e=>{if(ty!=null&&ty-e.changedTouches[0].clientY>40)next();ty=null});
+    feed.addEventListener('click',()=>next());
+    on(s,'inbox',()=>{
+      paused=true;sfx.tap();
+      $('#inb',s).innerHTML=`<div style="position:absolute;inset:0;background:#fff;color:#111;z-index:6;display:flex;flex-direction:column;animation:fade .2s">
+        <div class="ab"><span>Messages</span><span></span></div>
+        <div class="pad"><div style="display:flex;gap:10px;align-items:center"><div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#a1c4fd,#c2e9fb)"></div><div><b>Sam</b><div class="small muted">now</div></div></div>
+        <div style="background:#f0f0f5;border-radius:16px 16px 16px 4px;padding:12px 14px;margin:14px 0;max-width:85%">Still on for dinner at 7? I booked the Thai place 🍜</div>
+        <button class="btn primary big" data-a="close">Reply "See you there!" &amp; close app</button>
+        <p class="tiny" style="text-align:center;margin-top:8px">5 new clips from creators you follow</p></div></div>`;
+      on(s,'close',()=>{
+        const t=live.time;
+        if(t<=2) g.end(true,{note:'In and out. You went straight to your inbox'+(t?' after just '+t+' clip'+(t>1?'s':''):'')+'. The feed was built to keep going forever: every clip ran into the next one by itself.'});
+        else g.end(false,{note:'You got your message, but only after '+t+' clips played. Each one started by itself, and there\'s no end to the feed. The inbox icon was small, dim and easy to miss on purpose.'});
+      });
+    });
+  }},
+/* 11 */{
+  app:'Gem Garden', title:'So close! Spin again?',
+  task:'<b>Collect your free daily spin reward</b>, then leave the game. Don\'t spend any money.',
+  tip:'Near misses are not bad luck. They are designed.',
+  p:{name:'Variable rewards',aka:'a.k.a. loot boxes, near-miss design, slot-machine mechanics',
+    short:'Unpredictable rewards and "almost won" results keep you playing and paying.',
+    why:'Rewards that come at random times hook us harder than steady ones (variable-ratio reinforcement). A near miss feels like progress even though it\'s still a loss.',
+    beat:'Decide your limit before you start, never chase a near miss, and turn off in-app purchases on your device.',
+    law:'Belgium treats paid loot boxes as gambling and has banned them since 2018. Several other countries are reviewing similar rules.'},
+  build(s,g){
+    const sym=['🍒','🍋','💎','⭐','🍀'];let free=true,paid=0,busy=false;
+    s.innerHTML=`<div class="scr" style="--brand:#8e2de2;background:linear-gradient(180deg,#2b0a57,#8e2de2);color:#fff">
+      <div class="ab" style="border-color:rgba(255,255,255,.15)"><span class="logo" style="color:#ffd93d">GEM GARDEN</span><span class="badge" style="background:rgba(255,255,255,.15);color:#fff">💎 <span id="gems">120</span></span></div>
+      <div class="body pad" style="text-align:center">
+        <div id="banner" style="font-size:20px;font-weight:900;margin:10px 0 4px">Your free daily spin!</div>
+        <div class="small" style="opacity:.75" id="sub">Match three to win gems</div>
+        <div style="display:flex;gap:8px;justify-content:center;margin:20px 0;background:#1a0638;padding:14px;border-radius:20px;box-shadow:inset 0 0 0 3px #ffd93d">
+          ${[0,1,2].map(i=>`<div class="reel" id="r${i}" style="width:78px;height:90px;border-radius:12px;background:#fff;display:grid;place-items:center;font-size:44px">💎</div>`).join('')}
+        </div>
+        <button class="btn big" data-a="spin" id="spinBtn" style="background:#ffd93d;color:#2b0a57;font-weight:900">SPIN FREE</button>
+        <div id="after" style="margin-top:10px"></div>
+        <div class="tiny" style="color:rgba(255,255,255,.55);margin-top:14px">Odds of jackpot: see terms</div>
+      </div></div>`;
+    const reels=[0,1,2].map(i=>$('#r'+i,s));
+    const spin=()=>{
+      if(busy)return;busy=true;
+      if(!free){paid++;g.charge(.99,1,0)}
+      const target=free?['💎','💎','💎']:(()=>{const a=sym[Math.floor(Math.random()*sym.length)];let b;do{b=sym[Math.floor(Math.random()*sym.length)]}while(b===a);return Math.random()<.5?[a,a,b]:[a,b,a]})();
+      let ticks=0;$('#after',s).innerHTML='';
+      const iv=g.every(()=>{ticks++;sfx.spin();reels.forEach((r,i)=>{if(ticks<10+i*5)r.textContent=sym[Math.floor(Math.random()*sym.length)];else r.textContent=target[i]});
+        if(ticks>=20){clearInterval(iv);busy=false;settle(target)}},70);
+    };
+    const settle=t=>{
+      if(free){free=false;sfx.good();const gm=$('#gems',s);gm.textContent='170';$('#banner',s).textContent='+50 GEMS! 🎉';$('#sub',s).textContent='You\'re on a hot streak. Keep going?';}
+      else{sfx.bad();$('#banner',s).textContent=['SO CLOSE!','ALMOST! 😱','ONE AWAY!','Next one feels lucky…'][paid%4];$('#sub',s).textContent='Jackpot chance boosted for your next spin!';}
+      const btn=$('#spinBtn',s);btn.textContent='SPIN AGAIN · €0.99';btn.style.animation='pulse 1s infinite';
+      $('#after',s).innerHTML=(paid>=2?`<button class="btn" data-a="bundle" style="background:#ff5e7e;color:#fff;margin-bottom:8px">🔥 10 spins for €7.99 · BEST VALUE</button>`:'')+`<button class="link" data-a="leave" style="color:rgba(255,255,255,.6)">Collect &amp; leave</button>`;
+      on(s,'leave',()=>{
+        if(!paid) g.end(true,{note:'You took the free 50 gems and walked away. The first spin was always going to win: it\'s bait to get you to the paid ones.'});
+        else g.end(false,{note:'You spent '+eur(paid*.99)+' on '+paid+' paid spin'+(paid>1?'s':'')+'. Every single one was a near miss, by design. The free win was the hook.'});
+      });
+      on(s,'bundle',()=>{g.charge(7.99,5,0);paid+=10;g.end(false,{note:'You bought the 10-spin bundle after '+(paid-10)+' near misses. That\'s '+eur((paid-10)*.99+7.99)+' total. "Best value" only means the most money for them.'})});
+    };
+    on(s,'spin',spin);
+  }},
+/* 12 */{
+  app:'Simmer recipes', title:'The cookie banner',
+  task:'You just want the soup recipe. <b>Reject every cookie that isn\'t essential</b>, then continue.',
+  tip:'"Accept" is one tap. "Reject" is often hidden two levels deep, below the fold.',
+  p:{name:'Interface interference',aka:'a.k.a. visual misdirection, privacy-unfriendly defaults',
+    short:'The choice the company wants is bright and easy; the one you want is grey, hidden or split up.',
+    why:'We follow visual hierarchy: big and colourful means "the right button". Making "reject" take many taps uses your impatience against you.',
+    beat:'Never hit the bright button by reflex. Look for "Reject all", and check the hidden "legitimate interest" section, which is often switched on.',
+    law:'EU data protection authorities say rejecting cookies must be as easy as accepting them. France\'s CNIL has fined several large sites for hiding the reject option.'},
+  build(s,g){
+    s.innerHTML=`<div class="scr" style="--brand:#e07a1f">
+      <div class="ab"><span class="logo">simmer</span><span class="ico">⌕</span></div>
+      <div class="body pad" style="filter:blur(1.5px)">
+        <div style="height:150px;border-radius:14px;background:radial-gradient(circle at 50% 50%,#ffb347,#e07a1f 55%,#7a3b0c)"></div>
+        <h3 style="margin:12px 0 4px">Roasted tomato soup</h3><p class="small muted">Serves 4 · 45 min</p>
+        <p class="small">Halve 1 kg tomatoes, roast with garlic and olive oil at 200°C for 30 minutes…</p>
+      </div>
+      <div id="cb"></div></div>`;
+    const cb=$('#cb',s);
+    const banner=()=>{cb.innerHTML=`<div class="sheet">
+      <div style="font-weight:800;font-size:17px">We value your privacy 🍪</div>
+      <p class="small muted">We and our 742 partners use cookies to improve your experience, personalise ads and measure performance.</p>
+      <button class="btn primary big" data-a="accept">Accept all &amp; continue</button>
+      <div style="text-align:center;margin-top:6px"><button class="link" data-a="manage">Manage options</button></div></div>`;
+      on(s,'accept',()=>g.end(false,{data:9,note:'You accepted all cookies for 742 partners. Your reading habits on this site can now be used to build an ad profile about you.'}));
+      on(s,'manage',()=>{sfx.tap();manage()});
+    };
+    const vendors=['AdNexa Media','Pixelreach','Trackwise','Brandlift Analytics','Datafarm Ltd'];
+    const manage=()=>{cb.innerHTML=`<div class="sheet" style="max-height:94%">
+      <div style="font-weight:800;font-size:17px;margin-bottom:6px">Privacy preferences</div>
+      <div class="row" style="padding:8px 0"><span class="small"><b>Strictly necessary</b><br><span class="muted">Always on</span></span><input type="checkbox" class="toggle" checked disabled aria-label="Necessary"></div>
+      <div class="row" style="padding:8px 0"><span class="small"><b>Performance &amp; analytics</b></span><input type="checkbox" class="toggle nonEss" checked aria-label="Analytics"></div>
+      <div class="row" style="padding:8px 0"><span class="small"><b>Personalised advertising</b></span><input type="checkbox" class="toggle nonEss" checked aria-label="Advertising"></div>
+      <div class="row" style="padding:8px 0"><span class="small"><b>Social media features</b></span><input type="checkbox" class="toggle nonEss" checked aria-label="Social"></div>
+      <details style="margin:6px 0;border-top:1px solid #eee;padding-top:8px"><summary class="small" style="cursor:pointer;color:#888">Legitimate interest (${vendors.length} partners)</summary>
+        ${vendors.map(v=>`<div class="row" style="padding:6px 0 6px 8px"><span class="small">${v}</span><input type="checkbox" class="toggle nonEss" checked aria-label="${v}"></div>`).join('')}
+      </details>
+      <div style="text-align:right"><button class="link" data-a="rejectall">Reject all</button></div>
+      <button class="btn primary big" data-a="accept" style="margin-top:8px">Accept all</button>
+      <button class="btn grey" data-a="save" style="margin-top:8px">Confirm my choices</button></div>`;
+      on(s,'accept',()=>g.end(false,{data:9,note:'You opened the settings but still hit the big "Accept all" button. It sat right above the grey "Confirm" button for a reason.'}));
+      on(s,'rejectall',()=>{$$('.nonEss',s).forEach(t=>t.checked=false);sfx.tap();});
+      on(s,'save',()=>{
+        const leftOn=$$('.nonEss',s).filter(t=>t.checked).length;
+        if(!leftOn) g.end(true,{time:1,note:'Everything optional is off, including the five "legitimate interest" partners hidden in a collapsed section. That took about six taps instead of one.'});
+        else g.end(false,{data:leftOn,note:'You saved, but '+leftOn+' tracker setting'+(leftOn>1?'s were':' was')+' still on. The "legitimate interest" partners were tucked away in a collapsed section, all switched on.'});
+      });
+    };
+    g.after(banner,500);
+  }},
+/* 13 */{
+  app:'Hyperstore', title:'Final exam: spot them all',
+  task:'This product page hides <b>6 dark patterns</b>. Tap each one you spot. You have <b>45 seconds</b>; wrong taps cost 3 seconds.',
+  tip:'Look for pressure, pre-ticked boxes, fake prices, disguised ads and guilt-trips.',
+  p:{name:'Fake reference price',aka:'a.k.a. false anchoring, inflated "was" prices',
+    short:'A crossed-out "was" price that never really existed makes the current price look like a bargain.',
+    why:'The first number you see becomes your anchor. Next to €199, €79 feels like a steal, even if €79 was always the normal price.',
+    beat:'Check price history with a price tracker, and judge the price on its own: would you pay €79 without the crossed-out number?',
+    law:'In the EU, any announced discount must be based on the lowest price of the previous 30 days (Price Indication Directive, as amended in 2022).'},
+  build(s,g){
+    let t=45,found=0;const total=6;
+    s.innerHTML=`<div class="scr insp" style="--brand:#ff6a00">
+      <div class="ab"><span class="logo">hyperstore</span><span class="badge" id="ct" style="background:#111;color:#fff">0/6 · 45s</span></div>
+      <div class="body pad">
+        <div data-hot data-label="Fake urgency" style="background:#ffefe0;color:#c54b00;border-radius:10px;padding:8px;text-align:center;font-weight:800;font-size:13px">⏰ Sale ends in <span id="sale">09:59</span></div>
+        <div data-decoy style="height:140px;border-radius:14px;margin:10px 0;background:radial-gradient(circle at 50% 55%,#333 0 28%,#555 29% 34%,transparent 35%),linear-gradient(135deg,#f6f6f9,#dedee6)"></div>
+        <div data-decoy style="font-weight:800;font-size:17px">AirCrisp XL Air Fryer, 6 L</div>
+        <div data-decoy class="small muted">⭐ 4.3 (1,204 reviews)</div>
+        <div style="display:flex;align-items:center;gap:8px;margin:6px 0">
+          <span data-decoy style="font-size:26px;font-weight:900">€79</span>
+          <span data-hot data-label="Fake 'was' price" class="muted"><s>Was €199</s></span>
+        </div>
+        <div data-hot data-label="Fake scarcity" class="small" style="color:#d0284b;font-weight:700;display:inline-block">Only 2 left in stock!</div>
+        <label data-hot data-label="Pre-ticked extra" class="check" style="padding:8px 0;display:flex"><input type="checkbox" checked tabindex="-1" style="pointer-events:none"><span class="small">Add 3-year protection (+€19.99)</span></label>
+        <button data-decoy class="btn primary">Add to basket</button>
+        <div data-decoy class="small muted" style="margin:8px 0">Free returns within 30 days · Ships in 2 days</div>
+        <div class="hr"></div>
+        <div class="small" style="font-weight:700;margin-bottom:6px">Recommended for you</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div data-decoy style="border:1px solid #eee;border-radius:10px;padding:8px"><div style="height:50px;border-radius:8px;background:#eef"></div><div class="small">Silicone liners</div><b class="small">€8.99</b></div>
+          <div data-hot data-label="Disguised ad" style="border:1px solid #eee;border-radius:10px;padding:8px"><div style="height:50px;border-radius:8px;background:#fee"></div><div class="small">Turbo Fryer 9000</div><b class="small">€59</b> <span class="tiny">sponsored</span></div>
+        </div>
+        <div style="background:#f6f6f9;border-radius:12px;padding:12px;margin-top:12px;text-align:center">
+          <div data-decoy class="small"><b>Get €5 off your first order</b></div>
+          <button data-decoy class="btn primary" style="margin-top:8px;padding:10px">Sign me up</button>
+          <span data-hot data-label="Confirmshaming" class="tiny" style="display:inline-block;margin-top:6px;text-decoration:underline">No thanks, I enjoy soggy fries</span>
+        </div>
+        <div style="height:20px"></div>
+      </div></div>`;
+    const ct=$('#ct',s);const upd=()=>ct.textContent=found+'/'+total+' · '+Math.max(t,0)+'s';
+    $$('[data-hot]',s).forEach(el=>el.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();if(el.classList.contains('found'))return;el.classList.add('found');found++;sfx.good();upd();
+      if(found===total) g.end(true,{note:'All six, with '+t+' seconds to spare: fake urgency, a fake "was" price, fake scarcity, a pre-ticked extra, a disguised ad and a guilt-trip decline link.'})}));
+    $$('[data-decoy]',s).forEach(el=>el.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();t-=3;sfx.bad();el.classList.add('shake');setTimeout(()=>el.classList.remove('shake'),400);upd()}));
+    let sale=599;
+    g.every(()=>{t--;sale--;$('#sale',s).textContent=pad2(Math.floor(sale/60))+':'+pad2(sale%60);upd();
+      if(t<=5&&t>0)sfx.tick();
+      if(t<=0){const missed=$$('[data-hot]:not(.found)',s).map(x=>x.dataset.label);$$('[data-hot]:not(.found)',s).forEach(x=>x.classList.add('found'));
+        g.end(false,{time:missed.length,note:'Time\'s up. You found '+found+' of 6. You missed: '+missed.join(', ')+'.'})}},1000);
+    upd();
+  }}
+];
+
+/* ---------------- state & flow ---------------- */
+const state={i:0,money:0,time:0,data:0,results:[]};
+let timers=[],live=null;
+const clearTimers=()=>{timers.forEach(t=>{clearTimeout(t);clearInterval(t)});timers=[]};
+function show(id){['intro','game','end'].forEach(x=>$('#'+x).hidden=x!==id);window.scrollTo({top:0,behavior:'smooth'})}
+
+function renderProgress(){
+  $('#progress').innerHTML=LEVELS.map((_,k)=>{const r=state.results[k];return `<i class="${k===state.i&&!r?'now':r?(r.ok?'ok':'bad'):''}" title="Trap ${k+1}"></i>`}).join('');
+}
+function updateLedger(hit){
+  $('#vMoney').textContent=eur(state.money);
+  $('#vTime').textContent=state.time+' min';
+  $('#vData').textContent=state.data;
+  (hit||[]).forEach(id=>{const m=$('#'+id);m.classList.remove('hit');void m.offsetWidth;m.classList.add('hit')});
+  $('#guideCount').textContent=state.results.filter(Boolean).length+'/13';
+}
+
+function startLevel(i){
+  clearTimers();closeOverlay();state.i=i;const L=LEVELS[i];
+  const lv=live={money:0,time:0,data:0,done:false};
+  $('#mLvl').textContent='Trap '+pad2(i+1)+' / '+LEVELS.length;
+  $('#mApp').textContent=L.app;$('#mTitle').textContent=L.title;$('#mTask').innerHTML=L.task;$('#mTip').textContent=L.tip;
+  renderProgress();updateLedger();
+  const screen=$('#screen');screen.innerHTML='';
+  const g={
+    charge(m=0,t=0,d=0){if(lv.done)return;lv.money+=m;lv.time+=t;lv.data+=d;state.money+=m;state.time+=t;state.data+=d;
+      const hit=[];if(m)hit.push('mMoney');if(t)hit.push('mTime');if(d)hit.push('mData');updateLedger(hit);if(m)sfx.coin()},
+    end(ok,o={}){if(lv.done)return;g.charge(o.money||0,o.time||0,o.data||0);lv.done=true;clearTimers();
+      state.results[i]={ok,money:lv.money,time:lv.time,data:lv.data,note:o.note||''};
+      renderProgress();updateLedger();ok?sfx.good():sfx.bad();
+      if(!ok){screen.classList.add('shake');setTimeout(()=>screen.classList.remove('shake'),400)}
+      setTimeout(()=>reveal(i),ok?450:700)},
+    after(fn,ms){const t=setTimeout(()=>{if(!lv.done)fn()},ms);timers.push(t);return t},
+    every(fn,ms){const t=setInterval(()=>{if(!lv.done)fn()},ms);timers.push(t);return t},
+    toast(text){const d=document.createElement('div');d.className='ptoast';d.innerHTML='<span class="dot"></span><span>'+text+'</span>';screen.appendChild(d);setTimeout(()=>d.remove(),3700)}
+  };
+  // tiny delegated click sound for app buttons
+  L.build(screen,g);
+}
+
+$('#screen').addEventListener('click',e=>{if(e.target.closest('button,label,input'))sfx.tap()},true);
+
+function costChips(r){
+  const c=[];if(r.money)c.push('−'+eur(r.money));if(r.time)c.push('−'+r.time+' min');if(r.data)c.push(r.data+' data leaked');
+  return c.length?c.map(x=>`<span>${x}</span>`).join(''):'<span class="zero">No losses</span>';
+}
+function reveal(i){
+  const L=LEVELS[i],r=state.results[i],last=i===LEVELS.length-1;
+  openOverlay(`<div class="card" role="dialog" aria-modal="true" aria-labelledby="rvT">
+    <div class="verdict ${r.ok?'ok':'bad'}">${r.ok?'DODGED IT':'GOTCHA!'}</div>
+    <div class="aka" style="margin:0 0 2px">Trap ${pad2(i+1)} · the pattern</div>
+    <h3 id="rvT">${L.p.name}</h3>
+    <div class="aka">${L.p.aka}</div>
+    <p class="what">${r.note}</p>
+    <div class="costs">${costChips(r)}</div>
+    <div class="explain">
+      <div><h4>The trick</h4><p>${L.p.short}</p></div>
+      <div><h4>Why it works on us</h4><p>${L.p.why}</p></div>
+      <div><h4>How to beat it</h4><p>${L.p.beat}</p></div>
+      <div class="law"><b>Rules:</b> ${L.p.law}</div>
+    </div>
+    <button class="cta next" id="nextBtn">${last?'See my results':'Next app'} <span aria-hidden="true">→</span></button>
+  </div>`);
+  $('#nextBtn').focus();
+  $('#nextBtn').addEventListener('click',()=>{sfx.tap();last?finish():startLevel(i+1)});
+}
+function openOverlay(html){const o=$('#overlay');o.innerHTML=html;o.hidden=false;document.body.style.overflow='hidden'}
+function closeOverlay(){const o=$('#overlay');o.hidden=true;o.innerHTML='';document.body.style.overflow=''}
+$('#overlay').addEventListener('click',e=>{if(e.target.id==='overlay'&&$('#overlay [data-dismiss]'))closeOverlay()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#overlay [data-dismiss]'))closeOverlay()});
+
+function guideCards(){
+  return LEVELS.map((L,k)=>{const r=state.results[k];
+    if(!r) return `<div class="gcard locked"><div class="n">${pad2(k+1)}</div><h5>Locked</h5><p>Play trap ${k+1} to unlock this card.</p></div>`;
+    return `<div class="gcard"><div class="n">${pad2(k+1)} · ${L.app}</div><h5>${L.p.name}</h5><p>${L.p.short}</p><p style="margin-top:6px"><b>Beat it:</b> ${L.p.beat}</p><div class="res ${r.ok?'ok':'bad'}">${r.ok?'DODGED':'FELL FOR IT'}</div></div>`}).join('');
+}
+function openGuide(){
+  sfx.tap();
+  openOverlay(`<div class="card" style="max-width:860px" role="dialog" aria-modal="true" aria-labelledby="gT">
+    <button class="xclose" data-dismiss aria-label="Close">✕</button>
+    <div class="aka" style="margin:0">Your collection</div>
+    <h3 id="gT">Field guide</h3>
+    <p style="margin:6px 0 0;color:var(--muted)">Every trap you play adds its pattern here, with how to beat it.</p>
+    <div class="guide-grid">${guideCards()}</div></div>`);
+  $('#overlay [data-dismiss]').addEventListener('click',closeOverlay);
+}
+$('#guideBtn').addEventListener('click',openGuide);
+
+function rank(n){
+  if(n>=13) return ['Dark Pattern Detective','Not one trick got past you.'];
+  if(n>=10) return ['Pattern Spotter','You see the strings behind most screens.'];
+  if(n>=6) return ['Wary Shopper','You caught a lot, but the apps still got some.'];
+  return ['Easy Mark','The apps had a great day. Now you know their tricks.'];
+}
+function finish(){
+  clearTimers();closeOverlay();
+  const dodged=state.results.filter(r=>r&&r.ok).length;const [rk,line]=rank(dodged);
+  $('#end').innerHTML=`
+    <div class="end-hero">
+      <div><div class="kicker">All 13 apps played</div>
+      <h1>You dodged ${dodged} of 13 traps.</h1>
+      <p class="lede" style="color:#dfe4ff;font-size:18px;margin:0;max-width:34em">${line} These patterns are everywhere: shops, games, news sites, streaming. Once you can name them, they lose most of their power.</p></div>
+      <div class="rank"><small>Your rank</small><b>${rk}</b></div>
+    </div>
+    <div class="ledger">
+      <div class="meter"><div class="lab">Money spent</div><div class="val">${eur(state.money)}</div><div class="sub">on things you didn't want</div></div>
+      <div class="meter"><div class="lab">Time stolen</div><div class="val">${state.time} min</div><div class="sub">scrolling, spam, hoops</div></div>
+      <div class="meter"><div class="lab">Data leaked</div><div class="val">${state.data}</div><div class="sub">bits of you, shared</div></div>
+    </div>
+    <div class="end-actions"><button class="cta" id="againBtn">Play again</button><button class="ghost-btn" id="retryBad"${dodged===13?' hidden':''}>Retry the ones I fell for</button></div>
+    <div class="panel"><h2>Your field guide</h2><p class="muted2">Thirteen patterns to recognise, and how to beat each one.</p><div class="guide-grid">${guideCards()}</div>
+      <p class="muted2" style="margin-top:18px;font-size:13px">The term "dark patterns" was coined by UX designer Harry Brignull in 2010. Researchers now also call them "deceptive design".</p></div>`;
+  show('end');
+  $('#againBtn').addEventListener('click',()=>{reset();show('game');startLevel(0)});
+  $('#retryBad').addEventListener('click',()=>{
+    const bad=state.results.map((r,k)=>r&&!r.ok?k:-1).filter(k=>k>=0);
+    if(!bad.length)return;
+    retryQueue=bad.slice(1);
+    bad.forEach(k=>{const r=state.results[k];state.money-=r.money;state.time-=r.time;state.data-=r.data;state.results[k]=undefined});
+    state.money=Math.max(0,+state.money.toFixed(2));
+    show('game');startLevel(bad[0]);
+  });
+}
+let retryQueue=null;
+// patch reveal "next" to respect retry queue
+const _reveal=reveal;
+reveal=function(i){
+  _reveal(i);
+  if(retryQueue){
+    const btn=$('#nextBtn');const nxt=retryQueue.length?retryQueue[0]:null;
+    btn.innerHTML=(nxt!=null?'Next retry':'See my results')+' <span aria-hidden="true">→</span>';
+    const clone=btn.cloneNode(true);btn.replaceWith(clone);clone.focus();
+    clone.addEventListener('click',()=>{sfx.tap();if(nxt!=null){retryQueue.shift();startLevel(nxt)}else{retryQueue=null;finish()}});
+  }
+};
+function reset(){state.i=0;state.money=0;state.time=0;state.data=0;state.results=[];retryQueue=null;updateLedger()}
+
+$('#strip').innerHTML=LEVELS.map(L=>`<span>${L.p.name}</span>`).join('');
+$('#startBtn').addEventListener('click',()=>{sfx.good();reset();show('game');startLevel(0)});
+$('#homeBtn').addEventListener('click',()=>{clearTimers();closeOverlay();show('intro')});
+$('#giveUp').addEventListener('click',()=>{if(live&&!live.done){
+  live.done=true;clearTimers();state.results[state.i]={ok:false,money:live.money,time:live.time,data:live.data,note:'You asked to see the trick. Here is what this app was doing.'};renderProgress();updateLedger();reveal(state.i)}});
+
+const extraCss=document.createElement('style');
+extraCss.textContent='@keyframes slideup{from{transform:translateY(100%)}}@keyframes grow{to{width:100%}}';
+document.head.appendChild(extraCss);
+})();
+</script>
+
+
+</body>
+</html>

@@ -1,0 +1,992 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
+<title>Ant m up</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&display=swap">
+<style>
+/* Layout: one full-screen pixel canvas, HUD strip on top, floating joystick wherever the thumb lands. Single dark "underground" look by choice. */
+:root {
+  --soil: #1c130f;
+  --clay: #3a2619;
+  --dirt: #8a5d3b;
+  --amber: #f2b84b;
+  --fire: #d9452b;
+  --ink: #f4e6d4;
+  --muted: #b89a7e;
+  --font-pixel: "Silkscreen", "Courier New", ui-monospace, monospace;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+[hidden] { display: none !important; }
+body {
+  background: var(--soil);
+  color: var(--ink);
+  font-family: var(--font-pixel);
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+#game {
+  position: fixed; inset: 0;
+  width: 100%; height: 100%;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  display: block;
+}
+.hud {
+  position: fixed; left: 0; right: 0; top: 0;
+  padding: calc(env(safe-area-inset-top, 0px) + 10px) 16px 10px;
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  pointer-events: none;
+  text-shadow: 2px 2px 0 var(--soil);
+  font-size: 14px;
+  letter-spacing: 0.04em;
+}
+.hud .count { display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--amber); font-size: 18px; font-variant-numeric: tabular-nums; }
+.hud .total { color: var(--ink); font-size: 14px; }
+.hud .bump { animation: bump .35s steps(3); display: inline-block; }
+@keyframes bump { 50% { transform: scale(1.5); } }
+@media (prefers-reduced-motion: reduce) { .hud .bump { animation: none; } }
+.hud .level, .hud .lbl { color: var(--muted); font-size: 12px; font-weight: 400; }
+.joy {
+  position: fixed; width: 112px; height: 112px; margin: -56px 0 0 -56px;
+  border-radius: 50%;
+  border: 3px solid color-mix(in srgb, var(--ink) 35%, transparent);
+  background: color-mix(in srgb, var(--soil) 45%, transparent);
+  pointer-events: none;
+  opacity: 0.55;
+  transition: opacity .15s;
+}
+.joy.active { opacity: 1; }
+.joy .knob {
+  position: absolute; left: 50%; top: 50%; width: 48px; height: 48px; margin: -24px 0 0 -24px;
+  border-radius: 50%;
+  background: var(--amber);
+  box-shadow: inset -4px -4px 0 color-mix(in srgb, var(--soil) 30%, transparent), 0 3px 0 var(--clay);
+}
+.hint {
+  position: fixed; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 24px);
+  text-align: center; font-size: 12px; color: var(--muted);
+  pointer-events: none; text-shadow: 2px 2px 0 var(--soil);
+  transition: opacity .4s;
+}
+.overlay {
+  position: fixed; inset: 0; display: grid; place-items: center; padding: 16px;
+  background: color-mix(in srgb, var(--soil) 78%, transparent);
+}
+.panel {
+  max-width: 320px; width: 100%;
+  background: var(--clay); border: 4px solid var(--dirt);
+  box-shadow: 0 6px 0 var(--soil);
+  padding: 22px 20px; text-align: center;
+  display: grid; gap: 14px;
+}
+.panel h1 { margin: 0; font-size: 26px; color: var(--amber); text-wrap: balance; }
+.panel p { margin: 0; font-size: 13px; line-height: 1.6; color: var(--ink); }
+.panel button {
+  font: 700 15px var(--font-pixel); letter-spacing: 0.05em;
+  color: var(--soil); background: var(--amber);
+  border: 0; padding: 12px 18px; cursor: pointer;
+  box-shadow: 0 4px 0 #9c6a1c;
+}
+.panel button:active { transform: translateY(3px); box-shadow: 0 1px 0 #9c6a1c; }
+.panel button:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+.hud .right { display: flex; align-items: center; gap: 12px; }
+.hud .restart {
+  pointer-events: auto; cursor: pointer;
+  font: 700 12px var(--font-pixel); letter-spacing: 0.05em;
+  color: var(--ink); background: color-mix(in srgb, var(--clay) 85%, transparent);
+  border: 2px solid var(--dirt); padding: 6px 8px;
+}
+.hud .restart:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.hint {
+  color: var(--ink); font-size: 13px; line-height: 1.5;
+  max-width: 340px; margin: 0 auto;
+  background: color-mix(in srgb, var(--soil) 80%, transparent);
+  border: 2px solid var(--clay); padding: 8px 10px;
+  text-shadow: none;
+}
+.hint.off { opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .hint { transition: none; } }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div class="hud">
+  <div class="count"><span class="lbl">Ants</span><span><span id="count">1</span><span class="total"> / <span id="total">7</span></span></span></div>
+  <div class="right">
+    <div class="level" id="level">Tunnel 1</div>
+    <button class="restart" id="restart" type="button" aria-label="Restart tunnel">Restart</button>
+  </div>
+</div>
+<div class="joy" id="joy" hidden><div class="knob" id="knob"></div></div>
+<div class="hint" id="hint">Drag anywhere to walk</div>
+<div class="overlay" id="win" hidden>
+  <div class="panel">
+    <h1 id="winTitle">Home!</h1>
+    <p id="winText"></p>
+    <button id="again" type="button">Next tunnel</button>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+const T = 16;               // tile size in game pixels
+const VIEW_W = 128;         // game pixels across the screen
+const SPEED = 46;           // px per second at full stick
+const R = 4.5;              // ant collision radius
+const GAP = 9;              // trail spacing between followers (px)
+
+// Map legend: # wall  . floor  P start  a lost ant  N nest  ~ gap (needs a bridge)  O rock (needs pushers)  S spider (needs a crowd)
+// Gaps, rocks and spiders take their ant counts from `gaps`, `rocks` and `spiders`, in reading order.
+const LEVELS = [
+  {
+    name: 'Tunnel 1',
+    gaps: [2], rocks: [3], spiders: [],
+    intro: 'Drag anywhere to walk. Ants with a ? join you.',
+    map: `#############
+#####...#####
+#####.P.#####
+#####...#####
+###a.....a###
+###.......###
+#####...#####
+######.######
+######~######
+######.######
+####.....####
+###a..a..a###
+###.......###
+######.######
+######O######
+######.######
+###.......###
+###.......###
+###.a.....###
+###.......###
+#########.###
+#######...###
+#######.N.###
+#############`
+  },
+  {
+    name: 'Tunnel 2',
+    gaps: [4], rocks: [], spiders: [2],
+    intro: 'Watch out for spiders. Only a big enough group scares them off.',
+    map: `#############
+#....#P#....#
+#.##.#.#.##.#
+#.#a.....a#.#
+#.#.#####.#.#
+#...#...#...#
+###.#.#.#.###
+#...........#
+######.######
+######S######
+######.######
+######.######
+#...........#
+#.###.#.###.#
+#.#a#.#.#a#.#
+#.#.#...#.#.#
+#...#####...#
+###.......###
+######~######
+######~######
+#....#.#....#
+#.##.#.#.##.#
+#..a.....#N.#
+#############`
+  },
+  {
+    name: 'Tunnel 3',
+    gaps: [6], rocks: [4], spiders: [3],
+    intro: 'A spider, a rock and a wide gap. Collect every ant you can.',
+    map: `###############
+#P.....#......#
+#.###.##.####.#
+#...#.a#.#a...#
+###.#.##.#.####
+#a..#....#....#
+#.#######.###.#
+#.............#
+#######.#######
+#######S#######
+#######.#######
+#.............#
+#.###.###.###.#
+#.#a#.....#a#.#
+#.#.###.###.#.#
+#...#.....#...#
+#######.#######
+#######O#######
+#######.#######
+#.............#
+#.#####.#####.#
+#.#a..#.#..a#.#
+#.#.#.###.#.#.#
+#...#.....#...#
+#####.###.#####
+#.............#
+#######~#######
+#######~#######
+#.....#.#.....#
+#.###.#.#.###.#
+#...#..N..#...#
+###############`
+  },
+  {
+    name: 'Tunnel 4',
+    gaps: [3, 8], rocks: [6], spiders: [5],
+    intro: 'Two wings. You may have to come back for more ants.',
+    map: `###################
+#.......#P#.......#
+#.#####.#.#.#####.#
+#.#a..#.#.#.#..a#.#
+#.#.#.#.....#.#.#.#
+#...#....a....#...#
+#.###############.#
+#~###############O#
+#.#######.........#
+#......a.#.######.#
+#.####.#.#.#a....##
+#.#a.#.#.#.#.###.##
+#.#.##.#.#.#...#.##
+#........#.###.#.##
+####.#####...a#..##
+####S#####.##.##.##
+####.#####.#..#..##
+#........#.#.##.###
+#.##.##.##.#....###
+#.#a.#a.##.######.#
+#....#...#........#
+####.##############
+#.................#
+#########~#########
+#########~#########
+#.................#
+#.#####.#.#.#####.#
+#.......#N#.......#
+###################`
+  },
+  {
+    name: 'The Big Maze',
+    gaps: [7], rocks: [], spiders: [4, 5],
+    intro: 'The big maze. Find enough ants for every guard between you and the nest.',
+    map: `#####################
+#P....#.......#....a#
+#.###.#.#####.#.###.#
+#...#...#...#...#...#
+###.#####.#.#####.###
+#a..#.....#.....#..a#
+#.###.#######.#.###.#
+#.....#.....#.#.....#
+#####.#.###.#.#####.#
+#.....#.#a#...#.....#
+#.#####.#.#####.###.#
+#.#.....#.....#...#.#
+#.#.#########.###.#.#
+#...#a......#.....#.#
+#####.#####.#######.#
+#.....#...#.#.....#.#
+#.#####.#.#.#.###.#.#
+#.......#...#S#a#...#
+#########S###.#.#####
+#a......#...........#
+#.#####.#######.###.#
+#.#...#.........#...#
+#.#.#.###########.###
+#...#.....#a......#.#
+###.#####.#.#####.#.#
+#.......#.#.#...#...#
+#.#####.#.#.#.#.###~#
+#.#..a#...#...#...#N#
+#.#.###############.#
+#.................#.#
+#####################`
+  }
+];
+
+const C = {
+  soil: '#1c130f', clay: '#3d281b', clayHi: '#5c3d27', clayLo: '#28190f',
+  dirt: '#b27c4e', dirtHi: '#c48d5c', dirtLo: '#9a6940', pebble: '#ddb58c',
+  pit: '#0f0907', pitHi: '#2a1a12',
+  fire: '#d9452b', fireHi: '#ff7a4d',
+  black: '#2b2230', blackHi: '#5a4b63', leg: '#1a1418',
+  spider: '#3b1f4a', spiderHi: '#7a4a96', spiderLeg: '#22122b', spiderEye: '#ff5a3c',
+  rock: '#8f8a82', rockHi: '#bdb6aa', rockLo: '#5e5953',
+  amber: '#f2b84b', ink: '#f4e6d4', ok: '#8fd16a', no: '#ff6a4d',
+  root: '#6d8f3f', rootLo: '#4c6a2a'
+};
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+let VW = VIEW_W, VH = 300;
+function resize() {
+  VW = VIEW_W;
+  VH = Math.round(VIEW_W * window.innerHeight / window.innerWidth);
+  canvas.width = VW; canvas.height = VH;
+  ctx.imageSmoothingEnabled = false;
+}
+window.addEventListener('resize', resize);
+resize();
+
+function rng(seed) { return () => (seed = (seed * 16807) % 2147483647) / 2147483647; }
+
+// ---------- level state ----------
+let levelIdx = 0, MAP, COLS, ROWS, mapCanvas;
+let nest, start, strayStarts, chasms, chasmAt, rocks, spiders;
+let player, followers, strays, trail, pops, won, elapsed, totalAnts;
+const key = (x, y) => x + ',' + y;
+
+function parseLevel(lv) {
+  MAP = lv.map.split('\n');
+  COLS = MAP[0].length; ROWS = MAP.length;
+  strayStarts = []; chasms = []; chasmAt = {}; rocks = []; spiders = [];
+  let gi = 0, ri = 0, si = 0;
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    const ch = MAP[y][x], cx = x * T + T / 2, cy = y * T + T / 2;
+    if (ch === 'P') start = { x: cx, y: cy };
+    if (ch === 'a') strayStarts.push({ x: cx, y: cy });
+    if (ch === 'N') nest = { x: cx, y: cy, tx: x, ty: y };
+    if (ch === 'S') spiders.push(makeSpider(x, y, (lv.spiders || [])[si++] || 1));
+    if (ch === 'O') rocks.push({ tx: x, ty: y, x: x * T, y: y * T, need: lv.rocks[ri++] || 1, push: 0, slide: null, told: false, flash: 0 });
+    if (ch === '~' && !chasmAt[key(x, y)]) {
+      // flood-fill connected gap tiles into one gap
+      const c = { tiles: [], need: lv.gaps[gi++] || 1, bridged: false, forming: false, ants: [], told: false, flash: 0 };
+      const stack = [[x, y]];
+      chasmAt[key(x, y)] = c;
+      while (stack.length) {
+        const [tx, ty] = stack.pop();
+        c.tiles.push([tx, ty]);
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const nx = tx + dx, ny = ty + dy;
+          if (MAP[ny] && MAP[ny][nx] === '~' && !chasmAt[key(nx, ny)]) { chasmAt[key(nx, ny)] = c; stack.push([nx, ny]); }
+        }
+      }
+      // ants span the gap in the direction you cross it
+      const [fx, fy] = c.tiles[0];
+      c.vertical = isWallChar(fx - 1, fy) && isWallChar(fx + 1, fy);
+      const xs = c.tiles.map(t => t[0]), ys = c.tiles.map(t => t[1]);
+      c.x0 = Math.min(...xs) * T; c.x1 = (Math.max(...xs) + 1) * T;
+      c.y0 = Math.min(...ys) * T; c.y1 = (Math.max(...ys) + 1) * T;
+      chasms.push(c);
+    }
+  }
+}
+// A spider paces up and down the narrow tunnel it guards.
+function makeSpider(tx, ty, need) {
+  const vertical = isWallChar(tx - 1, ty) && isWallChar(tx + 1, ty);
+  const corridor = (x, y) => !isWallChar(x, y) && (vertical ? isWallChar(x - 1, y) && isWallChar(x + 1, y) : isWallChar(x, y - 1) && isWallChar(x, y + 1));
+  let lo = 0, hi = 0;
+  while (lo > -3 && corridor(tx + (vertical ? 0 : lo - 1), ty + (vertical ? lo - 1 : 0))) lo--;
+  while (hi < 3 && corridor(tx + (vertical ? 0 : hi + 1), ty + (vertical ? hi + 1 : 0))) hi++;
+  const cx = tx * T + T / 2, cy = ty * T + T / 2;
+  return { x: cx, y: cy, vertical, min: (vertical ? cy : cx) + lo * T, max: (vertical ? cy : cx) + hi * T,
+    need, dir: 1, step: 0, flee: 0, gone: false, cool: 0, told: false, flash: 0 };
+}
+const isWallChar = (tx, ty) => tx < 0 || ty < 0 || tx >= COLS || ty >= ROWS || MAP[ty][tx] === '#';
+const rockAt = (tx, ty) => rocks.find(r => r.tx === tx && r.ty === ty);
+function blocked(tx, ty) {
+  if (isWallChar(tx, ty)) return true;
+  const c = chasmAt[key(tx, ty)];
+  if (c && !c.bridged) return true;
+  return !!rockAt(tx, ty);
+}
+let hitTile = null;
+function solidAt(x, y) {
+  const tx = Math.floor(x / T), ty = Math.floor(y / T);
+  if (blocked(tx, ty)) { if (!hitTile) hitTile = { tx, ty }; return true; }
+  return false;
+}
+
+// ---------- pre-render the static map ----------
+function renderMap() {
+  mapCanvas = document.createElement('canvas');
+  mapCanvas.width = COLS * T; mapCanvas.height = ROWS * T;
+  const g = mapCanvas.getContext('2d');
+  const r = rng(1234 + levelIdx * 77);
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    if (MAP[y][x] === '#') continue;
+    const px = x * T, py = y * T;
+    g.fillStyle = C.dirt; g.fillRect(px, py, T, T);
+    for (let i = 0; i < 10; i++) {
+      g.fillStyle = r() < 0.5 ? C.dirtLo : C.dirtHi;
+      g.fillRect(px + Math.floor(r() * T), py + Math.floor(r() * T), 1, 1);
+    }
+    if (r() < 0.25) { g.fillStyle = C.pebble; g.fillRect(px + 2 + Math.floor(r() * 11), py + 2 + Math.floor(r() * 11), 2, 1); }
+  }
+  // gaps: a dark pit with crumbly lips
+  for (const c of chasms) {
+    if (c.vertical) {
+      g.fillStyle = C.pit; g.fillRect(c.x0, c.y0 + 2, c.x1 - c.x0, c.y1 - c.y0 - 4);
+      g.fillStyle = C.pitHi; g.fillRect(c.x0, c.y0 + 2, c.x1 - c.x0, 2);
+      for (let x = c.x0; x < c.x1; x += 2) {
+        g.fillStyle = C.dirtLo;
+        g.fillRect(x, c.y0 + 1 + Math.floor(r() * 2), 2, 1);
+        g.fillRect(x, c.y1 - 2 - Math.floor(r() * 2), 2, 1);
+      }
+    } else {
+      g.fillStyle = C.pit; g.fillRect(c.x0 + 2, c.y0, c.x1 - c.x0 - 4, c.y1 - c.y0);
+      g.fillStyle = C.pitHi; g.fillRect(c.x0 + 2, c.y0, 2, c.y1 - c.y0);
+      for (let y = c.y0; y < c.y1; y += 2) {
+        g.fillStyle = C.dirtLo;
+        g.fillRect(c.x0 + 1 + Math.floor(r() * 2), y, 1, 2);
+        g.fillRect(c.x1 - 2 - Math.floor(r() * 2), y, 1, 2);
+      }
+    }
+  }
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    if (MAP[y][x] !== '#') continue;
+    const px = x * T, py = y * T;
+    g.fillStyle = C.clay; g.fillRect(px, py, T, T);
+    for (let i = 0; i < 8; i++) {
+      g.fillStyle = r() < 0.5 ? C.clayLo : C.clayHi;
+      g.fillRect(px + Math.floor(r() * T), py + Math.floor(r() * T), 2, 1);
+    }
+    if (!isWallChar(x, y + 1)) {
+      g.fillStyle = C.clayHi; g.fillRect(px, py + T - 3, T, 1);
+      g.fillStyle = C.clayLo; g.fillRect(px, py + T - 2, T, 2);
+      g.fillStyle = 'rgba(28,19,15,0.45)'; g.fillRect(px, py + T, T, 3);
+    }
+    if (!isWallChar(x, y - 1)) {
+      g.fillStyle = C.clayHi; g.fillRect(px, py, T, 1);
+      for (let i = 0; i < 3; i++) {
+        g.fillStyle = r() < 0.5 ? C.root : C.rootLo;
+        g.fillRect(px + 1 + Math.floor(r() * (T - 2)), py - 1, 1, 2 + Math.floor(r() * 2));
+      }
+    }
+    if (!isWallChar(x - 1, y)) { g.fillStyle = C.clayLo; g.fillRect(px, py, 1, T); }
+    if (!isWallChar(x + 1, y)) { g.fillStyle = C.clayHi; g.fillRect(px + T - 1, py, 1, T); }
+  }
+  const nx = nest.x, ny = nest.y;
+  g.fillStyle = C.dirtHi;
+  g.fillRect(nx - 6, ny - 3, 12, 8); g.fillRect(nx - 4, ny - 5, 8, 12);
+  g.fillStyle = C.soil; g.fillRect(nx - 3, ny - 1, 6, 4); g.fillRect(nx - 2, ny - 2, 4, 6);
+}
+
+function loadLevel(i) {
+  levelIdx = i;
+  const lv = LEVELS[i];
+  parseLevel(lv);
+  renderMap();
+  player = { x: start.x, y: start.y, dir: Math.PI / 2, step: 0 };
+  followers = [];
+  strays = strayStarts.map((s, j) => ({ x: s.x, y: s.y, dir: j * 1.7, step: j, wait: 0, turn: 0 }));
+  trail = [{ x: player.x, y: player.y }];
+  pops = [];
+  won = false; elapsed = 0;
+  totalAnts = strayStarts.length + 1;
+  cam.x = player.x - VW / 2; cam.y = player.y - VH * 0.45;
+  document.getElementById('win').hidden = true;
+  document.getElementById('level').textContent = lv.name;
+  updateHud(false);
+  say(lv.intro, 5000);
+}
+
+// ---------- movement with wall sliding and corner assist ----------
+function move(e, dx, dy) {
+  let moved = false;
+  if (dx) {
+    const nx = e.x + dx, edge = nx + Math.sign(dx) * R;
+    if (!solidAt(edge, e.y - R + 0.5) && !solidAt(edge, e.y + R - 0.5)) { e.x = nx; moved = true; }
+    else if (!dy || Math.abs(dy) < Math.abs(dx) * 0.5) cornerAssist(e, 'y', Math.abs(dx), edge, true);
+  }
+  if (dy) {
+    const ny = e.y + dy, edge = ny + Math.sign(dy) * R;
+    if (!solidAt(e.x - R + 0.5, edge) && !solidAt(e.x + R - 0.5, edge)) { e.y = ny; moved = true; }
+    else if (!dx || Math.abs(dx) < Math.abs(dy) * 0.5) cornerAssist(e, 'x', Math.abs(dy), edge, false);
+  }
+  return moved;
+}
+function cornerAssist(e, axis, amt, edge, horizontal) {
+  const center = Math.floor(e[axis] / T) * T + T / 2;
+  const off = e[axis] - center;
+  if (Math.abs(off) < 0.3) return;
+  const saved = hitTile;
+  const ahead = horizontal ? !solidAt(edge, center) : !solidAt(center, edge);
+  hitTile = saved;
+  if (ahead) e[axis] -= Math.sign(off) * Math.min(Math.abs(off), amt);
+}
+
+// ---------- input: floating joystick + keyboard ----------
+const joyEl = document.getElementById('joy'), knob = document.getElementById('knob');
+const stick = { x: 0, y: 0, id: null, ox: 0, oy: 0 };
+const JOY_R = 44;
+canvas.addEventListener('pointerdown', ev => {
+  if (stick.id !== null || won) return;
+  stick.id = ev.pointerId; stick.ox = ev.clientX; stick.oy = ev.clientY;
+  joyEl.style.left = ev.clientX + 'px'; joyEl.style.top = ev.clientY + 'px';
+  joyEl.hidden = false; joyEl.classList.add('active');
+  knob.style.transform = '';
+  canvas.setPointerCapture?.(ev.pointerId);
+});
+canvas.addEventListener('pointermove', ev => {
+  if (ev.pointerId !== stick.id) return;
+  let dx = ev.clientX - stick.ox, dy = ev.clientY - stick.oy;
+  const d = Math.hypot(dx, dy);
+  if (d > JOY_R) {
+    stick.ox += dx - dx / d * JOY_R; stick.oy += dy - dy / d * JOY_R;
+    joyEl.style.left = stick.ox + 'px'; joyEl.style.top = stick.oy + 'px';
+    dx = dx / d * JOY_R; dy = dy / d * JOY_R;
+  }
+  knob.style.transform = `translate(${dx}px, ${dy}px)`;
+  const d2 = Math.hypot(dx, dy) || 1;
+  const m = Math.min(1, d2 / JOY_R), dead = 0.15;
+  const k = m < dead ? 0 : (m - dead) / (1 - dead);
+  stick.x = dx / d2 * k; stick.y = dy / d2 * k;
+});
+function endStick(ev) {
+  if (ev.pointerId !== stick.id) return;
+  stick.id = null; stick.x = stick.y = 0;
+  joyEl.hidden = true; joyEl.classList.remove('active');
+}
+canvas.addEventListener('pointerup', endStick);
+canvas.addEventListener('pointercancel', endStick);
+
+const keys = {};
+addEventListener('keydown', e => { keys[e.key] = true; if (e.key.startsWith('Arrow')) e.preventDefault(); });
+addEventListener('keyup', e => { keys[e.key] = false; });
+function inputVec() {
+  let x = stick.x, y = stick.y;
+  const kx = (keys.ArrowRight || keys.d ? 1 : 0) - (keys.ArrowLeft || keys.a ? 1 : 0);
+  const ky = (keys.ArrowDown || keys.s ? 1 : 0) - (keys.ArrowUp || keys.w ? 1 : 0);
+  if (kx || ky) { const l = Math.hypot(kx, ky); x = kx / l; y = ky / l; }
+  return { x, y };
+}
+
+// ---------- hints ----------
+const hintEl = document.getElementById('hint');
+let hintTimer = 0, hintText = '';
+function say(text, ms = 3500) {
+  if (text !== hintText) { hintEl.textContent = text; hintText = text; }
+  hintEl.classList.remove('off');
+  hintTimer = ms / 1000;
+}
+const plural = n => n === 1 ? '1 ant' : n + ' ants';
+
+// ---------- puzzles ----------
+function formBridge(c) {
+  c.forming = true;
+  const ants = followers.splice(followers.length - c.need, c.need);
+  ants.forEach((a, i) => {
+    const f = (i + 0.5) / c.need;
+    a.tx = c.vertical ? (c.x0 + c.x1) / 2 : c.x0 + f * (c.x1 - c.x0);
+    a.ty = c.vertical ? c.y0 + f * (c.y1 - c.y0) : (c.y0 + c.y1) / 2;
+    a.home = c.vertical ? Math.PI / 2 : 0;
+  });
+  c.ants = ants; c.used = false;
+  // remember which side we started on, so we know when everyone is across
+  const ax = c.vertical ? 'y' : 'x';
+  c.side = Math.sign(player[ax] - (c.vertical ? (c.y0 + c.y1) / 2 : (c.x0 + c.x1) / 2)) || -1;
+  say(`Your ants link up into a bridge. They rejoin once everyone is across.`, 4500);
+}
+
+function handleBump(tile, v, dt) {
+  const c = chasmAt[key(tile.tx, tile.ty)];
+  if (c && !c.bridged && !c.forming) {
+    if (followers.length >= c.need) formBridge(c);
+    else { c.flash = 0.6; say(`This gap needs a bridge of ${plural(c.need)}. You have ${followers.length} following you.`); }
+    return;
+  }
+  const r = rockAt(tile.tx, tile.ty);
+  if (!r || r.slide) return;
+  const dx = r.tx * T + T / 2 - player.x, dy = r.ty * T + T / 2 - player.y;
+  const ax = Math.abs(dx) > Math.abs(dy) ? [Math.sign(dx), 0] : [0, Math.sign(dy)];
+  if (v.x * ax[0] + v.y * ax[1] < 0.5) return;
+  r.pushing = true;
+  if (followers.length < r.need) {
+    r.flash = 0.6;
+    say(`Too heavy! It takes ${plural(r.need)} behind you to push this rock. You have ${followers.length}.`);
+    return;
+  }
+  r.push += dt;
+  if (r.push < 0.18) return;
+  const nx = r.tx + ax[0], ny = r.ty + ax[1];
+  if (blocked(nx, ny) || (nx === nest.tx && ny === nest.ty)) { say('The rock won’t move further this way.'); return; }
+  r.slide = { fx: r.x, fy: r.y, t: 0 };
+  r.tx = nx; r.ty = ny; r.push = 0;
+  if (!r.moved) { r.moved = true; say('Heave! Keep pushing it out of the way.'); }
+}
+
+// ---------- update ----------
+function update(dt) {
+  elapsed += dt;
+  if (hintTimer > 0) { hintTimer -= dt; if (hintTimer <= 0) hintEl.classList.add('off'); }
+  const v = inputVec();
+  const mag = Math.hypot(v.x, v.y);
+  rocks.forEach(r => r.pushing = false);
+  player.moving = false;
+  if (mag > 0.01 && !won) {
+    const sp = SPEED * dt;
+    hitTile = null;
+    const moved = move(player, v.x * sp, v.y * sp);
+    player.moving = moved;
+    const tile = hitTile;
+    hitTile = null;
+    player.dir = Math.atan2(v.y, v.x);
+    if (moved) {
+      player.step += dt * 14 * mag;
+      const last = trail[trail.length - 1];
+      if (Math.hypot(player.x - last.x, player.y - last.y) >= 1) trail.push({ x: player.x, y: player.y });
+    }
+    if (tile) handleBump(tile, v, dt);
+  }
+  rocks.forEach(r => { if (!r.pushing) r.push = 0; r.flash = Math.max(0, r.flash - dt); });
+  chasms.forEach(c => c.flash = Math.max(0, c.flash - dt));
+
+  // first-sight tips for each puzzle
+  for (const c of chasms) if (!c.told && !c.bridged && near(c.x0, c.y0, c.x1, c.y1, 40)) {
+    c.told = true; say(`A gap! Bring ${plural(c.need)} and walk into it to build a bridge.`, 4500);
+  }
+  for (const r of rocks) if (!r.told && near(r.x, r.y, r.x + T, r.y + T, 40)) {
+    r.told = true; say(`A rock blocks the way. Bring ${plural(r.need)} to push it.`, 4500);
+  }
+
+  // followers sit at fixed distances back along the trail
+  const maxLen = (followers.length + 2) * GAP + 4;
+  if (trail.length > maxLen) trail.splice(0, trail.length - maxLen);
+  // while ants are still on a bridge and the leader waits just past it, they finish crossing and huddle up
+  let minIdx = -1;
+  const wc = !player.moving && chasms.find(c => c.bridged && c.used);
+  if (wc) {
+    const ax = wc.vertical ? 'y' : 'x', lo = wc.vertical ? wc.y0 : wc.x0, hi = wc.vertical ? wc.y1 : wc.x1;
+    const side = e => e[ax] < lo - R - 1 ? -1 : e[ax] > hi + R + 1 ? 1 : 0;
+    const s0 = side(player);
+    if (s0) { minIdx = trail.length - 1; while (minIdx > 0 && side(trail[minIdx - 1]) === s0) minIdx--; }
+  }
+  followers.forEach((f, i) => {
+    let idx = Math.max(0, trail.length - 1 - (i + 1) * GAP);
+    if (minIdx >= 0 && idx < minIdx) idx = Math.min(trail.length - 1, minIdx + (i % 3));
+    const target = trail[idx];
+    stepToward(f, target.x, target.y, Math.max(SPEED * dt * 1.6, 0), 0.25);
+  });
+
+  // bridge builders walk to their slots, then the gap opens
+  for (const c of chasms) if (c.forming) {
+    let done = true;
+    for (const a of c.ants) {
+      if (Math.hypot(a.tx - a.x, a.ty - a.y) > 0.4) { stepToward(a, a.tx, a.ty, 40 * dt, 0); done = false; }
+      else { a.x = a.tx; a.y = a.ty; a.dir = a.home; }
+    }
+    if (done) { c.forming = false; c.bridged = true; }
+  }
+  // once everyone is across, the bridge ants climb out and join the back of the trail
+  for (const c of chasms) if (c.bridged && acrossAll(c)) {
+    c.bridged = false;
+    // forget the trail behind the gap so nobody walks back onto it
+    const ax = c.vertical ? 'y' : 'x', lo = c.vertical ? c.y0 : c.x0, hi = c.vertical ? c.y1 : c.x1;
+    const side = e => e[ax] < lo - R - 1 ? -1 : e[ax] > hi + R + 1 ? 1 : 0;
+    const s0 = side(player);
+    let k = trail.length - 1;
+    while (k > 0 && side(trail[k - 1]) === s0) k--;
+    trail = trail.slice(k);
+    const d = a => Math.hypot(a.x - player.x, a.y - player.y);
+    for (const a of c.ants.sort((p, q) => d(p) - d(q))) { a.step = 0; followers.push(a); }
+    c.ants = [];
+    say('Your bridge ants climb out and rejoin the trail.');
+  }
+
+  // rocks slide one tile when pushed
+  for (const r of rocks) if (r.slide) {
+    r.slide.t += dt / 0.22;
+    const k = Math.min(1, r.slide.t);
+    r.x = r.slide.fx + (r.tx * T - r.slide.fx) * k;
+    r.y = r.slide.fy + (r.ty * T - r.slide.fy) * k;
+    if (k >= 1) r.slide = null;
+  }
+
+  // strays wander and join when the leader gets close
+  for (let i = strays.length - 1; i >= 0; i--) {
+    const s = strays[i];
+    if (s.shy > 0) {
+      s.shy -= dt;
+      const sp = 34 * dt;
+      if (!move(s, Math.cos(s.dir) * sp, Math.sin(s.dir) * sp)) s.dir += Math.PI * (0.5 + Math.random());
+      s.step += dt * 16;
+      continue;
+    }
+    if (Math.hypot(s.x - player.x, s.y - player.y) < 13) {
+      strays.splice(i, 1);
+      s.step = 0;
+      followers.push(s);
+      pops.push({ x: s.x, y: s.y - 8, t: 0 });
+      updateHud(true);
+      continue;
+    }
+    if (s.wait > 0) { s.wait -= dt; continue; }
+    s.turn -= dt;
+    if (s.turn <= 0) { s.dir += (Math.random() - 0.5) * 2.4; s.turn = 0.6 + Math.random() * 1.2; if (Math.random() < 0.3) s.wait = 0.4 + Math.random(); }
+    const sp = 14 * dt;
+    if (!move(s, Math.cos(s.dir) * sp, Math.sin(s.dir) * sp)) s.dir += Math.PI * (0.5 + Math.random());
+    s.step += dt * 8;
+  }
+  pops.forEach(p => p.t += dt);
+  pops = pops.filter(p => p.t < 0.9);
+  updateSpiders(dt);
+
+  if (!won && Math.hypot(player.x - nest.x, player.y - nest.y) < 6) win();
+}
+function updateSpiders(dt) {
+  for (const sp of spiders) {
+    if (sp.gone) continue;
+    sp.flash = Math.max(0, sp.flash - dt);
+    sp.cool = Math.max(0, sp.cool - dt);
+    if (sp.flee > 0) { // scuttle away and vanish
+      sp.flee += dt;
+      const ax = sp.vertical ? 'y' : 'x';
+      sp[ax] += sp.fleeDir * 70 * dt;
+      sp.step += dt * 30;
+      if (sp.flee > 0.9) sp.gone = true;
+      continue;
+    }
+    if (!sp.told && Math.hypot(sp.x - player.x, sp.y - player.y) < 48) {
+      sp.told = true; say(`A spider guards this tunnel. Bring ${plural(sp.need)} to scare it off.`, 4500);
+    }
+    const ax = sp.vertical ? 'y' : 'x';
+    sp[ax] += sp.dir * 20 * dt;
+    if (sp[ax] > sp.max) { sp[ax] = sp.max; sp.dir = -1; }
+    if (sp[ax] < sp.min) { sp[ax] = sp.min; sp.dir = 1; }
+    sp.step += dt * 12;
+    if (won || Math.hypot(sp.x - player.x, sp.y - player.y) > 11) continue;
+    if (followers.length >= sp.need) {
+      sp.flee = 0.001;
+      sp.fleeDir = Math.sign(sp[ax] - player[ax]) || 1;
+      say('Your crowd chases the spider away!');
+      continue;
+    }
+    // too few: the spider shoves you back the way you came...
+    const back = Math.max(0, trail.length - 1 - 14);
+    player.x = trail[back].x; player.y = trail[back].y;
+    trail.length = back + 1;
+    if (Math.hypot(sp.x - player.x, sp.y - player.y) < 12) { // no trail to retreat along
+      const dx = player.x - sp.x, dy = player.y - sp.y, d = Math.hypot(dx, dy) || 1;
+      for (let i = 0; i < 8; i++) { hitTile = null; move(player, dx / d * 2, dy / d * 2); }
+      hitTile = null;
+      trail.push({ x: player.x, y: player.y });
+    }
+    sp.flash = 0.8;
+    if (sp.cool > 0) continue;
+    // ...and frightens your last ant
+    sp.cool = 1.2;
+    const lost = followers.pop();
+    if (lost) {
+      lost.shy = 1.6; lost.wait = 0; lost.turn = 1;
+      lost.dir = Math.atan2(lost.y - sp.y, lost.x - sp.x);
+      strays.push(lost);
+      updateHud(false);
+      say(`The spider scared an ant away! It takes ${plural(sp.need)} to chase it off.`);
+    } else {
+      say(`The spider blocks the way. It takes ${plural(sp.need)} to chase it off.`);
+    }
+  }
+}
+// The bridge holds until the leader has walked on it and the leader and every follower
+// are off it again on the same side (so turning back over it works too).
+function acrossAll(c) {
+  const ax = c.vertical ? 'y' : 'x', lo = c.vertical ? c.y0 : c.x0, hi = c.vertical ? c.y1 : c.x1;
+  if (!c.used) { if (player[ax] > lo && player[ax] < hi) c.used = true; return false; }
+  const side = e => e[ax] < lo - R - 1 ? -1 : e[ax] > hi + R + 1 ? 1 : 0;
+  const s = side(player);
+  return s !== 0 && followers.every(f => side(f) === s);
+}
+function near(x0, y0, x1, y1, d) {
+  const cx = Math.max(x0, Math.min(x1, player.x)), cy = Math.max(y0, Math.min(y1, player.y));
+  return Math.hypot(player.x - cx, player.y - cy) < d;
+}
+function stepToward(a, tx, ty, minStep, frac) {
+  const dx = tx - a.x, dy = ty - a.y, d = Math.hypot(dx, dy);
+  if (d < 0.05) return;
+  const s = Math.min(d, Math.max(minStep, d * frac));
+  a.x += dx / d * s; a.y += dy / d * s;
+  a.dir = Math.atan2(dy, dx);
+  a.step += s * 0.35;
+}
+
+function win() {
+  won = true; stick.id = null; stick.x = stick.y = 0; joyEl.hidden = true;
+  const last = levelIdx === LEVELS.length - 1;
+  document.getElementById('winTitle').textContent = last ? 'Home!' : `${LEVELS[levelIdx].name} done`;
+  document.getElementById('winText').textContent =
+    `You found ${totalAnts - strays.length} / ${totalAnts} ants in ${Math.round(elapsed)} seconds.` +
+    (last ? ' That was the last tunnel for now.' : '');
+  document.getElementById('again').textContent = last ? 'Play again' : 'Next tunnel';
+  setTimeout(() => { document.getElementById('win').hidden = false; document.getElementById('again').focus(); }, 350);
+}
+document.getElementById('again').addEventListener('click', () => loadLevel(levelIdx === LEVELS.length - 1 ? 0 : levelIdx + 1));
+document.getElementById('restart').addEventListener('click', e => { e.currentTarget.blur(); loadLevel(levelIdx); });
+
+function updateHud(bump) {
+  const el = document.getElementById('count');
+  if (bump) { el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
+  el.textContent = totalAnts - strays.length;
+  document.getElementById('total').textContent = totalAnts;
+}
+
+// ---------- drawing ----------
+function px(x, y, w, h) { ctx.fillRect(Math.round(x), Math.round(y), w, h); }
+function drawAnt(a, body, hi, isLeader) {
+  const c = Math.cos(a.dir), s = Math.sin(a.dir);
+  const at = (f, side) => ({ x: a.x + c * f - s * side, y: a.y + s * f + c * side });
+  const swing = Math.sin(a.step) * 1.4;
+  ctx.fillStyle = C.leg;
+  for (const [f, k] of [[1, 1], [0, -1], [-1, 1]]) {
+    for (const side of [-1, 1]) {
+      const sw = swing * k * side;
+      const p1 = at(f, side * 2), p2 = at(f + sw, side * 4);
+      px(p1.x, p1.y, 1, 1); px(p2.x, p2.y, 1, 1);
+    }
+  }
+  ctx.fillStyle = 'rgba(28,19,15,0.35)';
+  px(a.x - 3, a.y + 2, 7, 2);
+  const ab = at(-3, 0), th = at(0, 0), hd = at(3, 0);
+  ctx.fillStyle = body;
+  px(ab.x - 1.5, ab.y - 1.5, 3, 3); px(ab.x - 1, ab.y - 2, 2, 4); px(ab.x - 2, ab.y - 1, 4, 2);
+  px(th.x - 1, th.y - 1, 2, 2);
+  px(hd.x - 1, hd.y - 1, 2, 2); px(hd.x - 1.5, hd.y - 0.5, 3, 1);
+  ctx.fillStyle = hi;
+  px(ab.x - 1, ab.y - 1.5, 1, 1); px(hd.x - 0.5, hd.y - 1, 1, 1);
+  ctx.fillStyle = C.leg;
+  const an1 = at(5, -1.5), an2 = at(5, 1.5);
+  px(an1.x, an1.y, 1, 1); px(an2.x, an2.y, 1, 1);
+  if (isLeader) {
+    ctx.fillStyle = C.amber;
+    const bob = Math.round(Math.sin(elapsed * 4));
+    px(a.x - 1, a.y - 10 + bob, 3, 1); px(a.x, a.y - 9 + bob, 1, 1);
+  }
+}
+
+// 3x5 pixel digits for the puzzle signs
+const DIGITS = ['111101101101111', '010110010010111', '111001111100111', '111001111001111', '101101111001001',
+                '111100111001111', '111100111101111', '111001001001001', '111101111101111', '111101111001111'];
+function drawDigit(n, x, y) {
+  const d = DIGITS[n];
+  for (let i = 0; i < 15; i++) if (d[i] === '1') px(x + (i % 3), y + Math.floor(i / 3), 1, 1);
+}
+// A small badge: the number of ants needed, plus a tiny ant. Green when your trail is long enough.
+function drawSign(cx, cy, need, flash) {
+  const enough = followers.length >= need;
+  const blink = flash > 0 && Math.floor(flash * 10) % 2 === 0;
+  const x = Math.round(cx - 7), y = Math.round(cy - 4);
+  ctx.fillStyle = C.soil; px(x - 1, y, 16, 9); px(x, y - 1, 14, 11);
+  ctx.fillStyle = blink ? C.no : (enough ? C.ok : C.ink);
+  drawDigit(Math.min(9, need), x + 2, y + 2);
+  // tiny ant glyph
+  px(x + 7, y + 4, 1, 1); px(x + 8, y + 3, 2, 3); px(x + 10, y + 4, 1, 1); px(x + 11, y + 3, 2, 3);
+  px(x + 8, y + 2, 1, 1); px(x + 8, y + 6, 1, 1); px(x + 11, y + 2, 1, 1); px(x + 11, y + 6, 1, 1);
+}
+function drawSpider(sp) {
+  const x = Math.round(sp.x), y = Math.round(sp.y);
+  const alpha = sp.flee > 0 ? Math.max(0, 1 - sp.flee / 0.9) : 1;
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = 'rgba(28,19,15,0.4)'; px(x - 5, y + 4, 11, 2);
+  // eight legs, alternating gait
+  const g = Math.sin(sp.step) > 0 ? 1 : -1;
+  ctx.fillStyle = C.spiderLeg;
+  for (let i = 0; i < 4; i++) {
+    const oy = -3 + i * 2, k = (i % 2 ? g : -g);
+    px(x - 4, y + oy, 2, 1); px(x - 6, y + oy + k, 2, 1); px(x - 7, y + oy + 1 + k, 1, 1);
+    px(x + 3, y + oy, 2, 1); px(x + 5, y + oy - k, 2, 1); px(x + 7, y + oy + 1 - k, 1, 1);
+  }
+  ctx.fillStyle = C.spider; px(x - 3, y - 2, 7, 6); px(x - 2, y - 3, 5, 8);
+  ctx.fillStyle = C.spiderHi; px(x - 1, y - 2, 2, 1); px(x - 2, y, 1, 2);
+  ctx.fillStyle = C.spiderEye; px(x - 2, y - 4, 1, 1); px(x + 2, y - 4, 1, 1); px(x - 1, y - 5, 1, 1); px(x + 1, y - 5, 1, 1);
+  ctx.globalAlpha = 1;
+}
+function drawRock(r) {
+  const x = Math.round(r.x), y = Math.round(r.y);
+  const jig = r.pushing && followers.length < r.need ? (Math.floor(elapsed * 30) % 2) : 0;
+  ctx.fillStyle = 'rgba(28,19,15,0.4)'; px(x + 2, y + 12, 13, 3);
+  ctx.fillStyle = C.rockLo; px(x + 1 + jig, y + 3, 14, 10); px(x + 3 + jig, y + 1, 10, 14);
+  ctx.fillStyle = C.rock; px(x + 2 + jig, y + 3, 11, 8); px(x + 4 + jig, y + 2, 8, 10);
+  ctx.fillStyle = C.rockHi; px(x + 4 + jig, y + 3, 4, 2); px(x + 3 + jig, y + 5, 2, 2);
+  ctx.fillStyle = C.rockLo; px(x + 9 + jig, y + 7, 2, 1); px(x + 6 + jig, y + 9, 3, 1);
+}
+
+const cam = { x: 0, y: 0 };
+function draw() {
+  const tx = player.x - VW / 2, ty = player.y - VH * 0.45;
+  cam.x += (tx - cam.x) * 0.15; cam.y += (ty - cam.y) * 0.15;
+  const mw = COLS * T, mh = ROWS * T;
+  const cx = mw <= VW ? (mw - VW) / 2 : Math.max(0, Math.min(mw - VW, cam.x));
+  const cy = mh <= VH ? (mh - VH) / 2 : Math.max(-24, Math.min(mh - VH + 40, cam.y));
+  const ox = Math.round(cx), oy = Math.round(cy);
+
+  ctx.fillStyle = C.soil; ctx.fillRect(0, 0, VW, VH);
+  ctx.save();
+  ctx.translate(-ox, -oy);
+  ctx.drawImage(mapCanvas, 0, 0);
+
+  const pulse = (Math.sin(elapsed * 3) + 1) / 2;
+  ctx.fillStyle = `rgba(242,184,75,${0.25 + pulse * 0.35})`;
+  px(nest.x - 1, nest.y - 9 - Math.round(pulse * 2), 3, 3);
+  px(nest.x, nest.y - 12 - Math.round(pulse * 2), 1, 2);
+
+  // bridge ants lie under everyone who walks over them
+  for (const c of chasms) for (const a of c.ants) drawAnt(a, C.black, C.blackHi, false);
+
+  const all = [
+    ...rocks.map(r => [r, 'rock']),
+    ...spiders.filter(sp => !sp.gone).map(sp => [sp, 'spider']),
+    ...strays.map(a => [a, 'lost']),
+    ...followers.map(a => [a, 'ant']),
+    [player, 'leader']
+  ].sort((p, q) => (p[1] === 'rock' ? p[0].y + T / 2 : p[0].y) - (q[1] === 'rock' ? q[0].y + T / 2 : q[0].y));
+  for (const [a, kind] of all) {
+    if (kind === 'rock') { drawRock(a); continue; }
+    if (kind === 'spider') { drawSpider(a); continue; }
+    drawAnt(a, kind === 'leader' ? C.fire : C.black, kind === 'leader' ? C.fireHi : C.blackHi, kind === 'leader');
+    if (kind === 'lost') {
+      const bob = Math.round(Math.sin(elapsed * 3 + a.x));
+      ctx.fillStyle = C.ink;
+      px(a.x - 1, a.y - 12 + bob, 3, 1); px(a.x + 1, a.y - 11 + bob, 1, 1);
+      px(a.x, a.y - 10 + bob, 1, 1); px(a.x, a.y - 8 + bob, 1, 1);
+    }
+  }
+  // puzzle signs on top
+  for (const c of chasms) if (!c.bridged && !c.forming) drawSign((c.x0 + c.x1) / 2, (c.y0 + c.y1) / 2, c.need, c.flash);
+  for (const r of rocks) if (!r.moved) drawSign(r.x + T / 2, r.y - 6, r.need, r.flash);
+  for (const sp of spiders) if (!sp.gone && !sp.flee) drawSign(sp.x, sp.y - 13, sp.need, sp.flash);
+
+  for (const p of pops) {
+    ctx.fillStyle = C.amber;
+    const y = p.y - p.t * 10;
+    px(p.x - 3, y, 3, 1); px(p.x - 2, y - 1, 1, 3);
+    px(p.x + 1, y - 1, 1, 4); px(p.x, y - 1, 1, 1);
+  }
+  ctx.restore();
+}
+
+// ---------- loop ----------
+let lastT = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - lastT) / 1000);
+  lastT = now;
+  update(dt);
+  draw();
+  requestAnimationFrame(frame);
+}
+loadLevel(0);
+requestAnimationFrame(frame);
+
+// test hook: lets an automated check place the leader and read state
+window.antTest = {
+  state: () => ({ level: levelIdx, x: player.x, y: player.y, followers: followers.length, found: totalAnts - strays.length, won,
+    gaps: chasms.map(c => c.bridged), rocks: rocks.map(r => [r.tx, r.ty]), strays: strays.map(a => [a.x, a.y]), spiders: spiders.map(sp => sp.gone) }),
+  warpPx: (x, y) => { player.x = x; player.y = y; trail.push({ x, y }); },
+  warp: (tx, ty) => { player.x = tx * T + T / 2; player.y = ty * T + T / 2; trail = [{ x: player.x, y: player.y }]; },
+  next: () => loadLevel(levelIdx + 1)
+};
+})();
+</script>
+
+
+</body>
+</html>
