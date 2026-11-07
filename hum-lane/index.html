@@ -142,7 +142,6 @@ const S = {
   demo: false,
   muteUntil: 0,                         // ignore the mic while our own tone plays
   trail: [],                            // {t, m} smoothed midi, null for silence
-  view: 55,                             // vertical center (midi), eases toward target / voice
   current: null,
   celebrate: 0
 };
@@ -308,7 +307,7 @@ function tick(now){
   else $("note").firstChild.nodeValue = "–";
 
   if (S.running && S.mode === "match"){
-    const cents = m == null ? null : (m - S.target) * 100;
+    const cents = m == null ? null : octDist(m, S.target) * 100;   // octave-blind: a C2 counts for a C3
     const inZone = cents != null && Math.abs(cents) <= S.zone;
     if (inZone) S.hold += dt;
     else S.hold = Math.max(0, S.hold - dt * 0.35);        // drifting out only drains slowly
@@ -329,9 +328,6 @@ function tick(now){
   }
   S.celebrate = Math.max(0, S.celebrate - dt * 1.4);
 
-  // Ease the view toward what matters
-  const focus = S.mode === "match" ? S.target : (m != null ? m : S.view);
-  S.view += (focus - S.view) * Math.min(1, dt * 2.5);
   draw(now);
   requestAnimationFrame(tick);
 }
@@ -350,8 +346,21 @@ function resize(){
   cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
   g.setTransform(DPR, 0, 0, DPR, 0, 0);
 }
-const SPAN = 14; // semitones visible
-function yOf(m){ return H/2 - (m - S.view) * (H / SPAN); }
+/* The lane never scrolls. It always shows one octave, C at the bottom and C at the top,
+   with two semitones of margin either side. Every octave is folded onto it: a C2 or a C4
+   is drawn on the C line, so the lane is about the note, not how deep or high you sing it. */
+const BASE = 48;        // the lane's bottom C (any octave would do, it is only a reference)
+const MARGIN = 2, SPAN = 12 + 2 * MARGIN;
+// Distance in semitones from m to t, ignoring octaves (always in -6..6).
+const octDist = (m, t) => { const d = m - t; return d - 12 * Math.round(d / 12); };
+// Where a note sits on the lane: the target's pitch class inside the octave, and the voice
+// folded to the octave nearest the target (or the middle of the lane when there is none).
+const laneTarget = () => BASE + (((Math.round(S.target) - BASE) % 12) + 12) % 12;
+function laneVoice(m){
+  const ref = S.mode === "match" ? laneTarget() : BASE + 6;
+  return ref + octDist(m, ref);
+}
+function yOf(m){ return H - (m - (BASE - MARGIN)) * (H / SPAN); }
 
 function draw(now){
   g.clearRect(0, 0, W, H);
@@ -359,17 +368,18 @@ function draw(now){
   // Note lanes
   g.font = "12px " + getComputedStyle(document.body).fontFamily;
   g.textBaseline = "middle";
-  for (let m = Math.floor(S.view - SPAN/2) - 1; m <= Math.ceil(S.view + SPAN/2) + 1; m++){
+  for (let m = BASE - MARGIN; m <= BASE + 12 + MARGIN; m++){
     const y = yOf(m), pc = ((m % 12) + 12) % 12, natural = [0,2,4,5,7,9,11].includes(pc);
-    if (natural){ g.fillStyle = css["--lane"]; g.fillRect(0, y - step/2, W, step); }
-    g.strokeStyle = css["--lane-strong"]; g.globalAlpha = pc === 0 ? .9 : .35; g.lineWidth = 1;
+    const inOctave = m >= BASE && m <= BASE + 12, dim = inOctave ? 1 : .4;
+    if (natural){ g.globalAlpha = dim; g.fillStyle = css["--lane"]; g.fillRect(0, y - step/2, W, step); }
+    g.strokeStyle = css["--lane-strong"]; g.globalAlpha = (pc === 0 ? .9 : .35) * dim; g.lineWidth = pc === 0 ? 2 : 1;
     g.beginPath(); g.moveTo(0, y + step/2); g.lineTo(W, y + step/2); g.stroke(); g.globalAlpha = 1;
-    if (natural){ g.fillStyle = css["--muted"]; g.fillText(noteName(m), 8, y); }
+    if (natural){ g.globalAlpha = dim; g.fillStyle = css["--muted"]; g.fillText(NAMES[pc], 8, y); g.globalAlpha = 1; }
   }
   // Target lane, drawn as a wide soft band with the exact note as a line
   if (S.mode === "match" && S.running){
-    const y = yOf(S.target), half = (S.zone / 100) * step;
-    const hit = S.current != null && Math.abs(S.current - S.target) * 100 <= S.zone;
+    const y = yOf(laneTarget()), half = (S.zone / 100) * step;
+    const hit = S.current != null && Math.abs(octDist(S.current, S.target)) * 100 <= S.zone;
     g.fillStyle = css["--zone-soft"]; g.fillRect(40, y - half, W - 40, half * 2);
     g.globalAlpha = hit ? 1 : .55; g.strokeStyle = css["--zone"]; g.lineWidth = 2;
     g.setLineDash([6, 6]); g.beginPath(); g.moveTo(40, y); g.lineTo(W, y); g.stroke(); g.setLineDash([]);
@@ -391,9 +401,9 @@ function draw(now){
   let prev = null;
   for (const p of S.trail){
     if (p.m == null){ prev = null; continue; }
-    const x = nowX - (now - p.t) * pxPerMs, y = yOf(p.m);
+    const x = nowX - (now - p.t) * pxPerMs, y = yOf(laneVoice(p.m));
     if (prev){
-      const close = S.mode === "match" && Math.abs(p.m - S.target) * 100 <= S.zone;
+      const close = S.mode === "match" && Math.abs(octDist(p.m, S.target)) * 100 <= S.zone;
       g.strokeStyle = close ? css["--zone"] : css["--voice"];
       g.globalAlpha = Math.max(.15, 1 - (now - p.t) / 5000);
       g.lineWidth = 5; g.beginPath(); g.moveTo(prev.x, prev.y); g.lineTo(x, y); g.stroke();
@@ -403,15 +413,15 @@ function draw(now){
   g.globalAlpha = 1;
   // Current dot
   if (S.current != null){
-    const y = Math.max(8, Math.min(H - 8, yOf(S.current)));
-    const close = S.mode === "match" && Math.abs(S.current - S.target) * 100 <= S.zone;
+    const vy = yOf(laneVoice(S.current)), y = Math.max(8, Math.min(H - 8, vy));
+    const close = S.mode === "match" && Math.abs(octDist(S.current, S.target)) * 100 <= S.zone;
     g.fillStyle = close ? css["--zone"] : css["--voice"];
     g.globalAlpha = .25; g.beginPath(); g.arc(nowX, y, 16, 0, 7); g.fill(); g.globalAlpha = 1;
     g.beginPath(); g.arc(nowX, y, 8, 0, 7); g.fill();
     // Off-screen hint
-    if (yOf(S.current) < 0 || yOf(S.current) > H){
+    if (vy < 0 || vy > H){
       g.fillStyle = css["--muted"]; g.textAlign = "center";
-      g.fillText(yOf(S.current) < 0 ? "▲ way up" : "▼ way down", nowX, yOf(S.current) < 0 ? 22 : H - 22);
+      g.fillText(vy < 0 ? "▲ way up" : "▼ way down", nowX, vy < 0 ? 22 : H - 22);
       g.textAlign = "left";
     }
   }
@@ -439,7 +449,7 @@ $("mode-free").onclick = () => { S.mode = "free"; pressGroup(["mode-match","mode
 pressGroup(["v-low","v-mid","v-high"], { low: "v-low", mid: "v-mid", high: "v-high" }[S.range] || "v-mid");
 pressGroup(["z-wide","z-mid","z-tight"], { 70: "z-wide", 45: "z-mid", 25: "z-tight" }[S.zone] || "z-wide");
 S.landed = store.get("landed", 0); tally();
-S.target = Math.round((RANGES[S.range][0] + RANGES[S.range][1]) / 2); S.view = S.target;
+S.target = Math.round((RANGES[S.range][0] + RANGES[S.range][1]) / 2);
 
 readCss(); resize();
 window.addEventListener("resize", resize);
