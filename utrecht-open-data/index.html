@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Hoe de Utrechtse binnenstad in 3D is nagebouwd met open data: laag voor laag, met landmarks, voor/na-vergelijkingen en bronvermelding.">
+<meta property="og:title" content="Utrecht uit Open Data">
+<meta property="og:description" content="Hoe de Utrechtse binnenstad in 3D is nagebouwd met open data: laag voor laag, met landmarks, voor/na-vergelijkingen en bronvermelding.">
+<meta property="og:image" content="https://robau.github.io/utrecht-open-data/img/hero.jpg">
+<title>Utrecht uit Open Data</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a survey sheet. A narrow left "margin column" carries RD/NAP coordinates and dataset tags
+   like the frame of a topographic map; content runs in a wide right column. Images bleed to the column edge. */
+:root{
+  --paper:#eef2f3;      /* cool map paper */
+  --paper-2:#e2e8ea;
+  --ink:#13202a;        /* survey ink */
+  --ink-2:#4a5a66;
+  --rule:#c3ced3;
+  --water:#1d6a86;      /* BGT waterdeel blue: the one accent */
+  --peil:#c98a00;       /* NAP height marker, used sparingly */
+  --on-water:#ffffff;
+  --f-display:"Archivo","Arial Narrow",Arial,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#0e161b;--paper-2:#16222a;--ink:#e1e8eb;--ink-2:#9aabb5;--rule:#2b3a43;
+  --water:#5fb6d3;--peil:#e6b13a;--on-water:#0e161b;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#0e161b;--paper-2:#16222a;--ink:#e1e8eb;--ink-2:#9aabb5;--rule:#2b3a43;
+  --water:#5fb6d3;--peil:#e6b13a;--on-water:#0e161b;color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:1rem;line-height:1.6;margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+img{max-width:100%;height:auto;display:block}
+a{color:var(--water);text-underline-offset:.18em}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--peil);outline-offset:2px}
+.sheet{max-width:1180px;margin:0 auto}
+.row{display:grid;grid-template-columns:180px minmax(0,1fr);gap:0 40px;padding-block:56px;border-top:1px solid var(--rule)}
+.margin{font-family:var(--f-mono);font-size:.75rem;line-height:1.5;color:var(--ink-2);letter-spacing:.02em}
+.margin b{display:block;color:var(--ink);font-weight:500;font-size:.8rem;margin-bottom:6px;letter-spacing:.08em;text-transform:uppercase}
+.main{min-width:0}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;font-variation-settings:"wdth" 75}
+h1{font-size:clamp(2.6rem,7vw,5.4rem);line-height:.92;font-weight:850;letter-spacing:-.01em}
+h2{font-size:clamp(1.9rem,4vw,2.8rem);line-height:1;font-weight:800}
+h3{font-size:1.25rem;line-height:1.15;font-weight:750;font-variation-settings:"wdth" 85}
+p{margin:0;max-width:65ch}
+.lede{font-size:1.15rem;color:var(--ink)}
+.muted{color:var(--ink-2)}
+.stack{display:flex;flex-direction:column;gap:18px}
+.mono{font-family:var(--f-mono);font-size:.82rem}
+.tag{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
+
+/* hero */
+.hero{padding-block:40px 56px;display:grid;grid-template-columns:180px minmax(0,1fr);gap:0 40px}
+.hero .kicker{font-family:var(--f-mono);font-size:.78rem;color:var(--water);letter-spacing:.06em;text-transform:uppercase}
+.hero h1 em{font-style:normal;color:var(--water)}
+.frame{position:relative;border:1px solid var(--ink);padding:6px;background:var(--paper)}
+.frame img{width:100%}
+.frame .tick{position:absolute;font-family:var(--f-mono);font-size:.66rem;color:var(--ink-2);background:var(--paper);padding:0 4px;line-height:1.4}
+.tick.tl{top:-.75em;left:14px}.tick.br{bottom:-.75em;right:14px}
+.thesis{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:32px;margin-top:36px;align-items:start}
+.proud{border-left:3px solid var(--water);padding-left:16px}
+.proud p{font-size:.95rem}
+
+/* layer stepper */
+.stepper{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:28px;margin-top:28px}
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;border-top:1px solid var(--rule)}
+.steps button{all:unset;cursor:pointer;display:grid;grid-template-columns:2.2em 1fr;gap:4px 10px;width:100%;padding:12px 8px;border-bottom:1px solid var(--rule);box-sizing:border-box}
+.steps .n{font-family:var(--f-display);font-weight:850;font-size:1.5rem;line-height:1;color:var(--ink-2);font-variation-settings:"wdth" 70;grid-row:span 2}
+.steps .t{font-weight:600;line-height:1.25}
+.steps .s{font-family:var(--f-mono);font-size:.7rem;color:var(--ink-2);grid-column:2}
+.steps button[aria-pressed="true"]{background:var(--paper-2)}
+.steps button[aria-pressed="true"] .n{color:var(--water)}
+.steps button:hover .t{text-decoration:underline;text-underline-offset:.2em}
+.viewer img{width:100%;aspect-ratio:16/9;object-fit:cover;background:var(--paper-2)}
+.viewer figcaption{margin-top:12px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 18px}
+.lic{display:inline-block;font-family:var(--f-mono);font-size:.72rem;padding:2px 7px;border:1px solid var(--water);color:var(--water);white-space:nowrap;align-self:start}
+.ctrl{display:flex;gap:8px;margin-top:12px}
+.ctrl button{font:500 .85rem var(--f-body);background:transparent;color:var(--ink);border:1px solid var(--ink);padding:6px 14px;cursor:pointer}
+.ctrl button:hover{background:var(--ink);color:var(--paper)}
+
+/* table */
+.tablewrap{overflow-x:auto;margin-top:24px}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:.9rem}
+th,td{text-align:left;padding:10px 12px 10px 0;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font-family:var(--f-mono);font-size:.7rem;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);border-bottom:1px solid var(--ink)}
+td:first-child{font-weight:600}
+td.l{font-family:var(--f-mono);font-size:.78rem;white-space:nowrap}
+
+/* licences */
+.lics{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0;margin-top:24px;border-top:1px solid var(--ink)}
+.lics div{padding:14px 16px 14px 0;border-bottom:1px solid var(--rule)}
+.lics h3{font-family:var(--f-mono);font-size:.9rem;font-weight:500;font-variation-settings:normal;color:var(--water);margin-bottom:4px}
+.lics p{font-size:.9rem}
+
+/* gallery */
+.gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:40px 28px;margin-top:28px}
+.gallery figure{margin:0;display:flex;flex-direction:column;gap:10px;min-width:0}
+.gallery figure.wide{grid-column:1/-1}
+.gallery img{width:100%;aspect-ratio:16/9;object-fit:cover;background:var(--paper-2)}
+.gallery figcaption{display:flex;flex-direction:column;gap:4px}
+.gallery figcaption p{font-size:.92rem}
+.gallery .id{font-family:var(--f-mono);font-size:.7rem;color:var(--ink-2)}
+
+/* compare */
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin-top:24px}
+.tabs button{font:500 .85rem var(--f-body);background:transparent;color:var(--ink);border:1px solid var(--rule);padding:6px 14px;cursor:pointer}
+.tabs button[aria-pressed="true"]{border-color:var(--water);color:var(--water);background:var(--paper-2)}
+.cmp{position:relative;margin-top:14px;aspect-ratio:16/9;max-width:100%;overflow:hidden;background:var(--paper-2);user-select:none}
+.cmp img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.cmp .after{clip-path:inset(0 0 0 var(--cut,50%))}
+.cmp .line{position:absolute;top:0;bottom:0;left:var(--cut,50%);width:2px;background:var(--on-water);box-shadow:0 0 0 1px rgba(0,0,0,.35);pointer-events:none}
+.cmp .lab{position:absolute;top:10px;font-family:var(--f-mono);font-size:.7rem;padding:2px 6px;background:var(--ink);color:var(--paper)}
+.cmp .lab.b{left:10px}.cmp .lab.a{right:10px;background:var(--water);color:var(--on-water)}
+.range{width:100%;margin-top:10px;accent-color:var(--water)}
+
+/* numbers */
+.nums{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:0;margin-top:24px;border-top:1px solid var(--ink)}
+.nums div{padding:16px 16px 16px 0;border-bottom:1px solid var(--rule)}
+.nums .v{font-family:var(--f-display);font-weight:850;font-size:2.2rem;line-height:1;font-variation-settings:"wdth" 70;font-variant-numeric:tabular-nums}
+.nums .k{font-size:.88rem;color:var(--ink-2);margin-top:6px}
+
+/* pipeline */
+.pipe{list-style:none;margin:24px 0 0;padding:0;counter-reset:p;display:flex;flex-direction:column}
+.pipe li{counter-increment:p;display:grid;grid-template-columns:3em minmax(0,1fr);gap:4px 12px;padding:14px 0;border-bottom:1px solid var(--rule)}
+.pipe li::before{content:counter(p);font-family:var(--f-display);font-weight:850;font-size:1.6rem;line-height:1;color:var(--water);font-variation-settings:"wdth" 70;grid-row:span 2}
+.pipe b{font-weight:600}
+.pipe span{grid-column:2;font-size:.92rem;color:var(--ink-2);max-width:65ch}
+
+/* data in action */
+.duo{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px;margin-top:28px}
+.duo figure{margin:0;display:flex;flex-direction:column;gap:8px;min-width:0}
+.duo img{width:100%;aspect-ratio:16/9;object-fit:cover;background:var(--paper-2)}
+.duo p{font-size:.9rem}
+
+.credits{columns:2 320px;column-gap:40px;font-size:.85rem;margin-top:20px}
+.credits p{break-inside:avoid;margin-bottom:10px}
+footer{padding-block:32px 56px;border-top:1px solid var(--ink);font-family:var(--f-mono);font-size:.72rem;color:var(--ink-2)}
+
+@media (max-width:860px){
+  .row,.hero{grid-template-columns:minmax(0,1fr);gap:14px}
+  .stepper,.thesis{grid-template-columns:minmax(0,1fr)}
+  .duo{grid-template-columns:minmax(0,1fr)}
+  .margin{display:flex;flex-wrap:wrap;gap:4px 16px}
+  .margin b{margin:0}
+}
+@media (max-width:600px){ .gallery{grid-template-columns:minmax(0,1fr)} .row{padding-block:40px} }
+@media (prefers-reduced-motion:no-preference){
+  .viewer img{transition:opacity .25s ease}
+  .viewer img.fade{opacity:.35}
+}
+/* contact */
+.contact{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:32px;margin-top:24px;align-items:start}
+.card{border:1px solid var(--ink);padding:18px 20px;display:flex;flex-direction:column;gap:10px}
+.card .who{font-family:var(--f-display);font-weight:800;font-size:1.5rem;line-height:1.1;font-variation-settings:"wdth" 80}
+.card .addr{font-family:var(--f-mono);font-size:.9rem;user-select:all;word-break:break-all}
+.copy{font:500 .85rem var(--f-body);background:transparent;color:var(--ink);border:1px solid var(--ink);padding:6px 14px;cursor:pointer;align-self:start}
+.copy:hover{background:var(--ink);color:var(--paper)}
+@media (max-width:860px){.contact{grid-template-columns:minmax(0,1fr)}}
+</style>
+
+
+<style>[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+</head>
+<body>
+<div class="sheet">
+
+<header class="hero">
+  <div class="margin"><b>Blad Utrecht</b>RD New · EPSG:28992<br>x 135 850 – 137 850<br>y 454 900 – 456 900<br>hoogtes in m NAP<br>8 × 8 tegels van 250 m</div>
+  <div class="main stack">
+    <span class="kicker">utrecht3d · een stadsmodel uit publieke data</span>
+    <h1>De binnenstad van Utrecht, nagebouwd met <em>open data</em> die iedereen kan downloaden.</h1>
+    <figure class="frame" style="margin:18px 0 0">
+      <span class="tick tl">camera RD 136 610 · 455 690 · NAP +125 m · kijkrichting NO</span>
+      <img src="img/hero.jpg" alt="Schuin luchtbeeld van het 3D-model van de Utrechtse binnenstad met de Domtoren in het midden en de Buurkerk op de voorgrond" width="1600" height="900">
+      <span class="tick br">Domtoren, Buurkerk, Oudegracht</span>
+    </figure>
+    <div class="thesis">
+      <p class="lede">Elk gebouw, elke boom, brug, elk verkeersbord en elk terrastafeltje in dit model staat er dankzij een dataset die een overheid, een universiteit of een groep vrijwilligers gratis publiceert: zonder account, zonder API-sleutel en zonder contract. Vier vierkante kilometer rond de Dom, 64 tegels, straat voor straat van textuur voorzien.</p>
+      <div class="proud stack">
+        <span class="tag">Wat we níet gebruikten</span>
+        <p>Geen Google, geen Mapillary, geen Flickr, geen Instagram, geen YouTube, geen commerciële beelden en geen API met sleutel. Straatfoto's komen van Panoramax en Wikimedia Commons; al het andere van PDOK, de gemeente, de TU Delft, NDW, OVapi, OpenStreetMap en Het Utrechts Archief.</p>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section class="row" id="layers">
+  <div class="margin"><b>Laag voor laag</b>Eén camera, zes standen.<br>RD 136 760 · 455 720<br>NAP +118 m, hellingshoek −40°<br>Oudegracht, Buurkerk, Domtoren, Domplein</div>
+  <div class="main">
+    <h2>Zes openbare datasets, op elkaar gestapeld</h2>
+    <p class="muted" style="margin-top:12px">Hetzelfde beeld, met de lagen van de viewer één voor één aangezet. Bij elke stap staat welke dataset het is, wie hem publiceert en onder welke licentie.</p>
+    <div class="stepper">
+      <figure class="viewer" style="margin:0">
+        <img id="layer-img" src="img/layer1.jpg" alt="" width="1600" height="900">
+        <figcaption>
+          <p id="layer-cap"></p>
+          <span class="lic" id="layer-lic"></span>
+        </figcaption>
+        <div class="ctrl"><button type="button" id="layer-prev">Vorige laag</button><button type="button" id="layer-next">Volgende laag</button></div>
+      </figure>
+      <ol class="steps" id="steps"></ol>
+    </div>
+  </div>
+</section>
+
+<section class="row" id="licences">
+  <div class="margin"><b>Open ≠ publiek domein</b>Vrij te gebruiken.<br>Niet zonder voorwaarden.</div>
+  <div class="main">
+    <h2>Open data heeft een paar eenvoudige spelregels</h2>
+    <p style="margin-top:12px">Maar een deel van dit model is publiek domein. De rest valt onder een open licentie: iedereen mag het gebruiken, kopiëren en erop voortbouwen, zolang je de bron vermeldt en, bij sommige datasets, je eigen toevoegingen onder dezelfde voorwaarden deelt. Daarom eindigt deze pagina met een bronvermelding.</p>
+    <div class="lics">
+      <div><h3>CC0 · publiek domein</h3><p>Helemaal geen voorwaarden. AHN-hoogtes, BGT, NDW-verkeersborden, het cameraregister, OVapi-dienstregelingen. Bronvermelding wordt gewaardeerd.</p></div>
+      <div><h3>CC BY 4.0</h3><p>Vrij te gebruiken, met naamsvermelding. 3DBAG, PDOK-luchtfoto's, de gemeentelijke bomenkaart, de meeste foto's van Het Utrechts Archief.</p></div>
+      <div><h3>CC BY-SA</h3><p>Noem de maker en deel wat je ervan afleidt onder dezelfde licentie. Panoramax, de meeste Commons-foto's, RCE-monumentfoto's.</p></div>
+      <div><h3>ODbL</h3><p>OpenStreetMap: vermeld de bijdragers; een afgeleide database moet open blijven.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="row" id="datasets">
+  <div class="margin"><b>De datasets</b>Allemaal zonder sleutel opgehaald.<br>Licenties gecontroleerd in nov. 2026.</div>
+  <div class="main">
+    <h2>Waar elk onderdeel vandaan komt</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Dataset</th><th>Uitgever</th><th>Wat het model eraan heeft</th><th>Licentie</th></tr></thead>
+        <tbody>
+          <tr><td>3DBAG</td><td>TU Delft 3D geoinformation / 3DGI</td><td>LoD2.2-daken en -gevels van elk BAG-pand</td><td class="l">CC BY 4.0</td></tr>
+          <tr><td>AHN (DTM/DSM 0,5 m, AHN5-puntenwolk)</td><td>Rijkswaterstaat &amp; waterschappen, via PDOK en GeoTiles</td><td>Maaiveld, boomhoogtes, waterpeilen, brugdekken, spitsen en torens</td><td class="l">CC0</td></tr>
+          <tr><td>BGT</td><td>Kadaster / gemeenten, via PDOK</td><td>Water, brugdekken, bestratingsklassen, grachtrelingen, palen, straatnaamlabels</td><td class="l">CC0</td></tr>
+          <tr><td>Luchtfoto actueel 2,5 cm</td><td>Gemeente Utrecht</td><td>Textuur van maaiveld en daken, herkenning van auto's en terrassen</td><td class="l">CC0 in de datasetlijst; WMS vermeld als CC BY-SA, zo ook vermeld</td></tr>
+          <tr><td>Luchtfoto 8 cm</td><td>Beeldmateriaal Nederland, via PDOK</td><td>Dak- en boomkleuren bij gedetailleerde landmarks</td><td class="l">CC BY 4.0</td></tr>
+          <tr><td>Bomenkaart</td><td>Gemeente Utrecht</td><td>Geslacht, soort en plantjaar van elke straatboom</td><td class="l">CC BY 4.0</td></tr>
+          <tr><td>Panoramax</td><td>Vrijwillige bijdragers</td><td>Straatfoto's die op de gevels worden geprojecteerd</td><td class="l">CC BY-SA 4.0</td></tr>
+          <tr><td>Wikimedia Commons</td><td>Individuele fotografen, RCE</td><td>Gevels van landmarks, beelden, boomschorstexturen</td><td class="l">per bestand: CC BY-SA, CC BY, CC0, PD</td></tr>
+          <tr><td>Rijksmonumenten</td><td>Rijksdienst voor het Cultureel Erfgoed</td><td>Monumentnummers, beschrijvingen, documentatiefoto's</td><td class="l">CC0 data; foto's CC BY-SA 4.0</td></tr>
+          <tr><td>Het Utrechts Archief</td><td>Stadsarchief, via Internet Archive</td><td>Historische foto's en luchtfoto's als referentie</td><td class="l">CC BY 4.0 / PDM / CC0</td></tr>
+          <tr><td>NDW Verkeersborden</td><td>Nationaal Dataportaal Wegverkeer</td><td>Verkeersborden met code, zijde en richting</td><td class="l">CC0</td></tr>
+          <tr><td>Cameraregister</td><td>Gemeente Utrecht</td><td>Geregistreerde camera's in de openbare ruimte en hun doel</td><td class="l">CC0</td></tr>
+          <tr><td>GTFS-NL + realtime</td><td>OVapi (NDOV open data)</td><td>Dienstregelingen en live posities van bussen, trams en treinen</td><td class="l">CC0; routevormen ODbL</td></tr>
+          <tr><td>OpenStreetMap</td><td>OSM-bijdragers</td><td>Fietsenrekken, beelden, verkeerslichten, knooppuntbordjes, namen van cafés</td><td class="l">ODbL</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="row" id="landmarks">
+  <div class="margin"><b>Landmarks</b>109 posten op de landmarklijst, verwerkt in 27 batches.<br>Vorm gecontroleerd met AHN5; texturen uit open foto's.</div>
+  <div class="main">
+    <h2>Waar het standaardmodel tekortschiet, vullen open foto's het aan</h2>
+    <p class="muted" style="margin-top:12px">3DBAG maakt van een gotische toren een doos met een piramide erop. Voor de beeldbepalende gebouwen van de stad wordt de vorm opnieuw gemeten in de AHN-laserpunten, en krijgen de gevels een textuur uit vrij gelicentieerde foto's.</p>
+    <div class="gallery">
+      <figure class="wide"><img src="img/dom.jpg" alt="Domtoren en Domkerk van bovenaf" loading="lazy" width="1280" height="800"><figcaption><span class="id">BAG 0344100000069167 · tegels 3_3, 4_3</span><h3>Domtoren en Domkerk</h3><p>Toren en koor opnieuw opgebouwd uit AHN-laserpunten, daarna van textuur voorzien met Wikimedia Commons- en RCE-foto's die met structure-from-motion zijn gepositioneerd. Daken uit de gemeentelijke luchtfoto van 2,5 cm.</p></figcaption></figure>
+      <figure><img src="img/pandhof.jpg" alt="Pandhoftuin met fontein" loading="lazy" width="1280" height="720"><figcaption><span class="id">rijksmonument 36077</span><h3>Pandhof</h3><p>Arcadetraveeën rechtgetrokken uit een CC BY-SA-foto op Commons; het portaal naar een RCE-documentatiefoto. De fontein met kanunnik Hugo Wstinc naar een archieffoto.</p></figcaption></figure>
+      <figure><img src="img/molen.jpg" alt="Molen Rijn en Zon" loading="lazy" width="1280" height="720"><figcaption><span class="id">BAG 0344100000005128 · Adelaarstraat 30</span><h3>Molen Rijn en Zon</h3><p>De stellingmolen uit 1913, volledig gemodelleerd; de molenromp met textuur uit een CC BY 3.0-foto op Commons, de vorm gecontroleerd met foto's van Het Utrechts Archief.</p></figcaption></figure>
+      <figure><img src="img/teapot.jpg" alt="Kunstwerk Celestial Teapot op het dak van een parkeergarage, Domtoren op de achtergrond" loading="lazy" width="1280" height="720"><figcaption><span class="id">dak 16,8 m NAP · hoogte 6,8 m</span><h3>Celestial Teapot</h3><p>De theepot van Lily van der Stokker op Hoog Catharijne. Geplaatst met de luchtfoto van 2,5 cm en de AHN-dakhoogte; het draaiprofiel naar een CC BY 4.0-archieffoto.</p></figcaption></figure>
+      <figure><img src="img/inktpot.jpg" alt="De Inktpot met de UFO op de toren" loading="lazy" width="1600" height="1000"><figcaption><span class="id">rijksmonument 46955 · UFO-top 49,1 m NAP</span><h3>De Inktpot en de UFO</h3><p>De schotel van 10 m van Marc Ruygrok, als cirkel gefit in het AHN-oppervlaktemodel; de bakstenen gevel uit een CC BY-SA-foto op Commons.</p></figcaption></figure>
+      <figure><img src="img/jacobi.jpg" alt="Toren en spits van de Jacobikerk" loading="lazy" width="1280" height="720"><figcaption><span class="id">spits 44,9–65,3 m NAP · haan 70,9 m</span><h3>Jacobikerk</h3><p>De spits die 3DBAG miste, gemeten in AHN5-punten; de toren met een fotolaag uit twee Commons-foto's (CC BY 3.0, CC BY-SA 4.0).</p></figcaption></figure>
+      <figure><img src="img/buurkerk.jpg" alt="Toren en schip van de Buurkerk van bovenaf" loading="lazy" width="1280" height="720"><figcaption><span class="id">BAG 0344100000046743</span><h3>Buurkerk</h3><p>De toren met achtkantige loden bekroning, gemeten in AHN5; gotische vensters met tracering opnieuw opgebouwd op de LoD2.2-schil.</p></figcaption></figure>
+      <figure><img src="img/willibrord.jpg" alt="Willibrordkerk met leien naaldspits tussen de daken" loading="lazy" width="1280" height="720"><figcaption><span class="id">rijksmonument 36364 · naald tot 58,4 m NAP</span><h3>Sint-Willibrordkerk</h3><p>De vieringtoren met leien naald ontbrak; AHN5 liet hem 11,9 m boven het 3DBAG-dak zien.</p></figcaption></figure>
+      <figure><img src="img/rabo.jpg" alt="Rabobanktoren bij Utrecht Centraal" loading="lazy" width="1280" height="800"><figcaption><span class="id">BAG 0344100000018495 · bekroning 107,2 m NAP</span><h3>Rabotoren</h3><p>Voor dit pand bestond geen LoD2.2. Opnieuw opgebouwd uit het AHN5-oppervlaktemodel en de OSM-contouren van de twee lobben van de toren.</p></figcaption></figure>
+      <figure><img src="img/lauwerhof.jpg" alt="Watertoren Lauwerhof vanuit de tuin" loading="lazy" width="1280" height="720"><figcaption><span class="id">RM 514252 · kantelen tot 42,5 m NAP</span><h3>Watertoren Lauwerhof</h3><p>Een omwentelingslichaam, gemeten in AHN5; reservoir en arcade uitgevouwen uit één CC BY-SA 4.0-foto op Commons.</p></figcaption></figure>
+      <figure><img src="img/sonnenborgh.jpg" alt="Sterrenwacht Sonnenborgh op het bolwerk" loading="lazy" width="1280" height="720"><figcaption><span class="id">tegel 5_1 · kegels tot 16,15 m NAP</span><h3>Sonnenborgh</h3><p>Koepels en torens van de sterrenwacht uit het AHN-oppervlaktemodel; de bolwerkmuur langs de muurlijn uit de BGT.</p></figcaption></figure>
+      <figure><img src="img/neude.jpg" alt="De Neude van bovenaf met ronde banken" loading="lazy" width="1280" height="720"><figcaption><span class="id">tegel 2_4 · 1.468 m² klinkers</span><h3>Neude</h3><p>Elf ronde banken geplaatst op de BGT-bankgroepen en gecontroleerd op de luchtfoto; caféterrassen herkend in de luchtfoto van 2,5 cm.</p></figcaption></figure>
+      <figure><img src="img/wvs.jpg" alt="Gevel van de Winkel van Sinkel aan de Oudegracht" loading="lazy" width="1280" height="720"><figcaption><span class="id">bovenkant attiek 25,6 m NAP</span><h3>Winkel van Sinkel</h3><p>De gevel met kariatiden geprojecteerd uit een CC BY-SA 4.0-foto van Pieter van Everdingen op Commons, met de hand gepositioneerd tot op 0,8 px.</p></figcaption></figure>
+      <figure><img src="img/jansbrug.jpg" alt="Boog van de Jansbrug over de Oudegracht" loading="lazy" width="1280" height="720"><figcaption><span class="id">overspanning 8,2 m · aanzet 1,0 m NAP</span><h3>Jansbrug</h3><p>Ellipsboog gefit op een CC BY 3.0-foto op Commons, die ook beide zijkanten van textuur voorziet.</p></figcaption></figure>
+      <figure><img src="img/geertebrug.jpg" alt="Geertebrug met twee bogen en een beeldpaneel" loading="lazy" width="1280" height="720"><figcaption><span class="id">dek 4,4–5,2 m NAP</span><h3>Geertebrug</h3><p>Bogen tussen de BGT-waterkanten, het dek op het AHN-oppervlak; de beelden van Jan van Luijn uit een CC BY-SA-foto.</p></figcaption></figure>
+      <figure><img src="img/lepelenburg.jpg" alt="Muziektent in park Lepelenburg" loading="lazy" width="1280" height="720"><figcaption><span class="id">vloer 3,45 m (AHN)</span><h3>Muziektent, Lepelenburg</h3><p>De rood-witte muziektent naar een CC BY-SA 4.0-foto op Commons; 297 heesters in het park, binnen de BGT-contour geplaatst.</p></figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section class="row" id="compare">
+  <div class="margin"><b>Voor / na</b>Zelfde camera.<br>Links: 3DBAG LoD2.2 en standaardgevels.<br>Rechts: na AHN5 en open foto's.</div>
+  <div class="main">
+    <h2>Wat een open foto toevoegt</h2>
+    <div class="tabs" id="cmp-tabs"></div>
+    <div class="cmp" id="cmp">
+      <img id="cmp-before" src="img/jk_before.jpg" alt="Voor" width="1280" height="720">
+      <img id="cmp-after" class="after" src="img/jk_after.jpg" alt="Na" width="1280" height="720">
+      <span class="line"></span><span class="lab b">voor</span><span class="lab a">na</span>
+    </div>
+    <label class="tag" for="cmp-range" style="display:block;margin-top:12px">Sleep om te vergelijken</label>
+    <input class="range" type="range" id="cmp-range" min="0" max="100" value="50">
+    <p id="cmp-cap" style="margin-top:8px"></p>
+  </div>
+</section>
+
+<section class="row" id="action">
+  <div class="margin"><b>Data in actie</b>Lagen die je in de viewer kunt aanzetten.</div>
+  <div class="main">
+    <h2>Ook het straatniveau komt uit openbare registers</h2>
+    <div class="duo">
+      <figure><img src="img/canal.jpg" alt="Oudegracht met werven, relingen en de Domtoren" loading="lazy" width="1600" height="900"><h3>Werven aan de Oudegracht</h3><p>Waterpeil +0,58 m NAP uit AHN5-waterpunten; kademuren, werven en relingen uit de BGT.</p></figure>
+      <figure><img src="img/trees.jpg" alt="Paardenkastanjes met soorteigen schors in een park" loading="lazy" width="1280" height="720"><h3>Bomen per soort</h3><p>Geslacht uit de gemeentelijke Bomenkaart, kroonhoogte uit AHN, schors uit Commons-foto's (hier <i>Aesculus</i>, door Adrian Tync, CC BY-SA 4.0).</p></figure>
+      <figure><img src="img/night.jpg" alt="Oudegracht 's avonds met brandende lantaarns" loading="lazy" width="1600" height="900"><h3>Nacht</h3><p>4.630 lantaarnpalen uit de laag met straatmeubilair verlichten de straat; de lantaarns gloeien en weerspiegelen in de gracht.</p></figure>
+      <figure><img src="img/signs.jpg" alt="Straat met een straatnaambord Potterstraat en verkeersborden" loading="lazy" width="1280" height="720"><h3>Borden</h3><p>Verkeersborden van NDW (CC0), getekend aan de hand van hun RVV-code; straatnaamborden bij kruispunten in het wegennet.</p></figure>
+      <figure><img src="img/terraces.jpg" alt="Caféterras met tafels, stoelen en parasols op de Neude" loading="lazy" width="1400" height="900"><h3>Terrassen</h3><p>487 tafels en 1.477 stoelen herkend in de gemeentelijke luchtfoto van 2,5 cm; namen van cafés uit OpenStreetMap.</p></figure>
+      <figure><img src="img/bridge.jpg" alt="Bakstenen grachtbrug met bogen over de Oudegracht" loading="lazy" width="1600" height="900"><h3>Bruggen</h3><p>149 bruggen: dekken uit de BGT, dekhoogtes uit AHN5-punten van kunstwerken, bogen gefit tussen de BGT-waterkanten.</p></figure>
+    </div>
+  </div>
+</section>
+
+<section class="row" id="numbers">
+  <div class="margin"><b>Cijfers</b>Geteld in het buildmanifest en de laagbestanden.</div>
+  <div class="main">
+    <h2>In cijfers</h2>
+    <div class="nums">
+      <div><div class="v">64</div><div class="k">tegels van 250 × 250 m, samen 2 × 2 km</div></div>
+      <div><div class="v">13.792</div><div class="k">gebouwen in de tegels</div></div>
+      <div><div class="v">269.734</div><div class="k">gevelvlakken, waarvan 10.567 met fototextuur</div></div>
+      <div><div class="v">8.944</div><div class="k">bomen in de tegels</div></div>
+      <div><div class="v">149</div><div class="k">bruggen</div></div>
+      <div><div class="v">7.207</div><div class="k">geparkeerde auto's, herkend in de luchtfoto</div></div>
+      <div><div class="v">1.989</div><div class="k">Panoramax-foto's met verfijnde camerapositie</div></div>
+      <div><div class="v">457</div><div class="k">Wikimedia Commons-foto's als extra camera</div></div>
+      <div><div class="v">17.145</div><div class="k">stuks straatmeubilair (BGT, OSM)</div></div>
+      <div><div class="v">5.874</div><div class="k">bordplaten op 2.507 palen</div></div>
+      <div><div class="v">109</div><div class="k">posten op de landmarklijst; 95 afgerond</div></div>
+      <div><div class="v">0,67 GB</div><div class="k">aan glTF-tegels</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="row" id="pipeline">
+  <div class="margin"><b>Hoe het gebouwd is</b>Per tegel van 250 m, in een spiraal vanaf de Dom naar buiten.</div>
+  <div class="main">
+    <h2>De pijplijn</h2>
+    <ol class="pipe">
+      <li><b>Downloaden</b><span>3DBAG-CityJSON, de luchtfoto van de tegel plus 40 m marge, AHN DTM en DSM, BGT. Alles wordt lokaal bewaard.</span></li>
+      <li><b>Maaiveld en water</b><span>Het DTM wordt een maaiveldmesh van 1 m met de luchtfoto eroverheen; watervlakken krijgen hun peil uit AHN5-waterpunten.</span></li>
+      <li><b>Gebouwen</b><span>LoD2.2-dak- en gevelvlakken worden getrianguleerd; daken krijgen de luchtfoto via een loodrechte projectie.</span></li>
+      <li><b>Gevels</b><span>Panoramax-foto's worden op elke gevelpixel geprojecteerd, rekening houdend met omliggende gebouwen die het zicht blokkeren. Camerastanden worden gecontroleerd tegen het silhouet uit 3DBAG. Gevels die op geen enkele foto staan, krijgen een gegenereerde textuur op basis van het bouwjaar.</span></li>
+      <li><b>Bomen en straten</b><span>Bomen uit de Bomenkaart met kroonhoogtes uit AHN; bestrating, relingen, heesters en straatmeubilair uit de BGT en OSM.</span></li>
+      <li><b>Landmarks</b><span>Vervangende modellen, gemeten in AHN5-punten en van textuur voorzien met foto's van Commons, RCE en Panoramax.</span></li>
+      <li><b>Publiceren</b><span>Elke tegel wordt als standaard glTF 2.0 weggeschreven en als 3D Tiles geserveerd aan een three.js-viewer, met borden, ov, terrassen en camera's als lagen die je aan en uit kunt zetten.</span></li>
+    </ol>
+  </div>
+</section>
+
+<section class="row" id="why">
+  <div class="margin"><b>Waarom het ertoe doet</b></div>
+  <div class="main stack">
+    <h2>Waarom open data ertoe doet</h2>
+    <p>Voor een model als dit had je vroeger een inmeetcontract, gelicentieerde luchtfoto's en een vloot camera-auto's nodig. Hier is het gebouwd met alleen downloads, omdat Nederland zijn basisregistraties openbaar publiceert en vrijwilligers hun foto's delen. Zelfs de bussen en trams in de viewer rijden op een open realtime-feed.</p>
+    <p>Elk getal op deze pagina is na te gaan bij de bron. Een spitshoogte is een meting in AHN, een gebouwcontour is een BAG-record, een monument is een RCE-nummer. Iedereen kan het opnieuw bouwen, verbeteren of de tegels hergebruiken in Blender, Cesium of een game-engine.</p>
+    <p>De gaten zijn ook zichtbaar. Waar niemand een open foto heeft gemaakt, blijft een gevel gegenereerd. Een wandeling uploaden naar Panoramax of een foto naar Commons maakt het model direct beter.</p>
+  </div>
+</section>
+
+<section class="row" id="credits">
+  <div class="margin"><b>Bronnen</b>Naamsvermelding zoals de licenties vragen.</div>
+  <div class="main">
+    <h2>Bronvermelding</h2>
+    <div class="credits">
+      <p><b>Data.</b> Gebouwen: 3DBAG (TU Delft 3D geoinformation / 3DGI), CC BY 4.0. Hoogte: AHN via PDOK en GeoTiles (TU Delft), CC0. BGT via PDOK, CC0. Luchtfoto's: Gemeente Utrecht Luchtfoto actueel (vermeld als CC BY-SA 4.0); Beeldmateriaal Nederland via PDOK, CC BY 4.0. Bomen: Gemeente Utrecht Bomenkaart, CC BY 4.0. Straatfoto's: Panoramax-bijdragers, CC BY-SA 4.0. Verkeersborden: NDW Verkeersborden, CC0. Cameraregister Utrecht, Gemeente Utrecht, CC0. Openbaar vervoer: OVapi GTFS-NL en GTFS-realtime, CC0 (routevormen ODbL). Provincie Utrecht Schwung VRI's, Public Domain Mark. Kaartgegevens © OpenStreetMap-bijdragers, ODbL. Rijksmonumenten: Rijksdienst voor het Cultureel Erfgoed. Archieffoto's: Het Utrechts Archief, via Internet Archive.</p>
+      <p><b>Foto's bij de getoonde landmarks.</b> Pandhof: josefstuefer (CC BY-SA 3.0), A. J. van der Wal / RCE (CC BY-SA 4.0), Fotodienst HUA (CC BY 4.0). Molen Rijn en Zon: Henk Monster (CC BY 3.0). Celestial Teapot: Het Utrechts Archief cat. 816229 (CC BY 4.0), AlvarJL op Panoramax (CC BY-SA 4.0). De Inktpot: Johan Bakker (CC BY-SA 4.0). Jacobikerk: Henk Monster (CC BY 3.0), Michielverbeek (CC BY-SA 4.0). Watertoren Lauwerhof: Michielverbeek (CC BY-SA 4.0). Winkel van Sinkel: Pieter van Everdingen (CC BY-SA 4.0). Jansbrug: Arjandb (CC BY 3.0). Geertebrug: Brbbl (CC BY-SA 3.0). Muziektent Lepelenburg: Steven Lek (CC BY-SA 4.0). Schors: Adrian Tync en andere Commons-fotografen (CC BY-SA). Domtoren en Domkerk: gepositioneerde foto's van Wikimedia Commons en de RCE, per bestand vermeld in de bronregistratie van het project.</p>
+      <p><b>Schermafbeeldingen.</b> Gerenderd met de utrecht3d-viewer. Als afgeleid werk van CC BY-SA- en ODbL-bronnen vallen ze onder dezelfde voorwaarden voor naamsvermelding en gelijk delen.</p>
+    </div>
+  </div>
+</section>
+
+<section class="row" id="contact">
+  <div class="margin"><b>Contact</b>Meedoen, meedenken, meebouwen.</div>
+  <div class="main">
+    <h2>Zin om samen te werken?</h2>
+    <div class="contact">
+      <div class="stack">
+        <p>Dit is een hobbyproject dat laat zien wat er kan met open data. Ik kom graag in contact met mensen die er iets mee willen: gemeenten en erfgoedinstellingen, ontwikkelaars, fotografen die hun straatbeelden open delen, en iedereen met een idee of een betere bron.</p>
+        <p class="muted">Denk aan meer landmarks, eigen wandelfoto's op Panoramax, een uitbreiding naar andere wijken of steden, of hergebruik van de tegels in onderwijs, games of plannen.</p>
+      </div>
+      <div class="card">
+        <span class="tag">Neem contact op</span>
+        <span class="who">Rob Audenaerde</span>
+        <span class="addr" id="mail">utrecht3d@audenaer.de</span>
+        <button type="button" class="copy" id="copy-mail">Kopieer e-mailadres</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>utrecht3d · RD New / NAP · oorsprong RD 136 858, 455 907 · gebouwd in nov. 2026 met open data zonder sleutel</footer>
+</div>
+
+<script>
+(() => {
+  const L = [
+    { img:'layer1', t:'Maaiveld en luchtfoto', s:'AHN DTM · luchtfoto Gemeente Utrecht', lic:'CC0',
+      cap:'AHN-maaiveldhoogtes (Rijkswaterstaat en de waterschappen, CC0) met de gemeentelijke luchtfoto van 2,5 cm eroverheen. De daken zijn nog platte verf op de grond.' },
+    { img:'layer2', t:'Gebouwen', s:'3DBAG LoD2.2', lic:'CC BY 4.0',
+      cap:'3DBAG van de TU Delft: elk BAG-pand opgetrokken met zijn gemeten dakvorm (LoD2.2). Hier nog zonder textuur.' },
+    { img:'layer3', t:'Fototexturen', s:'Luchtfoto · Panoramax · Commons', lic:'CC BY / CC BY-SA',
+      cap:'Daken uit de luchtfoto, gevels uit Panoramax-straatfoto\'s (CC BY-SA 4.0), landmarks uit Commons- en RCE-foto\'s. Gevels die op geen enkele foto staan, krijgen een gegenereerde gevel.' },
+    { img:'layer4', t:'Bomen', s:'Bomenkaart · AHN-kroonhoogte', lic:'CC BY 4.0 · CC0',
+      cap:'De Bomenkaart van de Gemeente Utrecht geeft positie en soort (CC BY 4.0); AHN geeft de kroonhoogte (CC0).' },
+    { img:'layer5', t:'Straatmeubilair, borden, terrassen', s:'BGT · NDW · OSM · luchtfoto', lic:'CC0 · ODbL',
+      cap:'Bestrating, relingen en palen uit de BGT (CC0), verkeersborden van NDW (CC0), fietsenrekken en beelden uit OpenStreetMap (ODbL), caféterrassen herkend in de luchtfoto.' },
+    { img:'layer6', t:'Alles', s:'+ auto\'s, straatnamen', lic:'gemengd',
+      cap:'Alle lagen aan: geparkeerde auto\'s herkend in de luchtfoto en straatnaamlabels uit de BGT (CC0).' },
+  ];
+  const ol = document.getElementById('steps'), img = document.getElementById('layer-img');
+  const cap = document.getElementById('layer-cap'), lic = document.getElementById('layer-lic');
+  L.forEach((l, i) => {
+    const li = document.createElement('li');
+    li.innerHTML = `<button type="button" id="step-${i+1}" aria-pressed="false"><span class="n">${i+1}</span><span class="t">${l.t}</span><span class="s">${l.s}</span></button>`;
+    li.firstChild.addEventListener('click', () => show(i));
+    ol.appendChild(li);
+    const p = new Image(); p.src = `img/${l.img}.jpg`;
+  });
+  let cur = 0;
+  function show(i) {
+    cur = (i + L.length) % L.length;
+    const l = L[cur];
+    img.classList.add('fade');
+    const done = () => img.classList.remove('fade');
+    img.onload = done; img.src = `img/${l.img}.jpg`; if (img.complete) setTimeout(done, 60);
+    img.alt = `Laag ${cur+1}: ${l.t}`;
+    cap.textContent = l.cap; lic.textContent = l.lic;
+    ol.querySelectorAll('button').forEach((b, k) => b.setAttribute('aria-pressed', k === cur ? 'true' : 'false'));
+  }
+  document.getElementById('layer-prev').addEventListener('click', () => show(cur - 1));
+  document.getElementById('layer-next').addEventListener('click', () => show(cur + 1));
+  show(0);
+
+  const C = [
+    { id:'jk', name:'Jacobikerk', cap:'Jacobikerk: 3DBAG hield de toren op als platte doos. AHN5-punten geven de achtkantige spits tot 65,3 m NAP; twee Commons-foto\'s geven de toren zijn textuur.' },
+    { id:'lw', name:'Watertoren Lauwerhof', cap:'Lauwerhof: een grijs 65-hoekig prisma wordt de bakstenen watertoren, gemeten in AHN5 en uitgevouwen uit één CC BY-SA 4.0-foto op Commons.' },
+    { id:'molen', name:'Molen Rijn en Zon', cap:'Molen Rijn en Zon: het BAG-pand was een eenvoudig blok. De molen is volledig gemodelleerd en van textuur voorzien met een CC BY 3.0-foto op Commons.' },
+  ];
+  const tabs = document.getElementById('cmp-tabs'), cmp = document.getElementById('cmp');
+  const bi = document.getElementById('cmp-before'), ai = document.getElementById('cmp-after'), cc = document.getElementById('cmp-cap');
+  const rng = document.getElementById('cmp-range');
+  C.forEach((c, i) => {
+    const b = document.createElement('button'); b.type = 'button'; b.id = 'cmp-' + c.id; b.textContent = c.name;
+    b.addEventListener('click', () => pick(i)); tabs.appendChild(b);
+  });
+  function pick(i) {
+    const c = C[i];
+    bi.src = `img/${c.id}_before.jpg`; ai.src = `img/${c.id}_after.jpg`;
+    bi.alt = `${c.name} voor`; ai.alt = `${c.name} na`; cc.textContent = c.cap;
+    tabs.querySelectorAll('button').forEach((b, k) => b.setAttribute('aria-pressed', k === i ? 'true' : 'false'));
+  }
+  const setCut = v => cmp.style.setProperty('--cut', v + '%');
+  rng.addEventListener('input', () => setCut(rng.value));
+  let drag = false;
+  const fromEvent = e => { const r = cmp.getBoundingClientRect(); const v = Math.max(0, Math.min(100, (e.clientX - r.left) / r.width * 100)); rng.value = v; setCut(v); };
+  cmp.addEventListener('pointerdown', e => { drag = true; cmp.setPointerCapture(e.pointerId); fromEvent(e); });
+  cmp.addEventListener('pointermove', e => { if (drag) fromEvent(e); });
+  cmp.addEventListener('pointerup', () => { drag = false; });
+  cmp.style.touchAction = 'pan-y';
+  pick(0); setCut(50);
+
+  const cb = document.getElementById('copy-mail'), mail = document.getElementById('mail');
+  cb.addEventListener('click', () => {
+    const done = () => { cb.textContent = 'Gekopieerd'; setTimeout(() => { cb.textContent = 'Kopieer e-mailadres'; }, 1800); };
+    const fallback = () => { const r = document.createRange(); r.selectNodeContents(mail); const s = getSelection(); s.removeAllRanges(); s.addRange(r); cb.textContent = 'Geselecteerd, kopieer met Ctrl+C'; };
+    try { navigator.clipboard.writeText(mail.textContent).then(done, fallback); } catch { fallback(); }
+  });
+})();
+</script>
+
+</body>
+</html>
