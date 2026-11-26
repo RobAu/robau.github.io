@@ -167,7 +167,10 @@ footer{padding-block:32px 56px;border-top:1px solid var(--ink);font-family:var(-
 </style>
 
 
-<style>[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+<style>[hidden]{display:none!important}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}.film{margin:0}
+.film video{width:100%;aspect-ratio:16/9;display:block;background:#000;border:1px solid var(--ink)}
+.film figcaption{margin-top:10px}
+</style>
 </head>
 <body>
 <div class="sheet">
@@ -191,6 +194,21 @@ footer{padding-block:32px 56px;border-top:1px solid var(--ink);font-family:var(-
     </div>
   </div>
 </header>
+
+
+<section class="row" id="film">
+  <div class="margin"><b>Film</b>67 seconden · 1280 × 720<br>Gerenderd met de viewer,<br>beeld voor beeld.</div>
+  <div class="main">
+    <h2>Een minuut boven en door de stad</h2>
+    <figure class="film" style="margin-top:20px">
+      <video controls muted playsinline preload="none" poster="video/poster.jpg">
+        <source src="video/utrecht3d_flyover.mp4" type="video/mp4">
+        <a href="video/utrecht3d_flyover.mp4">Download de film (MP4)</a>
+      </video>
+      <figcaption class="muted">Van luchtfoto tot fietstocht: de lagen één voor één, de landmarks, de Krakeling, de nacht op de Oudegracht en een rit langs de Vismarkt.</figcaption>
+    </figure>
+  </div>
+</section>
 
 <section class="row" id="layers">
   <div class="margin"><b>Laag voor laag</b>Eén camera, zes standen.<br>RD 136 760 · 455 720<br>NAP +118 m, hellingshoek −40°<br>Oudegracht, Buurkerk, Domtoren, Domplein</div>
